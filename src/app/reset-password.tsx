@@ -1,4 +1,4 @@
-
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AppTextInput from '../components/ui/AppTextInput';
 import PrimaryButton from '../components/ui/PrimaryButton';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing } from '../theme';
 
 export default function ResetPasswordScreen() {
   const params = useLocalSearchParams<{ token?: string }>();
@@ -77,38 +77,30 @@ export default function ResetPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <Text style={styles.backLink}>‹  Back</Text>
-          </Pressable>
+          {/* Top Row Header */}
+          <View style={styles.topRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}
+              hitSlop={8}
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={20} color={colors.text} />
+            </Pressable>
 
-          <View style={styles.brandRow}>
             <Image
-              source={require('../assets/gileo-logo.png')}
+              source={require('../../assets/gileo-logo.png')}
               style={styles.brandLogo}
               resizeMode="contain"
               accessibilityLabel="Gileo Medicals"
             />
           </View>
 
-          <View style={styles.illustration}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.lockIcon}>⌑</Text>
-              <View style={styles.checkBadge}>
-                <Text style={styles.checkIcon}>✓</Text>
-              </View>
-            </View>
-          </View>
-
           <View style={styles.heading}>
-            <Text style={styles.eyebrow}>ACCOUNT SECURITY</Text>
             <Text style={styles.title}>Create a new password</Text>
             <Text style={styles.subtitle}>
-              Choose a strong password to help keep your GILEO account and
-              health information secure.
+              Choose a strong password to help keep your Gileo account secure.
             </Text>
           </View>
 
@@ -138,29 +130,33 @@ export default function ResetPasswordScreen() {
               onSubmitEditing={handleResetPassword}
             />
 
-            <Text style={styles.helperText}>
-              Use at least 8 characters. Avoid reusing a password from another
-              account.
-            </Text>
-
             <PrimaryButton
               title="Reset password"
               onPress={handleResetPassword}
               style={styles.submitButton}
             />
 
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => router.replace('/login')}
-              style={styles.loginButton}
-            >
-              <Text style={styles.loginLink}>Return to log in</Text>
-            </Pressable>
+            <View style={styles.loginRow}>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => router.replace('/login')}
+                hitSlop={8}
+              >
+                <Text style={styles.loginLink}>Return to log in</Text>
+              </Pressable>
+            </View>
           </View>
 
-          <Text style={styles.footerNote}>
-            Your health information belongs to you.
-          </Text>
+          <View style={styles.footer}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={15}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.footerNote}>
+              Your health information is safely secured.
+            </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -178,113 +174,72 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.sm,
-  },
-  backLink: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  brandRow: {
-    height: 48,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-  },
-  brandLogo: {
-    width: 106,
-    height: 48,
-    marginLeft: -20,
-  },
-  illustration: {
+  topRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xxl,
+    justifyContent: 'space-between',
     marginBottom: spacing.xl,
   },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primarySoft,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  lockIcon: {
-    color: colors.primary,
-    fontSize: 48,
-    fontWeight: '600',
-  },
-  checkBadge: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.primary,
-    borderWidth: 3,
-    borderColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkIcon: {
-    color: colors.surface,
-    fontSize: 15,
-    fontWeight: '700',
+  brandLogo: {
+    width: 120,
+    height: 40,
+    marginRight: -10,
   },
   heading: {
     marginBottom: spacing.xl,
   },
-  eyebrow: {
-    color: colors.primary,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.8,
-    marginBottom: spacing.md,
-  },
   title: {
-    color: colors.text,
-    fontSize: typography.heading,
+    color: '#0F172A',
+    fontSize: 28,
     fontWeight: '700',
-    letterSpacing: -0.7,
+    letterSpacing: -0.6,
   },
   subtitle: {
-    color: colors.textSecondary,
-    fontSize: typography.body,
-    lineHeight: 23,
-    marginTop: spacing.md,
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 6,
+    maxWidth: 340,
   },
   form: {
     gap: spacing.lg,
   },
-  helperText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: -spacing.sm,
-  },
   submitButton: {
-    marginTop: spacing.sm,
+    marginTop: 4,
   },
-  loginButton: {
-    alignSelf: 'center',
-    padding: spacing.sm,
+  loginRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 4,
   },
   loginLink: {
-    color: colors.primary,
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '700',
   },
-  footerNote: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    textAlign: 'center',
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginTop: 'auto',
     paddingTop: spacing.xxl,
+  },
+  footerNote: {
+    color: '#64748B',
+    fontSize: 12,
   },
 });

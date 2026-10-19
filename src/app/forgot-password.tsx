@@ -1,4 +1,4 @@
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -18,8 +18,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AppTextInput from '../components/ui/AppTextInput';
+import PrimaryButton from '../components/ui/PrimaryButton';
 import { apiRequest } from '../services/api';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing } from '../theme';
 
 type MessageResponse = {
   message?: string;
@@ -35,8 +37,6 @@ export default function ForgotPasswordScreen() {
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [countdown, setCountdown] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +44,28 @@ export default function ForgotPasswordScreen() {
   const [infoMessage, setInfoMessage] = useState('');
 
   const backScale = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
   const codeInput = useRef<TextInput>(null);
+
+  useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(16);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 360,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [stage, fadeAnim, slideAnim]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -118,7 +139,7 @@ export default function ForgotPasswordScreen() {
       setCountdown(RESEND_COOLDOWN);
       setInfoMessage(
         result?.message ||
-          'If an eligible account exists, a password-reset code will be sent.',
+          'If an account exists, a password reset code has been sent.',
       );
     } catch (error) {
       setErrorMessage(
@@ -157,11 +178,6 @@ export default function ForgotPasswordScreen() {
 
     if (newPassword.length < 12) {
       setErrorMessage('Your new password must contain at least 12 characters.');
-      return;
-    }
-
-    if (newPassword.length > 128) {
-      setErrorMessage('Your password must be 128 characters or fewer.');
       return;
     }
 
@@ -222,7 +238,7 @@ export default function ForgotPasswordScreen() {
       setCountdown(RESEND_COOLDOWN);
       setInfoMessage(
         result?.message ||
-          'If an eligible account exists, a password-reset code will be sent.',
+          'A new password reset code has been sent to your email.',
       );
     } catch (error) {
       setErrorMessage(
@@ -237,17 +253,17 @@ export default function ForgotPasswordScreen() {
 
   const title =
     stage === 'email'
-      ? 'Reset your password.'
+      ? 'Forgot password?'
       : stage === 'code'
-        ? 'Check your email.'
-        : 'Create a new password.';
+        ? 'Check your email'
+        : 'New password';
 
   const description =
     stage === 'email'
-      ? 'Enter the email address linked to your GILEO account. We’ll send you a code to reset your password.'
+      ? 'Enter your email address and we’ll send you a 6-digit code to reset your password.'
       : stage === 'code'
-        ? 'Enter the six-digit password-reset code sent to your email address.'
-        : 'Choose a strong password you have not used for your GILEO account before.';
+        ? 'Enter the 6-digit verification code sent to your email.'
+        : 'Choose a new password for your account (at least 12 characters).';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -260,368 +276,233 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.backButtonWrapper,
-              { transform: [{ scale: backScale }] },
-            ]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              onPress={handleBack}
-              onPressIn={() => animateBack(0.92)}
-              onPressOut={() => animateBack(1)}
-              hitSlop={8}
-              style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color={colors.text} />
-            </Pressable>
-          </Animated.View>
+          {/* Top Row Header */}
+          <View style={styles.topRow}>
+            <Animated.View style={{ transform: [{ scale: backScale }] }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={handleBack}
+                onPressIn={() => animateBack(0.92)}
+                onPressOut={() => animateBack(1)}
+                hitSlop={8}
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={20} color={colors.text} />
+              </Pressable>
+            </Animated.View>
 
-          <View style={styles.header}>
             <Image
-              source={require('../assets/gileo-logo.png')}
+              source={require('../../assets/gileo-logo.png')}
               style={styles.brandLogo}
               resizeMode="contain"
               accessibilityLabel="Gileo Medicals"
             />
           </View>
 
-          <View style={styles.illustration}>
-            <View style={styles.outerCircle}>
-              <View style={styles.innerCircle}>
-                <Ionicons
-                  name={
-                    stage === 'email'
-                      ? 'lock-closed-outline'
-                      : stage === 'code'
-                        ? 'mail-open-outline'
-                        : 'shield-checkmark-outline'
-                  }
-                  size={42}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.checkBadge}>
-                <Ionicons name="checkmark" size={17} color="#FFFFFF" />
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.content}>
-            <Text style={styles.eyebrow}>ACCOUNT RECOVERY</Text>
-            <View style={styles.progressRow} accessibilityLabel={`Step ${stage === 'email' ? 1 : stage === 'code' ? 2 : 3} of 3`}>
+          {/* Animated Main Content */}
+          <Animated.View
+            style={[
+              styles.animatedContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {/* Step indicators */}
+            <View style={styles.progressRow}>
               {(['email', 'code', 'password'] as Stage[]).map((item, index) => {
                 const activeIndex = stage === 'email' ? 0 : stage === 'code' ? 1 : 2;
                 return (
                   <View
                     key={item}
                     style={[
-                      styles.progressSegment,
-                      index <= activeIndex && styles.progressSegmentActive,
+                      styles.progressDot,
+                      index <= activeIndex && styles.progressDotActive,
                     ]}
                   />
                 );
               })}
             </View>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.description}>{description}</Text>
 
-            {stage === 'email' ? (
-              <>
-                <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
-                <TextInput
+            <View style={styles.heading}>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.subtitle}>{description}</Text>
+            </View>
+
+            <View style={styles.form}>
+              {stage === 'email' ? (
+                <AppTextInput
+                  label="Email address"
+                  placeholder="you@example.com"
                   value={email}
-                  onChangeText={(value) => {
-                    setEmail(value);
+                  onChangeText={(val) => {
+                    setEmail(val);
                     clearMessages();
                   }}
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.placeholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoComplete="email"
-                  textContentType="emailAddress"
                   returnKeyType="done"
                   onSubmitEditing={handleRequestCode}
-                  editable={!isSubmitting}
-                  style={styles.textInput}
-                  accessibilityLabel="Email address"
                 />
-
-                <Text style={styles.helpText}>
-                  For your security, we’ll only send a reset code if the
-                  account is eligible.
-                </Text>
-              </>
-            ) : (
-              <>
-                <View style={styles.emailCard}>
-                  <Ionicons
-                    name="mail-outline"
-                    size={19}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.emailText}>{email}</Text>
-                  {stage === 'code' && (
+              ) : stage === 'code' ? (
+                <>
+                  <View style={styles.emailBadge}>
+                    <Ionicons name="mail-outline" size={16} color="#64748B" />
+                    <Text style={styles.emailBadgeText}>{email}</Text>
                     <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Change email address"
                       onPress={() => {
                         setStage('email');
                         clearMessages();
                       }}
+                      hitSlop={8}
                     >
-                      <Ionicons
-                        name="pencil-outline"
-                        size={17}
-                        color={colors.primary}
-                      />
+                      <Ionicons name="pencil-outline" size={15} color="#0F172A" />
                     </Pressable>
-                  )}
-                </View>
+                  </View>
 
-                {stage === 'code' ? (
-                  <>
-                    <Text style={styles.fieldLabel}>RESET CODE</Text>
+                  <Text style={styles.codeLabel}>6-DIGIT CODE</Text>
+                  <Pressable
+                    style={styles.codeContainer}
+                    onPress={() => codeInput.current?.focus()}
+                  >
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.codeCell,
+                          code.length === index && styles.codeCellActive,
+                        ]}
+                      >
+                        <Text style={styles.codeDigit}>{code[index] || ''}</Text>
+                      </View>
+                    ))}
+                    <TextInput
+                      ref={codeInput}
+                      value={code}
+                      onChangeText={(val) => {
+                        setCode(val.replace(/\D/g, '').slice(0, 6));
+                        clearMessages();
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      caretHidden
+                      style={styles.hiddenCodeInput}
+                    />
+                  </Pressable>
+
+                  <View style={styles.resendRow}>
+                    <Text style={styles.resendPrompt}>Didn't receive code?</Text>
                     <Pressable
-                      style={styles.codeContainer}
-                      onPress={() => codeInput.current?.focus()}
-                      accessibilityRole="button"
-                      accessibilityLabel="Enter six-digit password reset code"
+                      disabled={countdown > 0 || isSubmitting}
+                      onPress={handleResendCode}
+                      hitSlop={8}
                     >
-                      {Array.from({ length: 6 }, (_, index) => (
-                        <View
-                          key={index}
-                          style={[
-                            styles.codeCell,
-                            code.length === index && styles.codeCellActive,
-                          ]}
-                        >
-                          <Text style={styles.codeDigit}>
-                            {code[index] || ''}
-                          </Text>
-                        </View>
-                      ))}
-                      <TextInput
-                        ref={codeInput}
-                        value={code}
-                        onChangeText={(value) => {
-                          setCode(value.replace(/\D/g, '').slice(0, 6));
-                          clearMessages();
-                        }}
-                        keyboardType="number-pad"
-                        textContentType="oneTimeCode"
-                        autoComplete="one-time-code"
-                        maxLength={6}
-                        caretHidden
-                        style={styles.hiddenCodeInput}
-                        accessibilityLabel="Six-digit password reset code"
-                      />
+                      <Text
+                        style={[
+                          styles.resendLink,
+                          (countdown > 0 || isSubmitting) && styles.resendLinkDisabled,
+                        ]}
+                      >
+                        {isSubmitting
+                          ? 'Sending...'
+                          : countdown > 0
+                            ? `Resend in ${countdown}s`
+                            : 'Resend code'}
+                      </Text>
                     </Pressable>
-
-                    <Text style={styles.helpText}>
-                      Check your inbox and spam folder. The code may expire
-                      after a limited time.
-                    </Text>
-
-                    <View style={styles.resendRow}>
-                      <Text style={styles.resendPrompt}>
-                        Didn’t receive a code?
-                      </Text>
-                      <Pressable
-                        accessibilityRole="button"
-                        disabled={countdown > 0 || isSubmitting}
-                        onPress={handleResendCode}
-                        hitSlop={8}
-                      >
-                        <Text
-                          style={[
-                            styles.resendLink,
-                            (countdown > 0 || isSubmitting) &&
-                              styles.resendLinkDisabled,
-                          ]}
-                        >
-                          {isSubmitting
-                            ? 'Sending...'
-                            : countdown > 0
-                              ? `Resend in ${countdown}s`
-                              : 'Resend code'}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
-                    <View style={styles.passwordContainer}>
-                      <TextInput
-                        value={newPassword}
-                        onChangeText={(value) => {
-                          setNewPassword(value);
-                          clearMessages();
-                        }}
-                        placeholder="At least 12 characters"
-                        placeholderTextColor={colors.placeholder}
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        autoComplete="new-password"
-                        textContentType="newPassword"
-                        returnKeyType="next"
-                        style={styles.passwordInput}
-                        accessibilityLabel="New password"
-                      />
-                      <Pressable
-                        onPress={() => setShowPassword((value) => !value)}
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          showPassword ? 'Hide password' : 'Show password'
-                        }
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                          size={21}
-                          color={colors.textSecondary}
-                        />
-                      </Pressable>
-                    </View>
-
-                    <Text style={styles.fieldLabel}>CONFIRM NEW PASSWORD</Text>
-                    <View style={styles.passwordContainer}>
-                      <TextInput
-                        value={confirmPassword}
-                        onChangeText={(value) => {
-                          setConfirmPassword(value);
-                          clearMessages();
-                        }}
-                        placeholder="Enter your new password again"
-                        placeholderTextColor={colors.placeholder}
-                        secureTextEntry={!showConfirmPassword}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        autoComplete="new-password"
-                        textContentType="newPassword"
-                        returnKeyType="done"
-                        onSubmitEditing={handleResetPassword}
-                        style={styles.passwordInput}
-                        accessibilityLabel="Confirm new password"
-                      />
-                      <Pressable
-                        onPress={() =>
-                          setShowConfirmPassword((value) => !value)
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          showConfirmPassword
-                            ? 'Hide confirmation password'
-                            : 'Show confirmation password'
-                        }
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={
-                            showConfirmPassword
-                              ? 'eye-off-outline'
-                              : 'eye-outline'
-                          }
-                          size={21}
-                          color={colors.textSecondary}
-                        />
-                      </Pressable>
-                    </View>
-
-                    <View style={styles.passwordHint}>
-                      <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
-                      <Text style={styles.passwordHintText}>
-                        Use 12–128 characters. A unique passphrase is easier to remember and harder to guess.
-                      </Text>
-                    </View>
-                  </>
-                )}
-              </>
-            )}
-
-            {errorMessage ? (
-              <View style={styles.messageBoxError} accessibilityRole="alert">
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={18}
-                  color={colors.error}
-                />
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
-            ) : null}
-
-            {infoMessage && !errorMessage ? (
-              <View style={styles.messageBoxInfo}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={18}
-                  color={colors.textSecondary}
-                />
-                <Text style={styles.infoText}>{infoMessage}</Text>
-              </View>
-            ) : null}
-
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={
-                stage === 'email'
-                  ? handleRequestCode
-                  : stage === 'code'
-                    ? handleVerifyCode
-                    : handleResetPassword
-              }
-              style={({ pressed }) => [
-                styles.primaryButton,
-                pressed && styles.primaryButtonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
+                  </View>
+                </>
               ) : (
                 <>
-                  <Text style={styles.primaryButtonText}>
-                    {stage === 'email'
-                      ? 'Send reset code'
-                      : stage === 'code'
-                        ? 'Continue'
-                        : 'Reset password'}
-                  </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={18}
-                    color="#FFFFFF"
+                  <AppTextInput
+                    label="New password"
+                    placeholder="At least 12 characters"
+                    value={newPassword}
+                    onChangeText={(val) => {
+                      setNewPassword(val);
+                      clearMessages();
+                    }}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoComplete="new-password"
+                    returnKeyType="next"
+                  />
+
+                  <AppTextInput
+                    label="Confirm new password"
+                    placeholder="Enter your password again"
+                    value={confirmPassword}
+                    onChangeText={(val) => {
+                      setConfirmPassword(val);
+                      clearMessages();
+                    }}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoComplete="new-password"
+                    returnKeyType="done"
+                    onSubmitEditing={handleResetPassword}
                   />
                 </>
               )}
-            </Pressable>
 
-            <View style={styles.loginDivider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>REMEMBER YOUR PASSWORD?</Text>
-              <View style={styles.dividerLine} />
-            </View>
+              {errorMessage ? (
+                <View style={styles.errorBox} accessibilityRole="alert">
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={18}
+                    color={colors.error}
+                  />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              ) : null}
 
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => router.replace('/login')}
-              style={styles.loginButton}
-            >
-              <Text style={styles.loginText}>Back to login</Text>
-              <Ionicons
-                name="arrow-forward"
-                size={16}
-                color={colors.primary}
+              {infoMessage && !errorMessage ? (
+                <View style={styles.infoBox}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={18}
+                    color="#0F172A"
+                  />
+                  <Text style={styles.infoText}>{infoMessage}</Text>
+                </View>
+              ) : null}
+
+              <PrimaryButton
+                title={
+                  stage === 'email'
+                    ? 'Send reset code'
+                    : stage === 'code'
+                      ? 'Continue'
+                      : 'Reset password'
+                }
+                onPress={
+                  stage === 'email'
+                    ? handleRequestCode
+                    : stage === 'code'
+                      ? handleVerifyCode
+                      : handleResetPassword
+                }
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                style={styles.actionButton}
               />
-            </Pressable>
-          </View>
+
+              <View style={styles.loginRow}>
+                <Text style={styles.loginPrompt}>Remembered your password?</Text>
+                <Pressable
+                  onPress={() => router.replace('/login')}
+                  accessibilityRole="link"
+                  hitSlop={8}
+                >
+                  <Text style={styles.loginLink}> Log in</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Animated.View>
 
           <View style={styles.footer}>
             <Ionicons
@@ -629,8 +510,8 @@ export default function ForgotPasswordScreen() {
               size={15}
               color={colors.textSecondary}
             />
-            <Text style={styles.footerText}>
-              Your health information deserves privacy.
+            <Text style={styles.footerNote}>
+              Your health information is safely secured.
             </Text>
           </View>
         </ScrollView>
@@ -653,350 +534,199 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
   },
-  backButtonWrapper: {
-    alignSelf: 'flex-start',
-    marginBottom: spacing.md,
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xl,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F4F4F2',
+    backgroundColor: '#FAFAFA',
     borderWidth: 1,
-    borderColor: '#EBEBE8',
-  },
-  header: {
-    height: 48,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    marginBottom: spacing.xl,
+    borderColor: '#E2E8F0',
   },
   brandLogo: {
-    width: 106,
-    height: 48,
-    marginLeft: -20,
+    width: 120,
+    height: 40,
+    marginRight: -10,
   },
-  illustration: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  outerCircle: {
-    width: 126,
-    height: 126,
-    borderRadius: 63,
-    backgroundColor: '#F3F0E8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  innerCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  checkBadge: {
-    position: 'absolute',
-    right: 3,
-    bottom: 6,
-    width: 31,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-  },
-  eyebrow: {
-    color: '#8A7045',
-    fontSize: 10,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.8,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
+  animatedContainer: {
+    flex: 1,
   },
   progressRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 7,
+    gap: 6,
     marginBottom: spacing.lg,
-    paddingHorizontal: spacing.xxl,
   },
-  progressSegment: {
+  progressDot: {
     flex: 1,
     height: 4,
     borderRadius: 999,
-    backgroundColor: '#E8E5DE',
+    backgroundColor: '#E2E8F0',
   },
-  progressSegmentActive: {
-    backgroundColor: colors.primary,
+  progressDotActive: {
+    backgroundColor: '#0F172A',
   },
-  title: {
-    color: colors.text,
-    fontSize: 29,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.9,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  description: {
-    color: colors.textSecondary,
-    fontSize: typography.body,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 23,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  fieldLabel: {
-    color: colors.text,
-    fontSize: 11,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.2,
-    marginBottom: spacing.md,
-    marginTop: spacing.sm,
-  },
-  textInput: {
-    minHeight: 54,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#FAFAF8',
-    paddingHorizontal: spacing.lg,
-    color: colors.text,
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    marginBottom: spacing.md,
-  },
-  emailCard: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    backgroundColor: '#F8F8F6',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
+  heading: {
     marginBottom: spacing.xl,
   },
-  emailText: {
+  title: {
+    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+  },
+  subtitle: {
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 6,
+    maxWidth: 340,
+  },
+  form: {
+    gap: spacing.lg,
+  },
+  emailBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emailBadgeText: {
     flex: 1,
-    color: colors.text,
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-    textAlign: 'center',
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  codeLabel: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: -8,
   },
   codeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
     position: 'relative',
-    marginBottom: spacing.md,
   },
   codeCell: {
     flex: 1,
     height: 56,
-    borderRadius: 13,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#FAFAF8',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   codeCellActive: {
-    borderColor: colors.primary,
+    borderColor: '#0F172A',
     borderWidth: 1.5,
     backgroundColor: '#FFFFFF',
   },
   codeDigit: {
-    color: colors.text,
-    fontSize: 22,
-    fontFamily: 'Inter_600SemiBold',
+    color: '#0F172A',
+    fontSize: 20,
+    fontWeight: '700',
   },
   hiddenCodeInput: {
     position: 'absolute',
     width: '100%',
     height: '100%',
-    opacity: 0.02,
-    color: 'transparent',
+    opacity: 0.01,
   },
-  passwordContainer: {
-    minHeight: 54,
+  resendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#FAFAF8',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 4,
   },
-  passwordInput: {
-    flex: 1,
-    minHeight: 52,
-    color: colors.text,
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    paddingVertical: spacing.md,
-    paddingRight: spacing.sm,
+  resendPrompt: {
+    color: '#64748B',
+    fontSize: 13,
   },
-  helpText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 19,
-    marginBottom: spacing.lg,
+  resendLink: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  passwordHint: {
+  resendLinkDisabled: {
+    color: '#94A3B8',
+  },
+  errorBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
     padding: spacing.md,
-    marginBottom: spacing.lg,
-    borderRadius: 13,
-    backgroundColor: '#F3F0E8',
-  },
-  passwordHintText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 18,
-  },
-  messageBoxError: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 13,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#F1CECE',
-    backgroundColor: '#FFF7F7',
-    marginBottom: spacing.md,
+    borderColor: '#FECDD3',
+    backgroundColor: '#FFF1F2',
   },
   errorText: {
     flex: 1,
     color: colors.error,
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    fontWeight: '500',
     lineHeight: 18,
   },
-  messageBoxInfo: {
+  infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: 13,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#F8F8F6',
-    marginBottom: spacing.md,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
   },
   infoText: {
     flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    color: '#0F172A',
+    fontSize: 13,
     lineHeight: 18,
   },
-  primaryButton: {
-    minHeight: 54,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
+  actionButton: {
+    marginTop: 4,
+  },
+  loginRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  primaryButtonPressed: {
-    backgroundColor: '#5D142A',
-    transform: [{ scale: 0.99 }],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  resendRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    paddingTop: 4,
   },
-  resendPrompt: {
-    color: colors.textSecondary,
+  loginPrompt: {
+    color: '#64748B',
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
   },
-  resendLink: {
-    color: colors.text,
+  loginLink: {
+    color: '#0F172A',
     fontSize: 13,
-    fontFamily: 'Inter_700Bold',
-  },
-  resendLinkDisabled: {
-    color: colors.placeholder,
-  },
-  loginDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    color: colors.textSecondary,
-    fontSize: 9,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1,
-  },
-  loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-  },
-  loginText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 6,
     marginTop: 'auto',
     paddingTop: spacing.xxl,
   },
-  footerText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
+  footerNote: {
+    color: '#64748B',
+    fontSize: 12,
   },
 });

@@ -1,5 +1,4 @@
-
-import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -19,8 +18,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import PrimaryButton from '../components/ui/PrimaryButton';
 import { apiRequest } from '../services/api';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing } from '../theme';
 
 const RESEND_COOLDOWN = 60;
 
@@ -40,7 +40,26 @@ export default function VerifyEmailScreen() {
   const [infoMessage, setInfoMessage] = useState('');
 
   const backScale = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
   const codeInput = useRef<TextInput>(null);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 380,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -162,210 +181,155 @@ export default function VerifyEmailScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.backButtonWrapper,
-              { transform: [{ scale: backScale }] },
-            ]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              onPress={handleBack}
-              onPressIn={() => animateBack(0.92)}
-              onPressOut={() => animateBack(1)}
-              hitSlop={8}
-              style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color={colors.text} />
-            </Pressable>
-          </Animated.View>
+          {/* Top Header */}
+          <View style={styles.topRow}>
+            <Animated.View style={{ transform: [{ scale: backScale }] }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={handleBack}
+                onPressIn={() => animateBack(0.92)}
+                onPressOut={() => animateBack(1)}
+                hitSlop={8}
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={20} color={colors.text} />
+              </Pressable>
+            </Animated.View>
 
-          <View style={styles.header}>
             <Image
-              source={require('../assets/gileo-logo.png')}
+              source={require('../../assets/gileo-logo.png')}
               style={styles.brandLogo}
               resizeMode="contain"
               accessibilityLabel="Gileo Medicals"
             />
           </View>
 
-          <View style={styles.illustration}>
-            <View style={styles.outerCircle}>
-              <View style={styles.innerCircle}>
-                <Ionicons
-                  name="mail-open-outline"
-                  size={42}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.checkBadge}>
-                <Ionicons name="checkmark" size={17} color="#FFFFFF" />
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.content}>
-            <Text style={styles.eyebrow}>ONE LAST STEP</Text>
-            <Text style={styles.title}>Verify your email.</Text>
-            <Text style={styles.description}>
-              We've sent a six-digit verification code to the email address
-              below. Enter it to confirm your account.
-            </Text>
-
-            <View style={styles.emailCard}>
-              <Ionicons
-                name="mail-outline"
-                size={19}
-                color={colors.primary}
-              />
-              <Text style={styles.emailText}>{formattedEmail}</Text>
+          {/* Animated Main Section */}
+          <Animated.View
+            style={[
+              styles.animatedContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.heading}>
+              <Text style={styles.title}>Verify your email</Text>
+              <Text style={styles.subtitle}>
+                We've sent a six-digit code to confirm your email address.
+              </Text>
             </View>
 
-            <Text style={styles.fieldLabel}>VERIFICATION CODE</Text>
-            <Pressable
-              style={styles.codeContainer}
-              onPress={() => codeInput.current?.focus()}
-              accessibilityRole="button"
-              accessibilityLabel="Enter six-digit verification code"
-            >
-              {Array.from({ length: 6 }, (_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.codeCell,
-                    code.length === index && styles.codeCellActive,
-                  ]}
+            <View style={styles.form}>
+              <View style={styles.emailBadge}>
+                <Ionicons name="mail-outline" size={16} color="#64748B" />
+                <Text style={styles.emailBadgeText}>{formattedEmail}</Text>
+                <Pressable
+                  onPress={() => router.replace('/register')}
+                  hitSlop={8}
                 >
-                  <Text style={styles.codeDigit}>{code[index] || ''}</Text>
-                </View>
-              ))}
-              <TextInput
-                ref={codeInput}
-                value={code}
-                onChangeText={(value) => {
-                  setCode(value.replace(/\D/g, '').slice(0, 6));
-                  setErrorMessage('');
-                  setInfoMessage('');
-                }}
-                keyboardType="number-pad"
-                textContentType="oneTimeCode"
-                autoComplete="one-time-code"
-                maxLength={6}
-                caretHidden
-                style={styles.hiddenCodeInput}
-                accessibilityLabel="Six-digit verification code"
-              />
-            </Pressable>
-
-            <Text style={styles.helpText}>
-              Check your inbox and spam folder. The code expires after a limited
-              time.
-            </Text>
-
-            {errorMessage ? (
-              <View style={styles.messageBoxError} accessibilityRole="alert">
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={18}
-                  color={colors.error}
-                />
-                <Text style={styles.errorText}>{errorMessage}</Text>
+                  <Ionicons name="pencil-outline" size={15} color="#0F172A" />
+                </Pressable>
               </View>
-            ) : null}
 
-            {infoMessage && !errorMessage ? (
-              <View style={styles.messageBoxInfo}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={18}
-                  color={colors.textSecondary}
-                />
-                <Text style={styles.infoText}>{infoMessage}</Text>
-              </View>
-            ) : null}
-
-            <Pressable
-              accessibilityRole="button"
-              disabled={isVerifying || isResending || code.length !== 6}
-              onPress={handleVerify}
-              style={({ pressed }) => [
-                styles.verifyButton,
-                pressed && styles.verifyButtonPressed,
-                (isVerifying || isResending || code.length !== 6) &&
-                  styles.buttonDisabled,
-              ]}
-            >
-              {isVerifying ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Text style={styles.verifyButtonText}>Verify email</Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={18}
-                    color="#FFFFFF"
-                  />
-                </>
-              )}
-            </Pressable>
-
-            <View style={styles.resendRow}>
-              <Text style={styles.resendPrompt}>Didn't receive a code?</Text>
+              <Text style={styles.codeLabel}>6-DIGIT CODE</Text>
               <Pressable
-                accessibilityRole="button"
-                disabled={countdown > 0 || isResending || isVerifying}
-                onPress={handleResend}
-                hitSlop={8}
+                style={styles.codeContainer}
+                onPress={() => codeInput.current?.focus()}
               >
-                <Text
-                  style={[
-                    styles.resendLink,
-                    (countdown > 0 || isResending || isVerifying) &&
-                      styles.resendLinkDisabled,
-                  ]}
-                >
-                  {isResending
-                    ? 'Sending...'
-                    : countdown > 0
-                      ? `Resend in ${countdown}s`
-                      : 'Resend code'}
-                </Text>
+                {Array.from({ length: 6 }, (_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.codeCell,
+                      code.length === index && styles.codeCellActive,
+                    ]}
+                  >
+                    <Text style={styles.codeDigit}>{code[index] || ''}</Text>
+                  </View>
+                ))}
+                <TextInput
+                  ref={codeInput}
+                  value={code}
+                  onChangeText={(value) => {
+                    setCode(value.replace(/\D/g, '').slice(0, 6));
+                    setErrorMessage('');
+                    setInfoMessage('');
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  caretHidden
+                  style={styles.hiddenCodeInput}
+                />
               </Pressable>
-            </View>
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.replace('/register')}
-              style={styles.changeEmailButton}
-            >
-              <Ionicons
-                name="pencil-outline"
-                size={15}
-                color={colors.textSecondary}
+              <View style={styles.resendRow}>
+                <Text style={styles.resendPrompt}>Didn't receive a code?</Text>
+                <Pressable
+                  disabled={countdown > 0 || isResending || isVerifying}
+                  onPress={handleResend}
+                  hitSlop={8}
+                >
+                  <Text
+                    style={[
+                      styles.resendLink,
+                      (countdown > 0 || isResending || isVerifying) &&
+                        styles.resendLinkDisabled,
+                    ]}
+                  >
+                    {isResending
+                      ? 'Sending...'
+                      : countdown > 0
+                        ? `Resend in ${countdown}s`
+                        : 'Resend code'}
+                  </Text>
+                </Pressable>
+              </View>
+
+              {errorMessage ? (
+                <View style={styles.errorBox} accessibilityRole="alert">
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={18}
+                    color={colors.error}
+                  />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              ) : null}
+
+              {infoMessage && !errorMessage ? (
+                <View style={styles.infoBox}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={18}
+                    color="#0F172A"
+                  />
+                  <Text style={styles.infoText}>{infoMessage}</Text>
+                </View>
+              ) : null}
+
+              <PrimaryButton
+                title="Verify email"
+                onPress={handleVerify}
+                loading={isVerifying}
+                disabled={isVerifying || code.length !== 6}
+                style={styles.verifyButton}
               />
-              <Text style={styles.changeEmailText}>Change email address</Text>
-            </Pressable>
 
-            <View style={styles.loginDivider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ALREADY VERIFIED?</Text>
-              <View style={styles.dividerLine} />
+              <View style={styles.loginRow}>
+                <Text style={styles.loginPrompt}>Already verified?</Text>
+                <Pressable
+                  onPress={() => router.replace('/login')}
+                  accessibilityRole="link"
+                  hitSlop={8}
+                >
+                  <Text style={styles.loginLink}> Log in</Text>
+                </Pressable>
+              </View>
             </View>
-
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => router.replace('/login')}
-              style={styles.loginButton}
-            >
-              <Text style={styles.loginText}>Continue to login</Text>
-              <Ionicons
-                name="arrow-forward"
-                size={16}
-                color={colors.primary}
-              />
-            </Pressable>
-          </View>
+          </Animated.View>
 
           <View style={styles.footer}>
             <Ionicons
@@ -373,8 +337,8 @@ export default function VerifyEmailScreen() {
               size={15}
               color={colors.textSecondary}
             />
-            <Text style={styles.footerText}>
-              Your health information deserves privacy.
+            <Text style={styles.footerNote}>
+              Your health information is safely secured.
             </Text>
           </View>
         </ScrollView>
@@ -397,296 +361,185 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
   },
-  backButtonWrapper: {
-    alignSelf: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F4F4F2',
-    borderWidth: 1,
-    borderColor: '#EBEBE8',
-  },
-  header: {
-    height: 48,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    marginBottom: spacing.xl,
-  },
-  brandLogo: {
-    width: 106,
-    height: 48,
-    marginLeft: -20,
-  },
-  illustration: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  outerCircle: {
-    width: 126,
-    height: 126,
-    borderRadius: 63,
-    backgroundColor: '#F3F0E8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  innerCircle: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  checkBadge: {
-    position: 'absolute',
-    right: 3,
-    bottom: 6,
-    width: 31,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-  },
-  eyebrow: {
-    color: '#8A7045',
-    fontSize: 10,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.8,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 29,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.9,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  description: {
-    color: colors.textSecondary,
-    fontSize: typography.body,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 23,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  emailCard: {
-    minHeight: 54,
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    backgroundColor: '#F8F8F6',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
+    justifyContent: 'space-between',
     marginBottom: spacing.xl,
   },
-  emailText: {
-    flexShrink: 1,
-    color: colors.text,
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-    textAlign: 'center',
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  fieldLabel: {
-    color: colors.text,
+  brandLogo: {
+    width: 120,
+    height: 40,
+    marginRight: -10,
+  },
+  animatedContainer: {
+    flex: 1,
+  },
+  heading: {
+    marginBottom: spacing.xl,
+  },
+  title: {
+    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+  },
+  subtitle: {
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 6,
+    maxWidth: 340,
+  },
+  form: {
+    gap: spacing.lg,
+  },
+  emailBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emailBadgeText: {
+    flex: 1,
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  codeLabel: {
+    color: '#64748B',
     fontSize: 11,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.2,
-    marginBottom: spacing.md,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: -8,
   },
   codeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
     position: 'relative',
-    marginBottom: spacing.md,
   },
   codeCell: {
     flex: 1,
     height: 56,
-    borderRadius: 13,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#FAFAF8',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   codeCellActive: {
-    borderColor: colors.primary,
+    borderColor: '#0F172A',
     borderWidth: 1.5,
     backgroundColor: '#FFFFFF',
   },
   codeDigit: {
-    color: colors.text,
-    fontSize: 22,
-    fontFamily: 'Inter_600SemiBold',
+    color: '#0F172A',
+    fontSize: 20,
+    fontWeight: '700',
   },
   hiddenCodeInput: {
     position: 'absolute',
     width: '100%',
     height: '100%',
-    opacity: 0.02,
-    color: 'transparent',
+    opacity: 0.01,
   },
-  helpText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 19,
-    marginBottom: spacing.lg,
+  resendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 4,
   },
-  messageBoxError: {
+  resendPrompt: {
+    color: '#64748B',
+    fontSize: 13,
+  },
+  resendLink: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  resendLinkDisabled: {
+    color: '#94A3B8',
+  },
+  errorBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: 13,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#F1CECE',
-    backgroundColor: '#FFF7F7',
-    marginBottom: spacing.md,
+    borderColor: '#FECDD3',
+    backgroundColor: '#FFF1F2',
   },
   errorText: {
     flex: 1,
     color: colors.error,
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    fontWeight: '500',
     lineHeight: 18,
   },
-  messageBoxInfo: {
+  infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: 13,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: '#F8F8F6',
-    marginBottom: spacing.md,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
   },
   infoText: {
     flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
+    color: '#0F172A',
+    fontSize: 13,
     lineHeight: 18,
   },
   verifyButton: {
-    minHeight: 54,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
+    marginTop: 4,
+  },
+  loginRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  verifyButtonPressed: {
-    backgroundColor: '#5D142A',
-    transform: [{ scale: 0.99 }],
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  verifyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  resendRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xl,
+    paddingTop: 4,
   },
-  resendPrompt: {
-    color: colors.textSecondary,
+  loginPrompt: {
+    color: '#64748B',
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
   },
-  resendLink: {
-    color: colors.text,
+  loginLink: {
+    color: '#0F172A',
     fontSize: 13,
-    fontFamily: 'Inter_700Bold',
-  },
-  resendLinkDisabled: {
-    color: colors.placeholder,
-  },
-  changeEmailButton: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.lg,
-  },
-  changeEmailText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-  },
-  loginDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    color: colors.textSecondary,
-    fontSize: 9,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1,
-  },
-  loginButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-  },
-  loginText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontFamily: 'Inter_700Bold',
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 6,
     marginTop: 'auto',
     paddingTop: spacing.xxl,
   },
-  footerText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
+  footerNote: {
+    color: '#64748B',
+    fontSize: 12,
   },
 });

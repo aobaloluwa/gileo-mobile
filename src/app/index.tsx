@@ -1,43 +1,95 @@
 import { Redirect } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getStoredAccessToken } from '../services/auth';
-import { colors } from '../theme';
 
 const ONBOARDING_KEY = '@vitaltron/onboarding-completed';
 type Destination = '/onboarding' | '/welcome' | '/login' | '/(tabs)';
 
 export default function IndexRoute() {
   const [destination, setDestination] = useState<Destination | null>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
+    // Fade in and scale animation for initial splash screen
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     let active = true;
 
     async function chooseDestination() {
-      try {
-        const onboardingCompleted = await AsyncStorage.getItem(ONBOARDING_KEY);
-        if (onboardingCompleted !== 'true') {
-          if (active) setDestination('/onboarding');
-          return;
-        }
+      // Small pause to let splash logo show cleanly
+      const delayPromise = new Promise((resolve) => setTimeout(resolve, 1200));
 
-        const token = await getStoredAccessToken();
-        if (active) setDestination(token ? '/(tabs)' : '/welcome');
+      try {
+        const [onboardingCompleted, token] = await Promise.all([
+          AsyncStorage.getItem(ONBOARDING_KEY),
+          getStoredAccessToken(),
+          delayPromise,
+        ]);
+
+        if (!active) return;
+
+        if (onboardingCompleted !== 'true') {
+          setDestination('/onboarding');
+        } else {
+          setDestination(token ? '/(tabs)' : '/welcome');
+        }
       } catch {
         if (active) setDestination('/onboarding');
       }
     }
 
     void chooseDestination();
-    return () => { active = false; };
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [fadeAnim, scaleAnim]);
 
   if (destination) return <Redirect href={destination} />;
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
-      <ActivityIndicator color={colors.primary} />
+    <View style={styles.container}>
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [{ scale: scaleAnim }],
+        }}
+      >
+        <Image
+          source={require('../assets/gileo-logo.png')}
+          style={styles.splashLogo}
+          resizeMode="contain"
+          accessibilityLabel="Gileo Logo"
+        />
+      </Animated.View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashLogo: {
+    width: 200,
+    height: 80,
+  },
+});

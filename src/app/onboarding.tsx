@@ -1,169 +1,168 @@
-
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
   Image,
-  View,
-  Text,
-  StyleSheet,
   Pressable,
-  useWindowDimensions,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { getStoredAccessToken } from '../services/auth';
 
 const slides = [
   {
-    eyebrow: 'HEALTHCARE SERVICES',
-    title: 'Professional care,\nwhen you need it.',
+    eyebrow: 'WELCOME TO GILEO',
+    title: 'Welcome to Gileo!',
     description:
-      'Request home-care nursing, post-hospital recovery, corporate medical coverage, and specialized healthcare services.',
-    icon: 'heart-outline' as const,
-    accentIcon: 'medkit-outline' as const,
-    illustration: require('../assets/onboarding-care.png'),
+      'The ultimate healthcare & medical app for making your daily access as convenient and smooth as possible.',
+    illustration: require('../../assets/onboarding-growth.png'),
   },
   {
-    eyebrow: 'MEDICAL MARKETPLACE',
-    title: 'Gileo Scrubs &\nessentials.',
+    eyebrow: 'MARKETPLACE & SUPPLIES',
+    title: 'Access What You Need.',
     description:
-      'Browse and shop premium Gileo Scrubs, medical wear, accessories, equipment, and medical supplies.',
-    icon: 'shield-checkmark-outline' as const,
-    accentIcon: 'lock-closed-outline' as const,
-    illustration: require('../assets/onboarding-privacy.png'),
+      'Explore medical essentials, scrubs, equipment, and everyday supplies delivered straight to your door.',
+    illustration: require('../../assets/onboarding-privacy.png'),
   },
   {
-    eyebrow: 'COMMUNITY & GROWTH',
-    title: 'Care. Community.\nProfessional growth.',
+    eyebrow: 'NURSES & COMMUNITY',
+    title: 'A Connected Ecosystem.',
     description:
-      'Connect with the Gileo Nurses Community and advance your career with Gileo Elevate professional development programmes.',
-    icon: 'people-outline' as const,
-    accentIcon: 'book-outline' as const,
-    illustration: require('../assets/onboarding-growth.png'),
+      'Connect with trusted nurses, career advancement opportunities, and practical learning resources in one app.',
+    illustration: require('../../assets/onboarding-care.png'),
   },
 ];
 
 const ONBOARDING_KEY = '@vitaltron/onboarding-completed';
+const AUTO_ADVANCE_DELAY = 4000; // 4 seconds auto move
 
 export default function OnboardingScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const { width, height } = useWindowDimensions();
   const slide = slides[activeIndex];
 
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentTranslate = useRef(new Animated.Value(0)).current;
   const illustrationScale = useRef(new Animated.Value(1)).current;
-  const illustrationRotate = useRef(new Animated.Value(0)).current;
+  const illustrationFloat = useRef(new Animated.Value(0)).current;
   const indicatorProgress = useRef(
     slides.map((_, index) => new Animated.Value(index === 0 ? 1 : 0)),
   ).current;
 
+  // Floating animation
+  useEffect(() => {
+    const floating = Animated.loop(
+      Animated.sequence([
+        Animated.timing(illustrationFloat, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(illustrationFloat, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    floating.start();
+    return () => floating.stop();
+  }, [illustrationFloat]);
+
+  // Auto-advance timer: moves to the next slide every 4 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveIndex((prevIndex) => (prevIndex + 1) % slides.length);
+    }, AUTO_ADVANCE_DELAY);
+
+    return () => clearInterval(timer);
+  }, [activeIndex]);
+
+  // Transition animations when activeIndex changes
   useEffect(() => {
     contentOpacity.setValue(0);
-    contentTranslate.setValue(18);
-    illustrationScale.setValue(0.88);
-    illustrationRotate.setValue(0);
+    contentTranslate.setValue(16);
+    illustrationScale.setValue(0.92);
 
     Animated.parallel([
       Animated.timing(contentOpacity, {
         toValue: 1,
-        duration: 360,
+        duration: 320,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(contentTranslate, {
         toValue: 0,
-        duration: 420,
+        duration: 360,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.spring(illustrationScale, {
         toValue: 1,
-        speed: 12,
-        bounciness: 7,
-        useNativeDriver: true,
-      }),
-      Animated.timing(illustrationRotate, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
+        friction: 8,
+        tension: 40,
         useNativeDriver: true,
       }),
       ...indicatorProgress.map((value, index) =>
         Animated.spring(value, {
           toValue: index === activeIndex ? 1 : 0,
-          speed: 18,
-          bounciness: 0,
+          friction: 8,
+          tension: 50,
           useNativeDriver: false,
         }),
       ),
     ]).start();
-  }, [
-    activeIndex,
-    contentOpacity,
-    contentTranslate,
-    illustrationScale,
-    illustrationRotate,
-    indicatorProgress,
-  ]);
+  }, [activeIndex, contentOpacity, contentTranslate, illustrationScale, indicatorProgress]);
 
-  const finishOnboarding = async () => {
+  const finishOnboarding = async (targetRoute?: '/login' | '/register' | '/welcome') => {
     if (isSaving) return;
-
     setIsSaving(true);
 
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
       const token = await getStoredAccessToken();
-      router.replace(token ? '/(tabs)' : '/welcome');
+      if (token) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace(targetRoute || '/welcome');
+      }
     } catch {
       setIsSaving(false);
     }
   };
 
-  const goNext = () => {
-    if (activeIndex < slides.length - 1) {
-      setActiveIndex((current) => current + 1);
-    } else {
-      void finishOnboarding();
-    }
-  };
-
-  const illustrationSize = Math.min(width * 0.84, height * 0.38, 360);
-
-  const rotate = illustrationRotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-7deg', '0deg'],
-  });
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.screen}>
-        <View style={styles.topBar}>
-          <View style={styles.brand}>
-            <Image
-              source={require('../assets/gileo-logo.png')}
-              style={styles.brandLogo}
-              resizeMode="contain"
-              accessibilityLabel="Gileo Medicals"
-            />
-          </View>
+      <View style={styles.container}>
+        {/* Top Header */}
+        <View style={styles.header}>
+          <Image
+            source={require('../../assets/gileo-logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityLabel="Gileo Logo"
+          />
 
           <Pressable
             accessibilityRole="button"
-            onPress={() => void finishOnboarding()}
+            onPress={() => void finishOnboarding('/login')}
             disabled={isSaving}
-            hitSlop={12}
+            hitSlop={10}
+            style={styles.skipButton}
           >
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>
         </View>
 
-        <View style={styles.card}>
+        {/* Main Content Area */}
+        <View style={styles.mainContent}>
+          {/* Illustration Area */}
           <Animated.View
             style={[
               styles.illustrationArea,
@@ -171,7 +170,12 @@ export default function OnboardingScreen() {
                 opacity: contentOpacity,
                 transform: [
                   { scale: illustrationScale },
-                  { rotate },
+                  {
+                    translateY: illustrationFloat.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, -6],
+                    }),
+                  },
                 ],
               },
             ]}
@@ -179,87 +183,75 @@ export default function OnboardingScreen() {
             <Image
               source={slide.illustration}
               resizeMode="contain"
-              style={{ width: illustrationSize, height: illustrationSize * 0.81 }}
-              accessibilityLabel={slide.eyebrow}
+              style={styles.illustrationImage}
+              accessibilityLabel={slide.title}
             />
           </Animated.View>
 
-          <View style={styles.textContent}>
+          {/* Text & Indicators Area */}
+          <Animated.View
+            style={[
+              styles.textContainer,
+              {
+                opacity: contentOpacity,
+                transform: [{ translateY: contentTranslate }],
+              },
+            ]}
+          >
+            <Text style={styles.title}>{slide.title}</Text>
+            <Text style={styles.description}>{slide.description}</Text>
+
+            {/* Pagination Indicator Dots */}
             <View style={styles.indicators}>
               {slides.map((item, index) => {
                 const indicatorWidth = indicatorProgress[index].interpolate({
                   inputRange: [0, 1],
-                  outputRange: [7, 26],
+                  outputRange: [6, 24],
                 });
 
                 return (
                   <Animated.View
                     key={item.eyebrow}
                     style={[
-                      styles.indicator,
+                      styles.indicatorDot,
                       {
                         width: indicatorWidth,
                         backgroundColor:
-                          index === activeIndex ? '#E50914' : '#E6DADD',
+                          index === activeIndex ? '#111111' : '#E2E8F0',
                       },
                     ]}
                   />
                 );
               })}
             </View>
+          </Animated.View>
+        </View>
 
-            <Animated.View
-              style={{
-                alignItems: 'center',
-                opacity: contentOpacity,
-                transform: [{ translateY: contentTranslate }],
-              }}
-            >
-              <Text style={styles.eyebrow}>{slide.eyebrow}</Text>
-              <Text style={styles.title}>{slide.title}</Text>
-              <Text style={styles.description}>{slide.description}</Text>
-            </Animated.View>
-          </View>
+        {/* Action Footer */}
+        <View style={styles.footer}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void finishOnboarding('/login')}
+            disabled={isSaving}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              pressed && styles.primaryButtonPressed,
+            ]}
+          >
+            <Text style={styles.primaryButtonText}>Access Your Account</Text>
+          </Pressable>
 
-          <View style={styles.cardFooter}>
+          <View style={styles.signupRow}>
+            <Text style={styles.signupPrompt}>Don't have an account?</Text>
             <Pressable
-              accessibilityRole="button"
-              onPress={() => void finishOnboarding()}
-              disabled={isSaving}
-              style={styles.skipButton}
+              accessibilityRole="link"
+              onPress={() => void finishOnboarding('/register')}
+              hitSlop={8}
             >
-              <Text style={styles.skipButtonText}>Skip</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={goNext}
-              disabled={isSaving}
-              style={({ pressed }) => [
-                styles.nextButton,
-                pressed && styles.nextButtonPressed,
-                isSaving && styles.buttonDisabled,
-              ]}
-            >
-              <Text style={styles.nextButtonText}>
-                {activeIndex === slides.length - 1
-                  ? 'Get Started'
-                  : 'Next'}
-              </Text>
-              {activeIndex !== slides.length - 1 && (
-                <Ionicons
-                  name="arrow-forward"
-                  size={17}
-                  color="#FFFFFF"
-                />
-              )}
+              <Text style={styles.signupLink}> Signup</Text>
             </Pressable>
           </View>
         </View>
-
-        <Text style={styles.footerNote}>
-          YOUR HEALTH. YOUR CHOICE.
-        </Text>
       </View>
     </SafeAreaView>
   );
@@ -270,236 +262,129 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  screen: {
+  container: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 8,
-    paddingBottom: 12,
     backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 20,
+    justifyContent: 'space-between',
   },
-  topBar: {
+  header: {
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
   },
-  brand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+  logo: {
+    width: 120,
+    height: 40,
+    marginLeft: -16,
   },
-  brandLogo: {
-    width: 106,
-    height: 48,
-    marginLeft: -20,
-  },
-  brandMark: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: '#761B36',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandMarkText: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontFamily: 'Inter_700Bold',
-  },
-  brandName: {
-    color: '#761B36',
-    fontSize: 19,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.6,
-  },
-  brandSubtitle: {
-    color: '#74696B',
-    fontSize: 7,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.8,
-    marginTop: -2,
+  skipButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFAFA',
   },
   skipText: {
-    color: '#5D142A',
     fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-    textTransform: 'uppercase',
+    color: '#0F172A',
+    fontWeight: '600',
   },
-  card: {
+  mainContent: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 25,
-    paddingTop: 18,
-    paddingBottom: 22,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    paddingVertical: 12,
   },
   illustrationArea: {
-    flex: 1,
-    minHeight: 170,
-    maxHeight: 330,
     width: '100%',
+    height: 250,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 20,
   },
-  illustrationCircle: {
-    backgroundColor: '#FAF0F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  sunShape: {
-    position: 'absolute',
-    top: '12%',
-    right: '12%',
-    width: '28%',
-    height: '28%',
-    borderRadius: 999,
-    backgroundColor: '#E8D6A6',
-  },
-  orbitRing: {
-    width: '70%',
-    height: '70%',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(17,17,17,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainIconCircle: {
-    width: '88%',
-    height: '88%',
-    borderRadius: 999,
-    backgroundColor: '#F5D56A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  accentIconCircle: {
-    position: 'absolute',
-    bottom: '2%',
-    right: '1%',
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E9DFE1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-  },
-  smallGoldDot: {
-    position: 'absolute',
-    left: '5%',
-    top: '20%',
-    width: 15,
-    height: 15,
-    borderRadius: 8,
-    backgroundColor: '#F2B705',
-  },
-  smallDarkDot: {
-    position: 'absolute',
-    bottom: '8%',
-    left: '15%',
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: '#761B36',
-  },
-  textContent: {
+  illustrationImage: {
     width: '100%',
+    height: '100%',
+    maxWidth: 320,
+    maxHeight: 250,
+  },
+  textContainer: {
     alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  title: {
+    color: '#0F172A',
+    fontSize: 27,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  description: {
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    maxWidth: 310,
+    marginBottom: 24,
   },
   indicators: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
-    marginBottom: 22,
+    gap: 6,
   },
-  indicator: {
-    height: 7,
-    borderRadius: 4,
-  },
-  eyebrow: {
-    color: '#777777',
-    fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.4,
-    textAlign: 'center',
-    marginBottom: 14,
-  },
-  title: {
-    color: '#761B36',
-    fontSize: 29,
-    lineHeight: 37,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: -0.9,
-    textAlign: 'center',
-  },
-  nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  description: {
-    color: '#666666',
-    fontSize: 14,
-    lineHeight: 22,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-    maxWidth: 300,
-    marginTop: 13,
-    marginBottom: 18,
-  },
-  cardFooter: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  skipButton: {
-    minHeight: 48,
-    minWidth: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  skipButtonText: {
-    color: '#761B36',
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-    textTransform: 'uppercase',
-  },
-  nextButton: {
-    minHeight: 52,
-    minWidth: 112,
-    paddingHorizontal: 22,
+  indicatorDot: {
+    height: 6,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+  },
+  footer: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 16,
+    paddingTop: 8,
+  },
+  primaryButton: {
+    width: '100%',
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: '#111111',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  primaryButtonPressed: {
+    backgroundColor: '#27272A',
+    transform: [{ scale: 0.985 }],
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  signupRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 9,
   },
-  nextButtonPressed: {
-    backgroundColor: '#5D142A',
-    transform: [{ scale: 0.98 }],
+  signupPrompt: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '400',
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  footerNote: {
-    color: '#777777',
-    fontSize: 10,
-    fontFamily: 'Inter_500Medium',
-    letterSpacing: 2,
-    textAlign: 'center',
-    paddingTop: 12,
+  signupLink: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

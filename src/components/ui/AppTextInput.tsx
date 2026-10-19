@@ -7,6 +7,7 @@ import {
   TextInputProps,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../../theme';
 
 type AppTextInputProps = TextInputProps & {
@@ -35,7 +36,7 @@ export default function AppTextInput({
         style={[
           styles.inputWrapper,
           focused && styles.inputFocused,
-          error && styles.inputError,
+          Boolean(error) && styles.inputError,
         ]}
       >
         <TextInput
@@ -62,11 +63,14 @@ export default function AppTextInput({
             accessibilityLabel={
               passwordVisible ? 'Hide password' : 'Show password'
             }
-            hitSlop={8}
+            hitSlop={10}
+            style={styles.eyeButton}
           >
-            <Text style={styles.passwordToggle}>
-              {passwordVisible ? 'Hide' : 'Show'}
-            </Text>
+            <Ionicons
+              name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+              size={20}
+              color={colors.textSecondary}
+            />
           </Pressable>
         )}
       </View>
@@ -78,45 +82,51 @@ export default function AppTextInput({
 
 const styles = StyleSheet.create({
   container: {
-    gap: spacing.sm,
+    gap: 6,
   },
   label: {
     color: colors.text,
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: -0.1,
   },
   inputWrapper: {
-    minHeight: 56,
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.input,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FAFAFA',
     paddingHorizontal: spacing.lg,
   },
   inputFocused: {
-    borderColor: colors.primary,
+    borderColor: colors.borderFocus,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
   },
   inputError: {
     borderColor: colors.error,
+    backgroundColor: '#FFF8F8',
   },
   input: {
     flex: 1,
     minWidth: 0,
-    paddingVertical: spacing.lg,
+    paddingVertical: 12,
     color: colors.text,
     fontSize: 15,
+    fontWeight: '400',
   },
-  passwordToggle: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '500',
+  eyeButton: {
     paddingLeft: spacing.sm,
     paddingVertical: spacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorText: {
     color: colors.error,
     fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
   },
 });

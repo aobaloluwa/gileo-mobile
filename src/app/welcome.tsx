@@ -1,8 +1,8 @@
-
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import {
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -34,38 +34,33 @@ export default function WelcomeScreen() {
       >
         <View style={styles.brandRow}>
           <Image
-            source={require('../assets/gileo-logo.png')}
+            source={require('../../assets/gileo-logo.png')}
             style={styles.brandLogo}
             resizeMode="contain"
-            accessibilityLabel="Gileo Medicals"
+            accessibilityLabel="Gileo Logo"
           />
         </View>
 
         <View style={styles.hero}>
           <View style={styles.illustration}>
             <Image
-              source={require('../assets/onboarding-care.png')}
+              source={require('../../assets/onboarding-care.png')}
               resizeMode="contain"
               style={styles.heroIllustration}
-              accessibilityLabel="Illustration representing healthcare and care services"
+              accessibilityLabel="Healthcare and care services"
             />
           </View>
 
-          <Text style={styles.eyebrow}>CARE • COMMUNITY • GROWTH</Text>
-
-          <Text style={styles.title}>
-            Healthcare. Medical{' '}
-            <Text style={styles.titleAccent}>essentials. Professional growth.</Text>
-          </Text>
+          <Text style={styles.title}>Welcome to Gileo!</Text>
 
           <Text style={styles.description}>
-            One connected platform for Healthcare Services, Medical Marketplace (Gileo Scrubs), Gileo Nurses Community, and Gileo Elevate professional development.
+            The ultimate connected platform for healthcare services, medical marketplace, nursing community, and learning resources.
           </Text>
         </View>
 
         <View style={styles.footer}>
           <PrimaryButton
-            title="Log in"
+            title="Access Your Account"
             onPress={() => router.push('/login')}
           />
 
@@ -74,23 +69,23 @@ export default function WelcomeScreen() {
               Don't have an account?
             </Text>
 
-            <Text
+            <Pressable
               accessibilityRole="link"
               onPress={() => router.push('/register')}
-              style={styles.loginLink}
+              hitSlop={8}
             >
-              Get started
-            </Text>
+              <Text style={styles.loginLink}> Signup</Text>
+            </Pressable>
           </View>
 
-          <View style={styles.privacyRow}>
+          <View style={styles.supportRow}>
             <Ionicons
-              name="lock-closed-outline"
+              name="headset-outline"
               size={14}
-              color="#707070"
+              color="#64748B"
             />
-            <Text style={styles.privacyNote}>
-              Care and support, all in one place.
+            <Text style={styles.supportNote}>
+              Support: +234 816 533 5594
             </Text>
           </View>
         </View>
@@ -107,192 +102,81 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 18,
+    paddingTop: 8,
     paddingBottom: 24,
+    justifyContent: 'space-between',
   },
   brandRow: {
-    height: 58,
+    height: 48,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
   brandLogo: {
-    width: 112,
-    height: 58,
-    marginLeft: -20,
-  },
-  brandMark: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#761B36',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandMarkText: {
-    color: '#FFFFFF',
-    fontSize: 25,
-    fontFamily: 'Inter_700Bold',
-  },
-  brandName: {
-    color: '#761B36',
-    fontSize: 21,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.7,
-  },
-  brandSubtitle: {
-    color: '#74696B',
-    fontSize: 8,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 2.1,
-    marginTop: -2,
+    width: 120,
+    height: 40,
+    marginLeft: -16,
   },
   hero: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 28,
+    paddingVertical: 20,
   },
   illustration: {
     width: '100%',
-    height: 250,
+    height: 240,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 22,
+    marginBottom: 24,
   },
   heroIllustration: {
     width: '100%',
     height: '100%',
-    maxWidth: 340,
-  },
-  outerCircle: {
-    width: 230,
-    height: 230,
-    borderRadius: 115,
-    backgroundColor: '#FAF7F2',
-    borderWidth: 1,
-    borderColor: '#E9DFE1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  middleCircle: {
-    width: 176,
-    height: 176,
-    borderRadius: 88,
-    backgroundColor: '#F7E9ED',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#F5D56A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pulseBadge: {
-    position: 'absolute',
-    right: -14,
-    bottom: 2,
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E9DFE1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goldDot: {
-    position: 'absolute',
-    top: 18,
-    right: 35,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#F2B705',
-  },
-  darkDot: {
-    position: 'absolute',
-    bottom: 30,
-    left: 25,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: '#761B36',
-  },
-  smallCircle: {
-    position: 'absolute',
-    top: 40,
-    left: 5,
-    width: 52,
-    height: 52,
-    borderRadius: 17,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E9DFE1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-  },
-  eyebrow: {
-    color: '#707070',
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.7,
-    marginBottom: 14,
-    textAlign: 'center',
+    maxWidth: 320,
   },
   title: {
-    color: '#761B36',
-    fontSize: 32,
-    lineHeight: 41,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -1,
+    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.6,
     textAlign: 'center',
-  },
-  titleAccent: {
-    color: '#761B36',
   },
   description: {
-    maxWidth: 330,
-    color: '#707070',
-    fontSize: 15,
-    lineHeight: 24,
-    fontFamily: 'Inter_400Regular',
+    maxWidth: 320,
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 22,
     textAlign: 'center',
-    marginTop: 18,
+    marginTop: 12,
   },
   footer: {
-    gap: 22,
+    gap: 16,
+    width: '100%',
+    alignItems: 'stretch',
   },
   loginRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 5,
   },
   loginPrompt: {
-    color: '#707070',
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
+    color: '#64748B',
+    fontSize: 13,
   },
   loginLink: {
-    color: '#761B36',
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-    padding: 4,
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  privacyRow: {
+  supportRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
+    paddingTop: 8,
   },
-  privacyNote: {
-    color: '#707070',
+  supportNote: {
+    color: '#64748B',
     fontSize: 12,
-    fontFamily: 'Inter_400Regular',
   },
 });

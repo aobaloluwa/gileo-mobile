@@ -1,7 +1,6 @@
-
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -21,7 +20,7 @@ import AppTextInput from '../components/ui/AppTextInput';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import { apiRequest } from '../services/api';
 import { signInWithGoogleIdToken } from '../services/auth';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing } from '../theme';
 
 type RegisterResponse = {
   message: string;
@@ -39,12 +38,29 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const backScale = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 380,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
 
   const animateBack = (toValue: number) => {
     Animated.timing(backScale, {
@@ -141,15 +157,12 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
 
     try {
-      // Load Google Sign-In only when the user taps the button.
-      // This avoids loading its native module when the route is opened.
       const googleSignIn = await import('../services/googleSignIn');
 
       await googleSignIn.configureGoogleSignIn();
 
       const idToken = await googleSignIn.signInWithGoogle();
 
-      // The user may cancel the Google sign-in flow.
       if (!idToken) return;
 
       await signInWithGoogleIdToken(idToken);
@@ -177,74 +190,78 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.backButtonWrapper,
-              { transform: [{ scale: backScale }] },
-            ]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              onPress={handleBack}
-              onPressIn={() => animateBack(0.92)}
-              onPressOut={() => animateBack(1)}
-              hitSlop={8}
-              style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color={colors.text} />
-            </Pressable>
-          </Animated.View>
+          {/* Top Header */}
+          <View style={styles.topRow}>
+            <Animated.View style={{ transform: [{ scale: backScale }] }}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={handleBack}
+                onPressIn={() => animateBack(0.92)}
+                onPressOut={() => animateBack(1)}
+                hitSlop={8}
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={20} color={colors.text} />
+              </Pressable>
+            </Animated.View>
 
-          <View style={styles.brandRow}>
             <Image
-              source={require('../assets/gileo-logo.png')}
+              source={require('../../assets/gileo-logo.png')}
               style={styles.brandLogo}
               resizeMode="contain"
               accessibilityLabel="Gileo Medicals"
             />
           </View>
 
-          <View style={styles.heading}>
-            <Text style={styles.eyebrow}>GILEO MEDICALS GLOBAL LIMITED</Text>
-            <Text style={styles.title}>Create your account.</Text>
-            <Text style={styles.subtitle}>
-              Join Gileo for healthcare services, Gileo Scrubs, the Nurses Community, and Gileo Elevate.
-            </Text>
-          </View>
+          {/* Animated Heading & Form */}
+          <Animated.View
+            style={[
+              styles.animatedContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.heading}>
+              <Text style={styles.title}>Create your account</Text>
+              <Text style={styles.subtitle}>
+                Join Gileo for healthcare services, marketplace, and community.
+              </Text>
+            </View>
 
-          <View style={styles.form}>
-            <AppTextInput
-              label="Full name"
-              placeholder="Enter your full name"
-              value={fullName}
-              onChangeText={(value) => {
-                setFullName(value);
-                setErrorMessage('');
-              }}
-              autoCapitalize="words"
-              autoComplete="name"
-              textContentType="name"
-              returnKeyType="next"
-            />
+            <View style={styles.form}>
+              <AppTextInput
+                label="Full name"
+                placeholder="Enter your full name"
+                value={fullName}
+                onChangeText={(value) => {
+                  setFullName(value);
+                  setErrorMessage('');
+                }}
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+                returnKeyType="next"
+              />
 
-            <AppTextInput
-              label="Email address"
-              placeholder="you@example.com"
-              value={email}
-              onChangeText={(value) => {
-                setEmail(value);
-                setErrorMessage('');
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              textContentType="emailAddress"
-              returnKeyType="next"
-            />
+              <AppTextInput
+                label="Email address"
+                placeholder="you@example.com"
+                value={email}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  setErrorMessage('');
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="next"
+              />
 
-            <View style={styles.passwordGroup}>
               <AppTextInput
                 label="Password"
                 placeholder="At least 12 characters"
@@ -253,16 +270,14 @@ export default function RegisterScreen() {
                   setPassword(value);
                   setErrorMessage('');
                 }}
-                secureTextEntry={!showPassword}
+                secureTextEntry
                 autoComplete="new-password"
                 textContentType="newPassword"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
               />
-            </View>
 
-            <View style={styles.passwordGroup}>
               <AppTextInput
                 label="Confirm password"
                 placeholder="Enter your password again"
@@ -271,7 +286,7 @@ export default function RegisterScreen() {
                   setConfirmPassword(value);
                   setErrorMessage('');
                 }}
-                secureTextEntry={!showConfirmPassword}
+                secureTextEntry
                 autoComplete="new-password"
                 textContentType="newPassword"
                 autoCapitalize="none"
@@ -279,65 +294,61 @@ export default function RegisterScreen() {
                 returnKeyType="done"
                 onSubmitEditing={handleRegister}
               />
-            </View>
 
-            <Text style={styles.helperText}>
-              Use 12–128 characters. Choose a password you don't use elsewhere.
-            </Text>
+              {errorMessage ? (
+                <View style={styles.errorBox} accessibilityRole="alert">
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={18}
+                    color={colors.error}
+                  />
+                  <Text style={styles.errorText}>{errorMessage}</Text>
+                </View>
+              ) : null}
 
-            {errorMessage ? (
-              <View style={styles.errorBox} accessibilityRole="alert">
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={19}
-                  color={colors.error}
-                />
-                <Text style={styles.errorText}>{errorMessage}</Text>
+              <PrimaryButton
+                title="Create account"
+                onPress={handleRegister}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+                style={styles.submitButton}
+              />
+
+              <View style={styles.dividerRow}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.divider} />
               </View>
-            ) : null}
 
-            <PrimaryButton
-              title="Create account"
-              onPress={handleRegister}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              style={styles.submitButton}
-            />
-
-            <View style={styles.dividerRow}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.divider} />
-            </View>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Continue with Google"
-              disabled={isSubmitting}
-              onPress={handleGoogleSignUp}
-              style={({ pressed }) => [
-                styles.googleButton,
-                pressed && styles.googleButtonPressed,
-                isSubmitting && styles.disabledButton,
-              ]}
-            >
-              <FontAwesome name="google" size={18} color="#4285F4" />
-              <Text style={styles.googleLabel}>
-                {isSubmitting ? 'Please wait…' : 'Continue with Google'}
-              </Text>
-            </Pressable>
-
-            <View style={styles.loginRow}>
-              <Text style={styles.loginPrompt}>Already have an account?</Text>
               <Pressable
-                accessibilityRole="link"
-                onPress={() => router.push('/login')}
-                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Continue with Google"
+                disabled={isSubmitting}
+                onPress={handleGoogleSignUp}
+                style={({ pressed }) => [
+                  styles.googleButton,
+                  pressed && styles.googleButtonPressed,
+                  isSubmitting && styles.disabledButton,
+                ]}
               >
-                <Text style={styles.loginLink}>Log in</Text>
+                <FontAwesome name="google" size={18} color="#4285F4" />
+                <Text style={styles.googleLabel}>
+                  {isSubmitting ? 'Please wait…' : 'Continue with Google'}
+                </Text>
               </Pressable>
+
+              <View style={styles.loginRow}>
+                <Text style={styles.loginPrompt}>Already have an account?</Text>
+                <Pressable
+                  accessibilityRole="link"
+                  onPress={() => router.push('/login')}
+                  hitSlop={8}
+                >
+                  <Text style={styles.loginLink}> Log in</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
+          </Animated.View>
 
           <View style={styles.footer}>
             <Ionicons
@@ -346,7 +357,7 @@ export default function RegisterScreen() {
               color={colors.textSecondary}
             />
             <Text style={styles.footerNote}>
-              Your health information belongs to you.
+              Your health information is safely secured.
             </Text>
           </View>
         </ScrollView>
@@ -369,79 +380,48 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
   },
-  backButtonWrapper: {
-    alignSelf: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  topRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F4F4F2',
-    borderWidth: 1,
-    borderColor: '#EBEBE8',
-  },
-  brandRow: {
-    height: 48,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  brandLogo: {
-    width: 106,
-    height: 48,
-    marginLeft: -20,
-  },
-  heading: {
-    marginTop: spacing.xxl,
+    justifyContent: 'space-between',
     marginBottom: spacing.xl,
   },
-  eyebrow: {
-    color: '#8A7045',
-    fontSize: 10,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.8,
-    marginBottom: spacing.md,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  brandLogo: {
+    width: 120,
+    height: 40,
+    marginRight: -10,
+  },
+  animatedContainer: {
+    flex: 1,
+  },
+  heading: {
+    marginBottom: spacing.xl,
   },
   title: {
-    color: colors.text,
-    fontSize: 29,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -1,
+    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: -0.6,
   },
   subtitle: {
-    color: colors.textSecondary,
-    fontSize: typography.body,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 23,
-    marginTop: spacing.sm,
-    maxWidth: 360,
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 6,
+    maxWidth: 340,
   },
   form: {
     gap: spacing.lg,
-  },
-  passwordGroup: {
-    gap: spacing.xs,
-  },
-  passwordToggle: {
-    alignSelf: 'flex-end',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-  },
-  passwordToggleText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
-  },
-  helperText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 18,
-    marginTop: -spacing.sm,
   },
   errorBox: {
     flexDirection: 'row',
@@ -450,89 +430,85 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#F1CECE',
-    backgroundColor: '#FFF7F7',
+    borderColor: '#FECDD3',
+    backgroundColor: '#FFF1F2',
   },
   errorText: {
     flex: 1,
     color: colors.error,
     fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-    lineHeight: 19,
+    fontWeight: '500',
+    lineHeight: 18,
   },
   submitButton: {
-    marginTop: spacing.xs,
+    marginTop: 4,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    marginVertical: spacing.xs,
+    marginVertical: 4,
   },
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: '#E2E8F0',
   },
   dividerText: {
-    color: colors.textSecondary,
-    fontSize: 10,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.2,
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   googleButton: {
-    minHeight: 54,
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     borderRadius: 999,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: spacing.lg,
   },
   googleButtonPressed: {
-    backgroundColor: '#F7F7F5',
-    transform: [{ scale: 0.99 }],
+    backgroundColor: '#F8FAFC',
+    transform: [{ scale: 0.985 }],
   },
   disabledButton: {
     opacity: 0.6,
   },
   googleLabel: {
-    color: colors.text,
+    color: '#0F172A',
     fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
+    fontWeight: '600',
   },
   loginRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
+    paddingTop: 4,
   },
   loginPrompt: {
-    color: colors.textSecondary,
+    color: '#64748B',
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
   },
   loginLink: {
-    color: colors.text,
+    color: '#0F172A',
     fontSize: 13,
-    fontFamily: 'Inter_700Bold',
-    padding: spacing.xs,
+    fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 6,
     marginTop: 'auto',
     paddingTop: spacing.xxl,
   },
   footerNote: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
+    color: '#64748B',
+    fontSize: 12,
   },
 });
