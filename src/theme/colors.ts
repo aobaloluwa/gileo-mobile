@@ -1,19 +1,19 @@
 export const colors = {
-  background: '#FFFFFF',
+  background: '#FAF7F2',
   surface: '#FFFFFF',
-
-  primary: '#111111',
-  primaryPressed: '#333333',
-  primarySoft: '#F3F3F3',
-
-  text: '#111111',
-  textSecondary: '#707070',
-  border: '#E5E5E5',
-  placeholder: '#A0A0A0',
-
-  error: '#C62828',
+  primary: '#761B36',
+  primaryPressed: '#5D142A',
+  primarySoft: '#F7E9ED',
+  accent: '#E50914',
+  gold: '#F2B705',
+  wine: '#761B36',
+  text: '#21191B',
+  textSecondary: '#74696B',
+  border: '#E9DFE1',
+  placeholder: '#A89DA0',
+  error: '#B42332',
   success: '#267346',
-  overlay: 'rgba(0, 0, 0, 0.45)',
+  overlay: 'rgba(33, 25, 27, 0.45)',
 } as const;
 
 export const spacing = {
@@ -27,10 +27,10 @@ export const spacing = {
 } as const;
 
 export const radii = {
-  input: 12,
-  card: 16,
+  input: 15,
+  card: 22,
   button: 999,
-  screen: 24,
+  screen: 28,
 } as const;
 
 export const typography = {

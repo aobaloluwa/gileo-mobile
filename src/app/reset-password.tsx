@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import {
   Alert,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -61,7 +62,7 @@ export default function ResetPasswordScreen() {
 
     Alert.alert(
       'Ready to continue',
-      'Your passwords match. We will connect this screen to the Vitaltron password-reset API next.',
+      'Your passwords match. We will connect this screen to the GILEO password-reset API next.',
     );
   };
 
@@ -85,10 +86,12 @@ export default function ResetPasswordScreen() {
           </Pressable>
 
           <View style={styles.brandRow}>
-            <View style={styles.brandMark}>
-              <Text style={styles.brandMarkText}>v</Text>
-            </View>
-            <Text style={styles.brandName}>vitaltron</Text>
+            <Image
+              source={require('../assets/gileo-logo.png')}
+              style={styles.brandLogo}
+              resizeMode="contain"
+              accessibilityLabel="Gileo Medicals"
+            />
           </View>
 
           <View style={styles.illustration}>
@@ -104,7 +107,7 @@ export default function ResetPasswordScreen() {
             <Text style={styles.eyebrow}>ACCOUNT SECURITY</Text>
             <Text style={styles.title}>Create a new password</Text>
             <Text style={styles.subtitle}>
-              Choose a strong password to help keep your Vitaltron account and
+              Choose a strong password to help keep your GILEO account and
               health information secure.
             </Text>
           </View>
@@ -167,7 +170,7 @@ export default function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   keyboardView: {
     flex: 1,
@@ -188,29 +191,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    height: 48,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
     marginTop: spacing.md,
   },
-  brandMark: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandMarkText: {
-    color: colors.surface,
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  brandName: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.6,
+  brandLogo: {
+    width: 106,
+    height: 48,
+    marginLeft: -20,
   },
   illustration: {
     alignItems: 'center',

@@ -2,6 +2,7 @@ import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -56,13 +57,12 @@ export default function HomeScreen() {
       >
         <View style={styles.topBar}>
           <View style={styles.brandRow}>
-            <View style={styles.brandMark}>
-              <FontAwesome name="heart" size={16} color="#FFFFFF" />
-            </View>
-            <View>
-              <Text style={styles.brandName}>vitaltron</Text>
-              <Text style={styles.brandTagline}>YOUR HEALTH, YOUR HANDS.</Text>
-            </View>
+            <Image
+              source={require('../../assets/gileo-logo.png')}
+              style={styles.brandLogo}
+              resizeMode="contain"
+              accessibilityLabel="Gileo Medicals"
+            />
           </View>
           <Pressable
             accessibilityRole="button"
@@ -164,7 +164,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
@@ -176,17 +176,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.xxl,
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  brandMark: {
-    width: 38, height: 38, borderRadius: 13, backgroundColor: colors.primary,
-    alignItems: 'center', justifyContent: 'center',
+  brandRow: {
+    height: 48,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
-  brandName: {
-    color: colors.text, fontSize: 21, fontFamily: 'Inter_700Bold', letterSpacing: -0.7,
-  },
-  brandTagline: {
-    color: colors.textSecondary, fontSize: 8, fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.1, marginTop: 2,
+  brandLogo: {
+    width: 106,
+    height: 48,
+    marginLeft: -8,
   },
   iconButton: {
     width: 43, height: 43, borderRadius: 22, borderWidth: 1,

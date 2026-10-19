@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: spacing.xl,
     borderRadius: radii.button,
-    backgroundColor: '#111111',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   pressed: {
-    backgroundColor: '#333333',
+    backgroundColor: colors.primaryPressed,
   },
 });

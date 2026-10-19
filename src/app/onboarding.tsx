@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   View,
   Text,
   StyleSheet,
@@ -13,31 +14,35 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { getStoredAccessToken } from '../services/auth';
 
 const slides = [
   {
-    eyebrow: 'YOUR HEALTH, YOUR STORY',
-    title: 'Your health,\nin your hands.',
+    eyebrow: 'HEALTHCARE SERVICES',
+    title: 'Professional care,\nwhen you need it.',
     description:
-      'Keep your personal health information close, secure, and ready whenever you need it.',
+      'Request home-care nursing, post-hospital recovery, corporate medical coverage, and specialized healthcare services.',
     icon: 'heart-outline' as const,
-    accentIcon: 'pulse' as const,
+    accentIcon: 'medkit-outline' as const,
+    illustration: require('../assets/onboarding-care.png'),
   },
   {
-    eyebrow: 'EVERYTHING IN ONE PLACE',
-    title: 'Your health story,\nall together.',
+    eyebrow: 'MEDICAL MARKETPLACE',
+    title: 'Gileo Scrubs &\nessentials.',
     description:
-      'Keep track of your health records, appointments, medicines, and important milestones in one place.',
-    icon: 'document-text-outline' as const,
-    accentIcon: 'folder-open-outline' as const,
-  },
-  {
-    eyebrow: 'SHARED ON YOUR TERMS',
-    title: 'Your records.\nYour choice.',
-    description:
-      'Choose when and what to share with healthcare professionals, while keeping control of your information.',
+      'Browse and shop premium Gileo Scrubs, medical wear, accessories, equipment, and medical supplies.',
     icon: 'shield-checkmark-outline' as const,
-    accentIcon: 'people-outline' as const,
+    accentIcon: 'lock-closed-outline' as const,
+    illustration: require('../assets/onboarding-privacy.png'),
+  },
+  {
+    eyebrow: 'COMMUNITY & GROWTH',
+    title: 'Care. Community.\nProfessional growth.',
+    description:
+      'Connect with the Gileo Nurses Community and advance your career with Gileo Elevate professional development programmes.',
+    icon: 'people-outline' as const,
+    accentIcon: 'book-outline' as const,
+    illustration: require('../assets/onboarding-growth.png'),
   },
 ];
 
@@ -113,7 +118,8 @@ export default function OnboardingScreen() {
 
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-      router.replace('/welcome');
+      const token = await getStoredAccessToken();
+      router.replace(token ? '/(tabs)' : '/welcome');
     } catch {
       setIsSaving(false);
     }
@@ -127,7 +133,7 @@ export default function OnboardingScreen() {
     }
   };
 
-  const illustrationSize = Math.min(width * 0.62, height * 0.32, 260);
+  const illustrationSize = Math.min(width * 0.84, height * 0.38, 360);
 
   const rotate = illustrationRotate.interpolate({
     inputRange: [0, 1],
@@ -139,10 +145,12 @@ export default function OnboardingScreen() {
       <View style={styles.screen}>
         <View style={styles.topBar}>
           <View style={styles.brand}>
-            <View style={styles.brandMark}>
-              <Text style={styles.brandMarkText}>v</Text>
-            </View>
-            <Text style={styles.brandName}>vitaltron</Text>
+            <Image
+              source={require('../assets/gileo-logo.png')}
+              style={styles.brandLogo}
+              resizeMode="contain"
+              accessibilityLabel="Gileo Medicals"
+            />
           </View>
 
           <Pressable
@@ -168,39 +176,12 @@ export default function OnboardingScreen() {
               },
             ]}
           >
-            <View
-              style={[
-                styles.illustrationCircle,
-                {
-                  width: illustrationSize,
-                  height: illustrationSize,
-                  borderRadius: illustrationSize / 2,
-                },
-              ]}
-            >
-              <View style={styles.sunShape} />
-
-              <View style={styles.orbitRing}>
-                <View style={styles.mainIconCircle}>
-                  <Ionicons
-                    name={slide.icon}
-                    size={illustrationSize * 0.38}
-                    color="#242424"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.accentIconCircle}>
-                <Ionicons
-                  name={slide.accentIcon}
-                  size={29}
-                  color="#242424"
-                />
-              </View>
-
-              <View style={styles.smallGoldDot} />
-              <View style={styles.smallDarkDot} />
-            </View>
+            <Image
+              source={slide.illustration}
+              resizeMode="contain"
+              style={{ width: illustrationSize, height: illustrationSize * 0.81 }}
+              accessibilityLabel={slide.eyebrow}
+            />
           </Animated.View>
 
           <View style={styles.textContent}>
@@ -219,7 +200,7 @@ export default function OnboardingScreen() {
                       {
                         width: indicatorWidth,
                         backgroundColor:
-                          index === activeIndex ? '#111111' : '#D4D4D4',
+                          index === activeIndex ? '#E50914' : '#E6DADD',
                       },
                     ]}
                   />
@@ -306,13 +287,18 @@ const styles = StyleSheet.create({
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'flex-start',
+  },
+  brandLogo: {
+    width: 106,
+    height: 48,
+    marginLeft: -20,
   },
   brandMark: {
     width: 30,
     height: 30,
     borderRadius: 10,
-    backgroundColor: '#111111',
+    backgroundColor: '#761B36',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -322,13 +308,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
   },
   brandName: {
-    color: '#111111',
+    color: '#761B36',
     fontSize: 19,
     fontFamily: 'Inter_700Bold',
     letterSpacing: -0.6,
   },
+  brandSubtitle: {
+    color: '#74696B',
+    fontSize: 7,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 1.8,
+    marginTop: -2,
+  },
   skipText: {
-    color: '#333333',
+    color: '#5D142A',
     fontSize: 13,
     fontFamily: 'Inter_500Medium',
     textTransform: 'uppercase',
@@ -336,13 +329,11 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 34,
     paddingHorizontal: 25,
     paddingTop: 18,
     paddingBottom: 22,
     alignItems: 'center',
     justifyContent: 'space-between',
-    overflow: 'hidden',
   },
   illustrationArea: {
     flex: 1,
@@ -353,7 +344,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   illustrationCircle: {
-    backgroundColor: '#F2EEE5',
+    backgroundColor: '#FAF0F1',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -380,7 +371,7 @@ const styles = StyleSheet.create({
     width: '88%',
     height: '88%',
     borderRadius: 999,
-    backgroundColor: '#E6C779',
+    backgroundColor: '#F5D56A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -393,7 +384,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E7E1D5',
+    borderColor: '#E9DFE1',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
@@ -409,7 +400,7 @@ const styles = StyleSheet.create({
     width: 15,
     height: 15,
     borderRadius: 8,
-    backgroundColor: '#D5AE54',
+    backgroundColor: '#F2B705',
   },
   smallDarkDot: {
     position: 'absolute',
@@ -418,7 +409,7 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: '#38342C',
+    backgroundColor: '#761B36',
   },
   textContent: {
     width: '100%',
@@ -444,7 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   title: {
-    color: '#111111',
+    color: '#761B36',
     fontSize: 29,
     lineHeight: 37,
     fontFamily: 'Inter_600SemiBold',
@@ -480,7 +471,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skipButtonText: {
-    color: '#111111',
+    color: '#761B36',
     fontSize: 13,
     fontFamily: 'Inter_600SemiBold',
     textTransform: 'uppercase',
@@ -490,14 +481,14 @@ const styles = StyleSheet.create({
     minWidth: 112,
     paddingHorizontal: 22,
     borderRadius: 999,
-    backgroundColor: '#080808',
+    backgroundColor: '#761B36',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
   },
   nextButtonPressed: {
-    backgroundColor: '#333333',
+    backgroundColor: '#5D142A',
     transform: [{ scale: 0.98 }],
   },
   buttonDisabled: {

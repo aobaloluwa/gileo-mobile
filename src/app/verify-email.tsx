@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -181,11 +182,12 @@ export default function VerifyEmailScreen() {
           </Animated.View>
 
           <View style={styles.header}>
-            <View style={styles.logoMark}>
-              <FontAwesome name="heart" size={17} color="#FFFFFF" />
-            </View>
-            <Text style={styles.brand}>vitaltron</Text>
-            <Text style={styles.tagline}>Your health, your hands.</Text>
+            <Image
+              source={require('../assets/gileo-logo.png')}
+              style={styles.brandLogo}
+              resizeMode="contain"
+              accessibilityLabel="Gileo Medicals"
+            />
           </View>
 
           <View style={styles.illustration}>
@@ -387,7 +389,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
@@ -410,29 +412,15 @@ const styles = StyleSheet.create({
     borderColor: '#EBEBE8',
   },
   header: {
-    alignItems: 'center',
+    height: 48,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
     marginBottom: spacing.xl,
   },
-  logoMark: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  brand: {
-    color: colors.text,
-    fontSize: 22,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.7,
-  },
-  tagline: {
-    color: colors.textSecondary,
-    fontSize: typography.caption,
-    fontFamily: 'Inter_400Regular',
-    marginTop: 3,
+  brandLogo: {
+    width: 106,
+    height: 48,
+    marginLeft: -20,
   },
   illustration: {
     alignItems: 'center',
@@ -614,7 +602,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   verifyButtonPressed: {
-    backgroundColor: '#333333',
+    backgroundColor: '#5D142A',
     transform: [{ scale: 0.99 }],
   },
   buttonDisabled: {

@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    color: '#111111',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -90,13 +90,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
     borderRadius: radii.input,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: spacing.lg,
   },
   inputFocused: {
-    borderColor: '#111111',
+    borderColor: colors.primary,
   },
   inputError: {
     borderColor: colors.error,
@@ -105,11 +105,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     paddingVertical: spacing.lg,
-    color: '#111111',
+    color: colors.text,
     fontSize: 15,
   },
   passwordToggle: {
-    color: '#111111',
+    color: colors.text,
     fontSize: 13,
     fontWeight: '500',
     paddingLeft: spacing.sm,

@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -164,18 +165,19 @@ export default function LoginScreen() {
           </Animated.View>
 
           <View style={styles.brandRow}>
-            <View style={styles.brandMark}>
-              <FontAwesome name="heart" size={17} color="#FFFFFF" />
-            </View>
-            <Text style={styles.brandName}>vitaltron</Text>
+            <Image
+              source={require('../assets/gileo-logo.png')}
+              style={styles.brandLogo}
+              resizeMode="contain"
+              accessibilityLabel="Gileo Medicals"
+            />
           </View>
 
           <View style={styles.heading}>
-            <Text style={styles.eyebrow}>YOUR HEALTH, YOUR STORY</Text>
+            <Text style={styles.eyebrow}>GILEO MEDICALS GLOBAL LIMITED</Text>
             <Text style={styles.title}>Welcome back.</Text>
             <Text style={styles.subtitle}>
-              Your health journey is waiting for you. Sign in securely to
-              access your personal health records.
+              Sign in securely to access your healthcare services, medical orders, nursing community, and learning library.
             </Text>
           </View>
 
@@ -302,7 +304,7 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flexGrow: 1,
@@ -325,23 +327,14 @@ const styles = StyleSheet.create({
     borderColor: '#EBEBE8',
   },
   brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  brandMark: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
+    height: 48,
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
-  brandName: {
-    color: colors.text,
-    fontSize: 21,
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: -0.7,
+  brandLogo: {
+    width: 106,
+    height: 48,
+    marginLeft: -20,
   },
   heading: {
     marginTop: spacing.xxl,

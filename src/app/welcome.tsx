@@ -1,6 +1,8 @@
 
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,8 +11,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PrimaryButton from '../components/ui/PrimaryButton';
+import { getStoredAccessToken } from '../services/auth';
 
 export default function WelcomeScreen() {
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const token = await getStoredAccessToken();
+        if (token) {
+          router.replace('/(tabs)');
+        }
+      } catch {}
+    }
+    void checkAuth();
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -18,55 +33,33 @@ export default function WelcomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.brandRow}>
-          <View style={styles.brandMark}>
-            <Text style={styles.brandMarkText}>v</Text>
-          </View>
-          <Text style={styles.brandName}>vitaltron</Text>
+          <Image
+            source={require('../assets/gileo-logo.png')}
+            style={styles.brandLogo}
+            resizeMode="contain"
+            accessibilityLabel="Gileo Medicals"
+          />
         </View>
 
         <View style={styles.hero}>
           <View style={styles.illustration}>
-            <View style={styles.outerCircle}>
-              <View style={styles.middleCircle}>
-                <View style={styles.iconCircle}>
-                  <Ionicons
-                    name="heart"
-                    size={64}
-                    color="#111111"
-                  />
-                  <View style={styles.pulseBadge}>
-                    <Ionicons
-                      name="pulse"
-                      size={24}
-                      color="#111111"
-                    />
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.goldDot} />
-            <View style={styles.darkDot} />
-            <View style={styles.smallCircle}>
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={25}
-                color="#111111"
-              />
-            </View>
+            <Image
+              source={require('../assets/onboarding-care.png')}
+              resizeMode="contain"
+              style={styles.heroIllustration}
+              accessibilityLabel="Illustration representing healthcare and care services"
+            />
           </View>
 
-          <Text style={styles.eyebrow}>YOUR HEALTH, YOUR STORY</Text>
+          <Text style={styles.eyebrow}>CARE • COMMUNITY • GROWTH</Text>
 
           <Text style={styles.title}>
-            Your health story,{' '}
-            <Text style={styles.titleAccent}>in your hands.</Text>
+            Healthcare. Medical{' '}
+            <Text style={styles.titleAccent}>essentials. Professional growth.</Text>
           </Text>
 
           <Text style={styles.description}>
-            A simpler way to keep your health records close,
-            understand your wellbeing, and share your health
-            information when you choose.
+            One connected platform for care, medical products, and nursing development. Discover services, shop medical essentials, and explore resources built to help you grow.
           </Text>
         </View>
 
@@ -97,7 +90,7 @@ export default function WelcomeScreen() {
               color="#707070"
             />
             <Text style={styles.privacyNote}>
-              Your health information belongs to you.
+              Care and support, all in one place.
             </Text>
           </View>
         </View>
@@ -118,15 +111,20 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
+    height: 58,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  brandLogo: {
+    width: 112,
+    height: 58,
+    marginLeft: -20,
   },
   brandMark: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#111111',
+    backgroundColor: '#761B36',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -136,10 +134,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
   },
   brandName: {
-    color: '#111111',
+    color: '#761B36',
     fontSize: 21,
     fontFamily: 'Inter_700Bold',
     letterSpacing: -0.7,
+  },
+  brandSubtitle: {
+    color: '#74696B',
+    fontSize: 8,
+    fontFamily: 'Inter_600SemiBold',
+    letterSpacing: 2.1,
+    marginTop: -2,
   },
   hero: {
     flex: 1,
@@ -148,19 +153,24 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
   },
   illustration: {
-    width: 250,
+    width: '100%',
     height: 250,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 34,
+    marginBottom: 22,
+  },
+  heroIllustration: {
+    width: '100%',
+    height: '100%',
+    maxWidth: 340,
   },
   outerCircle: {
     width: 230,
     height: 230,
     borderRadius: 115,
-    backgroundColor: '#F8F6F1',
+    backgroundColor: '#FAF7F2',
     borderWidth: 1,
-    borderColor: '#EAE6DE',
+    borderColor: '#E9DFE1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -168,7 +178,7 @@ const styles = StyleSheet.create({
     width: 176,
     height: 176,
     borderRadius: 88,
-    backgroundColor: '#F0E6CC',
+    backgroundColor: '#F7E9ED',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -176,7 +186,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#E6C779',
+    backgroundColor: '#F5D56A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -189,7 +199,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E7E1D5',
+    borderColor: '#E9DFE1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -200,7 +210,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#D5AE54',
+    backgroundColor: '#F2B705',
   },
   darkDot: {
     position: 'absolute',
@@ -209,7 +219,7 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: '#38342C',
+    backgroundColor: '#761B36',
   },
   smallCircle: {
     position: 'absolute',
@@ -220,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E7E1D5',
+    borderColor: '#E9DFE1',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
@@ -234,7 +244,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   title: {
-    color: '#111111',
+    color: '#761B36',
     fontSize: 32,
     lineHeight: 41,
     fontFamily: 'Inter_700Bold',
@@ -242,7 +252,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   titleAccent: {
-    color: '#111111',
+    color: '#761B36',
   },
   description: {
     maxWidth: 330,
@@ -269,7 +279,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
   },
   loginLink: {
-    color: '#111111',
+    color: '#761B36',
     fontSize: 14,
     fontFamily: 'Inter_600SemiBold',
     padding: 4,
