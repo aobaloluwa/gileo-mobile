@@ -59,7 +59,7 @@ export default function WelcomeScreen() {
           </Text>
 
           <Text style={styles.description}>
-            One connected platform for care, medical products, and nursing development. Discover services, shop medical essentials, and explore resources built to help you grow.
+            One connected platform for Healthcare Services, Medical Marketplace (Gileo Scrubs), Gileo Nurses Community, and Gileo Elevate professional development.
           </Text>
         </View>
 
