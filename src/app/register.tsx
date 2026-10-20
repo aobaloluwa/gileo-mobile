@@ -40,12 +40,19 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [canGoBack, setCanGoBack] = useState(false);
 
   const backScale = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
+    try {
+      setCanGoBack(router.canGoBack());
+    } catch {
+      setCanGoBack(false);
+    }
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -73,7 +80,15 @@ export default function RegisterScreen() {
 
   const handleBack = () => {
     Keyboard.dismiss();
-    router.back();
+    try {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/welcome');
+      }
+    } catch {
+      router.replace('/welcome');
+    }
   };
 
   const handleRegister = async () => {
@@ -192,19 +207,23 @@ export default function RegisterScreen() {
         >
           {/* Top Header */}
           <View style={styles.topRow}>
-            <Animated.View style={{ transform: [{ scale: backScale }] }}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-                onPress={handleBack}
-                onPressIn={() => animateBack(0.92)}
-                onPressOut={() => animateBack(1)}
-                hitSlop={8}
-                style={styles.backButton}
-              >
-                <Ionicons name="arrow-back" size={20} color={colors.text} />
-              </Pressable>
-            </Animated.View>
+            {canGoBack ? (
+              <Animated.View style={{ transform: [{ scale: backScale }] }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                  onPress={handleBack}
+                  onPressIn={() => animateBack(0.92)}
+                  onPressOut={() => animateBack(1)}
+                  hitSlop={8}
+                  style={styles.backButton}
+                >
+                  <Ionicons name="arrow-back" size={20} color={colors.text} />
+                </Pressable>
+              </Animated.View>
+            ) : (
+              <View style={{ width: 42, height: 42 }} />
+            )}
 
             <Image
               source={require('../../assets/gileo-logo.png')}

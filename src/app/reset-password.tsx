@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -24,6 +24,15 @@ export default function ResetPasswordScreen() {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCanGoBack(router.canGoBack());
+    } catch {
+      setCanGoBack(false);
+    }
+  }, []);
 
   const handleResetPassword = () => {
     Keyboard.dismiss();
@@ -79,15 +88,30 @@ export default function ResetPasswordScreen() {
         >
           {/* Top Row Header */}
           <View style={styles.topRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-              onPress={() => router.back()}
-              hitSlop={8}
-              style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color={colors.text} />
-            </Pressable>
+            {canGoBack ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                onPress={() => {
+                  Keyboard.dismiss();
+                  try {
+                    if (router.canGoBack()) {
+                      router.back();
+                    } else {
+                      router.replace('/login');
+                    }
+                  } catch {
+                    router.replace('/login');
+                  }
+                }}
+                hitSlop={8}
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={20} color={colors.text} />
+              </Pressable>
+            ) : (
+              <View style={{ width: 42, height: 42 }} />
+            )}
 
             <Image
               source={require('../../assets/gileo-logo.png')}
