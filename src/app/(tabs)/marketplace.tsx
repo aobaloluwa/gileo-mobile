@@ -59,7 +59,7 @@ type CustomAlert = {
 
 const initialProducts: Product[] = [
   {
-    id: 'gileo-scrubs-dri-fit',
+    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170001',
     title: 'Gileo Dri-FIT Premium Scrubs Set',
     category: 'Gileo Scrubs',
     price: '₦28,500',
@@ -79,7 +79,7 @@ const initialProducts: Product[] = [
     availableSizes: ['S', 'M', 'L', 'XL', 'XXL'],
   },
   {
-    id: 'clinical-stethoscope-pro',
+    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170002',
     title: 'Clinical Dual-Head Stethoscope',
     category: 'Equipment',
     price: '₦35,000',
@@ -97,7 +97,7 @@ const initialProducts: Product[] = [
     availableSizes: ['Standard'],
   },
   {
-    id: 'digital-bp-kit',
+    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170003',
     title: 'Digital Automatic BP Monitor',
     category: 'Accessories',
     price: '₦22,000',
@@ -112,7 +112,7 @@ const initialProducts: Product[] = [
     availableSizes: ['Universal Cuff'],
   },
   {
-    id: 'nurse-carry-backpack',
+    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170004',
     title: 'Nurse Organizer Carry Backpack',
     category: 'Accessories',
     price: '₦18,000',

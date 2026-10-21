@@ -12,7 +12,7 @@ const destinations = [
     color: '#F7E8EB',
     iconColor: '#761B36',
     action: 'View health tools',
-    onPress: () => router.push('/(tabs)/records'),
+    onPress: () => router.push('/(tabs)/services'),
   },
   {
     icon: 'bag-handle-outline' as const,
