@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getStoredAccessToken } from './auth';
 
 /**
  * Set EXPO_PUBLIC_API_URL in your local .env file to the complete API root,
@@ -17,18 +18,29 @@ export async function apiRequest<T>(
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   let response: Response;
 
+  const authHeader: Record<string, string> = {};
+  if (!options.headers || !('Authorization' in (options.headers as Record<string, string>))) {
+    try {
+      const token = await getStoredAccessToken();
+      if (token) {
+        authHeader['Authorization'] = `Bearer ${token}`;
+      }
+    } catch {}
+  }
+
   try {
     response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
       ...options,
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
+        ...authHeader,
         ...options.headers,
       },
     });
   } catch {
     throw new Error(
-      `Unable to reach GILEO. Check your internet connection and API address (${API_BASE_URL}).`,
+      `Unable to reach GILEO API (${API_BASE_URL}). Ensure your backend server is running.`,
     );
   }
 
@@ -41,8 +53,8 @@ export async function apiRequest<T>(
         ? message.join(', ')
         : typeof message === 'string' && message.trim()
           ? message
-          : response.status === 429
-            ? 'Too many attempts. Please wait a moment and try again.'
+          : response.status === 401
+            ? 'Your session has expired or you are not logged in. Please log in again.'
             : 'Something went wrong. Please try again.',
     );
   }
