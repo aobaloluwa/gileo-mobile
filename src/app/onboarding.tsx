@@ -15,30 +15,31 @@ import { getStoredAccessToken } from '../services/auth';
 
 const slides = [
   {
-    eyebrow: 'WELCOME TO GILEO',
-    title: 'Welcome to Gileo!',
+    eyebrow: 'DISCOVERING GILEO',
+    title: 'Quality healthcare beyond boundaries',
     description:
-      'The ultimate healthcare & medical app for making your daily access as convenient and smooth as possible.',
-    illustration: require('../../assets/onboarding-growth.png'),
+      'Access healthcare services, shop medical essentials, connect with the nursing community, and discover learning opportunities, all in one place.',
+    illustration: require('../../assets/onboarding-care.png'),
   },
   {
-    eyebrow: 'MARKETPLACE & SUPPLIES',
-    title: 'Access What You Need.',
+    eyebrow: 'ACCESS WHAT YOU NEED',
+    title: 'Care, made easier.',
     description:
-      'Explore medical essentials, scrubs, equipment, and everyday supplies delivered straight to your door.',
+      'Request healthcare services and explore medical essentials, scrubs, equipment, and everyday supplies in the Gileo Marketplace.',
     illustration: require('../../assets/onboarding-privacy.png'),
   },
   {
-    eyebrow: 'NURSES & COMMUNITY',
-    title: 'A Connected Ecosystem.',
+    eyebrow: 'CONNECT AND GROW',
+    title: 'More than healthcare. A connected ecosystem.',
     description:
-      'Connect with trusted nurses, career advancement opportunities, and practical learning resources in one app.',
-    illustration: require('../../assets/onboarding-care.png'),
+      'Connect through Gileo Nurses Community and grow professionally with Gileo Elevate and practical learning resources.',
+    illustration: require('../../assets/onboarding-growth.png'),
   },
-];
+]
 
-const ONBOARDING_KEY = '@vitaltron/onboarding-completed';
-const AUTO_ADVANCE_DELAY = 4000; // 4 seconds auto move
+const ONBOARDING_KEY = '@gileo/onboarding-completed';
+const LEGACY_ONBOARDING_KEY = '@vitaltron/onboarding-completed';
+const AUTO_ADVANCE_DELAY = 5500; // Give users time to read before moving on
 
 export default function OnboardingScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -75,13 +76,13 @@ export default function OnboardingScreen() {
     return () => floating.stop();
   }, [illustrationFloat]);
 
-  // Auto-advance timer: moves to the next slide every 4 seconds
+  // Auto-advance through the slides, then stop on the final slide.
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveIndex((prevIndex) => (prevIndex + 1) % slides.length);
+    if (activeIndex >= slides.length - 1) return;
+    const timer = setTimeout(() => {
+      setActiveIndex((current) => Math.min(current + 1, slides.length - 1));
     }, AUTO_ADVANCE_DELAY);
-
-    return () => clearInterval(timer);
+    return () => clearTimeout(timer);
   }, [activeIndex]);
 
   // Transition animations when activeIndex changes
@@ -125,7 +126,10 @@ export default function OnboardingScreen() {
     setIsSaving(true);
 
     try {
-      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      await AsyncStorage.multiSet([
+        [ONBOARDING_KEY, 'true'],
+        [LEGACY_ONBOARDING_KEY, 'true'],
+      ]);
       const token = await getStoredAccessToken();
       if (token) {
         router.replace('/(tabs)');
@@ -198,6 +202,7 @@ export default function OnboardingScreen() {
               },
             ]}
           >
+            <Text style={styles.eyebrow}>{slide.eyebrow}</Text>
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.description}>{slide.description}</Text>
 
@@ -217,7 +222,7 @@ export default function OnboardingScreen() {
                       {
                         width: indicatorWidth,
                         backgroundColor:
-                          index === activeIndex ? '#111111' : '#E2E8F0',
+                          index === activeIndex ? '#761B36' : '#E2E8F0',
                       },
                     ]}
                   />
@@ -317,6 +322,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
   },
+  eyebrow: {
+    color: '#761B36',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
   title: {
     color: '#0F172A',
     fontSize: 27,
@@ -353,7 +366,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 56,
     borderRadius: 999,
-    backgroundColor: '#111111',
+    backgroundColor: '#761B36',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
@@ -363,7 +376,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryButtonPressed: {
-    backgroundColor: '#27272A',
+    backgroundColor: '#5E162B',
     transform: [{ scale: 0.985 }],
   },
   primaryButtonText: {

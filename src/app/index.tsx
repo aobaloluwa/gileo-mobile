@@ -4,7 +4,8 @@ import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getStoredAccessToken } from '../services/auth';
 
-const ONBOARDING_KEY = '@vitaltron/onboarding-completed';
+const ONBOARDING_KEY = '@gileo/onboarding-completed';
+const LEGACY_ONBOARDING_KEY = '@vitaltron/onboarding-completed';
 type Destination = '/onboarding' | '/welcome' | '/login' | '/(tabs)';
 
 export default function IndexRoute() {
@@ -36,15 +37,16 @@ export default function IndexRoute() {
       const delayPromise = new Promise((resolve) => setTimeout(resolve, 1200));
 
       try {
-        const [onboardingCompleted, token] = await Promise.all([
+        const [onboardingCompleted, legacyOnboardingCompleted, token] = await Promise.all([
           AsyncStorage.getItem(ONBOARDING_KEY),
+          AsyncStorage.getItem(LEGACY_ONBOARDING_KEY),
           getStoredAccessToken(),
-          delayPromise,
         ]);
+        await delayPromise;
 
         if (!active) return;
 
-        if (onboardingCompleted !== 'true') {
+        if (onboardingCompleted !== 'true' && legacyOnboardingCompleted !== 'true') {
           setDestination('/onboarding');
         } else {
           setDestination(token ? '/(tabs)' : '/welcome');

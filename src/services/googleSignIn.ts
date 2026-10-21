@@ -51,10 +51,16 @@ export function configureGoogleSignIn(): void {
   const GoogleSignin = getGoogleSignin();
   if (!GoogleSignin) return;
 
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
+  if (!webClientId) {
+    throw new Error(
+      'Google Sign-In is not configured yet. Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your local .env file, or continue with email.',
+    );
+  }
+
   try {
     GoogleSignin.configure({
-      webClientId:
-        '1087379121572-krau5b2fe25sssgkg8r9c2k42a38jk3m.apps.googleusercontent.com',
+      webClientId,
       offlineAccess: false,
     });
   } catch (error) {
