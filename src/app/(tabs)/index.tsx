@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   Image,
   Linking,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +16,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AuthUser, getStoredUser } from '../../services/auth';
+import { getFirstName } from './profile';
 import { colors, spacing } from '../../theme';
 
 const pillars = [
@@ -110,10 +115,51 @@ function getGreeting() {
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState<typeof featuredBooks[0] | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
+
+  const loadUserData = async () => {
+    const u = await getStoredUser();
+    setUser(u);
+  };
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 380,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    void loadUserData();
+  }, [fadeAnim, slideAnim]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await loadUserData();
+    } catch {
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleCallSupport = () => {
     void Linking.openURL('tel:+2348165335594');
   };
+
+  const firstName = getFirstName(user);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -121,8 +167,23 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#761B36"
+            colors={['#761B36']}
+          />
+        }
       >
-        {/* Top Bar Header */}
+        <Animated.View
+          style={{
+            gap: 20,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }}
+        >
+          {/* Top Bar Header */}
         <View style={styles.topBar}>
           <Image
             source={require('../../../assets/gileo-logo.png')}
@@ -164,7 +225,7 @@ export default function HomeScreen() {
 
         {/* User Greeting Section */}
         <View style={styles.greetingSection}>
-          <Text style={styles.greetingText}>{getGreeting()}</Text>
+          <Text style={styles.greetingText}>Hello, {firstName} 👋</Text>
           <Text style={styles.welcomeHeading}>Welcome to Gileo</Text>
           <Text style={styles.welcomeSubtext}>
             Healthcare. Medical Essentials. Professional Growth.
@@ -450,6 +511,7 @@ export default function HomeScreen() {
         <Text style={styles.footerNote}>
           GILEO MEDICALS GLOBAL LIMITED • 2026
         </Text>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

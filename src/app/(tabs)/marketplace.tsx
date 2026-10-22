@@ -1,21 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   Image,
   Linking,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
-import { getStoredAccessToken } from '../../services/auth';
+import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
+import { getFirstName } from './profile';
 import { colors, spacing } from '../../theme';
 
 type Product = {
@@ -132,8 +137,11 @@ const initialProducts: Product[] = [
 ];
 
 const categories = ['All', 'Gileo Scrubs', 'Equipment', 'Accessories'];
+const CART_STORAGE_KEY = '@gileo/persistent_user_cart';
 
 export default function MarketplaceScreen() {
+  const insets = useSafeAreaInsets();
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [productsList, setProductsList] = useState<Product[]>(initialProducts);
@@ -147,6 +155,7 @@ export default function MarketplaceScreen() {
 
   // Cart & Checkout State
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartLoaded, setIsCartLoaded] = useState(false);
   const [showCartModal, setShowCartModal] = useState(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
@@ -161,6 +170,19 @@ export default function MarketplaceScreen() {
   const [shippingAddress, setShippingAddress] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
+  // Toast Notification Bubble State & Animation
+  const [toastText, setToastText] = useState('');
+  const [isToastVisible, setIsToastVisible] = useState(false);
+  const toastAnim = useRef(new Animated.Value(-120)).current;
+
+  // Page Entrance Animations
+  const pageFadeAnim = useRef(new Animated.Value(0)).current;
+  const pageSlideAnim = useRef(new Animated.Value(18)).current;
+
+  // Modal Animation Scale & Translate
+  const modalScale = useRef(new Animated.Value(0.92)).current;
+  const modalOpacity = useRef(new Animated.Value(0)).current;
+
   // Custom Modern Alert Dialog State
   const [customAlert, setCustomAlert] = useState<CustomAlert>({
     visible: false,
@@ -172,37 +194,145 @@ export default function MarketplaceScreen() {
     onPrimaryPress: () => {},
   });
 
-  // Load products from backend if available
+  // 1. Persistent Cart Loading & User Load & Entrance Animation on Mount
   useEffect(() => {
-    async function loadBackendProducts() {
+    Animated.parallel([
+      Animated.timing(pageFadeAnim, {
+        toValue: 1,
+        duration: 380,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(pageSlideAnim, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    async function initMarketplace() {
+      const u = await getStoredUser();
+      setUser(u);
+
       try {
-        const fetched = await apiRequest<any[]>('/shop/products');
-        if (Array.isArray(fetched) && fetched.length > 0) {
-          const mapped: Product[] = fetched.map((p) => ({
-            id: p.id,
-            title: p.title,
-            category: p.category?.name || 'Gileo Collection',
-            price: `₦${(p.priceKobo / 100).toLocaleString()}`,
-            priceKobo: p.priceKobo,
-            description: p.description,
-            rating: '4.9',
-            reviewsCount: 15,
-            icon: 'bag-handle-outline',
-            color: '#761B36',
-            availableColors: [
-              { name: 'Gileo Wine', hex: '#761B36' },
-              { name: 'Navy Blue', hex: '#1E3A8A' },
-            ],
-            availableSizes: ['S', 'M', 'L', 'XL'],
-          }));
-          setProductsList(mapped);
+        const stored = await AsyncStorage.getItem(CART_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setCart(parsed);
+          }
         }
       } catch {
-        // Keep initial demo products if backend is not reachable
+      } finally {
+        setIsCartLoaded(true);
       }
     }
-    void loadBackendProducts();
+    void initMarketplace();
+  }, [pageFadeAnim, pageSlideAnim]);
+
+  // 2. Persistent Cart Saving whenever Cart Changes
+  useEffect(() => {
+    if (!isCartLoaded) return;
+    async function saveCart() {
+      try {
+        await AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+      } catch {}
+    }
+    void saveCart();
+  }, [cart, isCartLoaded]);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchProducts = async () => {
+    try {
+      const fetched = await apiRequest<any[]>('/shop/products');
+      if (Array.isArray(fetched) && fetched.length > 0) {
+        const mapped: Product[] = fetched.map((p) => ({
+          id: p.id,
+          title: p.title,
+          category: p.category?.name || 'Gileo Collection',
+          price: `₦${(p.priceKobo / 100).toLocaleString()}`,
+          priceKobo: p.priceKobo,
+          description: p.description,
+          rating: '4.9',
+          reviewsCount: 15,
+          icon: 'bag-handle-outline',
+          color: '#761B36',
+          availableColors: [
+            { name: 'Gileo Wine', hex: '#761B36' },
+            { name: 'Navy Blue', hex: '#1E3A8A' },
+          ],
+          availableSizes: ['S', 'M', 'L', 'XL'],
+        }));
+        setProductsList(mapped);
+      }
+    } catch {}
+  };
+
+  // Load backend products if available
+  useEffect(() => {
+    void fetchProducts();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const u = await getStoredUser();
+      setUser(u);
+      await fetchProducts();
+    } catch {
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Detail Modal Entrance Animation
+  useEffect(() => {
+    if (selectedProduct) {
+      modalScale.setValue(0.92);
+      modalOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(modalScale, {
+          toValue: 1,
+          friction: 8,
+          tension: 45,
+          useNativeDriver: true,
+        }),
+        Animated.timing(modalOpacity, {
+          toValue: 1,
+          duration: 250,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [selectedProduct, modalScale, modalOpacity]);
+
+  // Toast Notification Bubble Function
+  const triggerToast = (message: string) => {
+    setToastText(message);
+    setIsToastVisible(true);
+    toastAnim.setValue(-120);
+
+    Animated.sequence([
+      Animated.spring(toastAnim, {
+        toValue: insets.top + 8,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.delay(2200),
+      Animated.timing(toastAnim, {
+        toValue: -120,
+        duration: 280,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setIsToastVisible(false);
+    });
+  };
 
   const toggleFavorite = (productId: string) => {
     setFavorites((prev) => ({ ...prev, [productId]: !prev[productId] }));
@@ -213,6 +343,25 @@ export default function MarketplaceScreen() {
     setSelectedColor(product.availableColors[0]?.name || '');
     setSelectedSize(product.availableSizes[0] || '');
     setItemQuantity(1);
+  };
+
+  const closeProductDetail = () => {
+    Animated.parallel([
+      Animated.timing(modalScale, {
+        toValue: 0.92,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacity, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setSelectedProduct(null);
+    });
   };
 
   const showAlertModal = (config: Omit<CustomAlert, 'visible'>) => {
@@ -253,22 +402,11 @@ export default function MarketplaceScreen() {
       ];
     });
 
-    showAlertModal({
-      title: 'Added to Cart',
-      message: `${product.title} (${size}, ${color}) has been added to your cart.`,
-      icon: 'bag-check-outline',
-      iconColor: '#10B981',
-      primaryBtnText: 'View Cart',
-      onPrimaryPress: () => {
-        hideAlertModal();
-        setSelectedProduct(null);
-        setShowCartModal(true);
-      },
-      secondaryBtnText: 'Continue Shopping',
-      onSecondaryPress: () => {
-        hideAlertModal();
-      },
-    });
+    // 1. Immediately close the product detail modal
+    closeProductDetail();
+
+    // 2. Show sleek animated notification bubble toast
+    triggerToast(`${product.title} added to cart!`);
   };
 
   const updateCartQuantity = (cartItemId: string, delta: number) => {
@@ -354,7 +492,7 @@ export default function MarketplaceScreen() {
       });
 
       if (!paymentRes?.authorizationUrl) {
-        throw new Error('Paystack initialization failed. Please check your payment details.');
+        throw new Error('Paystack initialization failed. Please check your backend payment setup.');
       }
 
       const authUrl = paymentRes.authorizationUrl;
@@ -394,11 +532,47 @@ export default function MarketplaceScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Top Header */}
+      {/* Top Animated Notification Toast Bubble */}
+      {isToastVisible && (
+        <Animated.View
+          style={[
+            styles.toastContainer,
+            { top: insets.top + 8, transform: [{ translateY: toastAnim }] },
+          ]}
+        >
+          <Ionicons name="bag-check" size={20} color="#FFFFFF" />
+          <Text style={styles.toastText} numberOfLines={1}>
+            {toastText}
+          </Text>
+          <Pressable onPress={() => setIsToastVisible(false)} hitSlop={8}>
+            <Ionicons name="close" size={16} color="#FFFFFF" />
+          </Pressable>
+        </Animated.View>
+      )}
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#761B36"
+            colors={['#761B36']}
+          />
+        }
+      >
+        <Animated.View
+          style={{
+            gap: 16,
+            opacity: pageFadeAnim,
+            transform: [{ translateY: pageSlideAnim }],
+          }}
+        >
+          {/* Top Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greetingText}>Welcome, Nurse! 👋</Text>
+            <Text style={styles.greetingText}>Hello, {getFirstName(user)} 👋</Text>
             <Text style={styles.headerTitle}>Gileo Marketplace</Text>
           </View>
 
@@ -532,154 +706,165 @@ export default function MarketplaceScreen() {
           </View>
         )}
 
-        {/* Product Detail Modal */}
+        {/* Animated Product Detail Modal */}
         <Modal
           visible={Boolean(selectedProduct)}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setSelectedProduct(null)}
+          animationType="fade"
+          transparent
+          onRequestClose={closeProductDetail}
         >
           {selectedProduct && (
-            <SafeAreaView style={styles.modalSafeArea}>
-              <View style={styles.detailHeader}>
-                <Pressable onPress={() => setSelectedProduct(null)} style={styles.circleBtn}>
-                  <Ionicons name="arrow-back" size={20} color="#0F172A" />
-                </Pressable>
+            <View style={styles.detailOverlay}>
+              <Animated.View
+                style={[
+                  styles.detailModalSheet,
+                  {
+                    opacity: modalOpacity,
+                    transform: [{ scale: modalScale }],
+                  },
+                ]}
+              >
+                <SafeAreaView style={{ flex: 1 }}>
+                  <View style={styles.detailHeader}>
+                    <Pressable onPress={closeProductDetail} style={styles.circleBtn}>
+                      <Ionicons name="arrow-back" size={20} color="#0F172A" />
+                    </Pressable>
 
-                <Pressable
-                  onPress={() => toggleFavorite(selectedProduct.id)}
-                  style={styles.circleBtn}
-                >
-                  <Ionicons
-                    name={favorites[selectedProduct.id] ? 'heart' : 'heart-outline'}
-                    size={20}
-                    color={favorites[selectedProduct.id] ? '#EF4444' : '#0F172A'}
-                  />
-                </Pressable>
-              </View>
-
-              <ScrollView contentContainerStyle={styles.detailScrollContent}>
-                {/* Showcase Banner */}
-                <View style={styles.showcaseBox}>
-                  <Ionicons name={selectedProduct.icon} size={110} color={selectedProduct.color} />
-                  <View style={styles.showcaseDots}>
-                    <View style={[styles.dot, styles.dotActive]} />
-                    <View style={styles.dot} />
-                    <View style={styles.dot} />
+                    <Pressable
+                      onPress={() => toggleFavorite(selectedProduct.id)}
+                      style={styles.circleBtn}
+                    >
+                      <Ionicons
+                        name={favorites[selectedProduct.id] ? 'heart' : 'heart-outline'}
+                        size={20}
+                        color={favorites[selectedProduct.id] ? '#EF4444' : '#0F172A'}
+                      />
+                    </Pressable>
                   </View>
-                </View>
 
-                {/* Title & Price Header */}
-                <View style={styles.detailTitleRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.detailTitle}>{selectedProduct.title}</Text>
-                    <View style={styles.detailRatingRow}>
-                      <Ionicons name="star" size={16} color="#F59E0B" />
-                      <Text style={styles.detailRatingText}>
-                        {selectedProduct.rating} ({selectedProduct.reviewsCount} Reviews)
+                  <ScrollView contentContainerStyle={styles.detailScrollContent}>
+                    {/* Showcase Banner */}
+                    <View style={styles.showcaseBox}>
+                      <Ionicons name={selectedProduct.icon} size={110} color={selectedProduct.color} />
+                      <View style={styles.showcaseDots}>
+                        <View style={[styles.dot, styles.dotActive]} />
+                        <View style={styles.dot} />
+                        <View style={styles.dot} />
+                      </View>
+                    </View>
+
+                    {/* Title & Price Header */}
+                    <View style={styles.detailTitleRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.detailTitle}>{selectedProduct.title}</Text>
+                        <View style={styles.detailRatingRow}>
+                          <Ionicons name="star" size={16} color="#F59E0B" />
+                          <Text style={styles.detailRatingText}>
+                            {selectedProduct.rating} ({selectedProduct.reviewsCount} Reviews)
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.detailPrice}>{selectedProduct.price}</Text>
+                    </View>
+
+                    {/* Details Description */}
+                    <View style={styles.sectionGroup}>
+                      <Text style={styles.sectionHeaderTitle}>Details</Text>
+                      <Text style={styles.detailDescriptionText}>
+                        {selectedProduct.description}
                       </Text>
                     </View>
-                  </View>
 
-                  <Text style={styles.detailPrice}>{selectedProduct.price}</Text>
-                </View>
+                    {/* Color Selection Swatches */}
+                    <View style={styles.sectionGroup}>
+                      <Text style={styles.sectionHeaderTitle}>Color:</Text>
+                      <View style={styles.colorsRow}>
+                        {selectedProduct.availableColors.map((c) => {
+                          const isSelected = selectedColor === c.name;
+                          return (
+                            <Pressable
+                              key={c.name}
+                              onPress={() => setSelectedColor(c.name)}
+                              style={[
+                                styles.colorSwatch,
+                                { backgroundColor: c.hex },
+                                isSelected && styles.colorSwatchSelected,
+                              ]}
+                            >
+                              {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
 
-                {/* Details Description */}
-                <View style={styles.sectionGroup}>
-                  <Text style={styles.sectionHeaderTitle}>Details</Text>
-                  <Text style={styles.detailDescriptionText}>
-                    {selectedProduct.description}
-                  </Text>
-                </View>
+                    {/* Size Selection Chips */}
+                    <View style={styles.sectionGroup}>
+                      <Text style={styles.sectionHeaderTitle}>Size:</Text>
+                      <View style={styles.sizesRow}>
+                        {selectedProduct.availableSizes.map((size) => {
+                          const isSelected = selectedSize === size;
+                          return (
+                            <Pressable
+                              key={size}
+                              onPress={() => setSelectedSize(size)}
+                              style={[styles.sizeChip, isSelected && styles.sizeChipSelected]}
+                            >
+                              <Text style={[styles.sizeText, isSelected && styles.sizeTextSelected]}>
+                                {size}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
 
-                {/* Color Selection Swatches */}
-                <View style={styles.sectionGroup}>
-                  <Text style={styles.sectionHeaderTitle}>Color:</Text>
-                  <View style={styles.colorsRow}>
-                    {selectedProduct.availableColors.map((c) => {
-                      const isSelected = selectedColor === c.name;
-                      return (
+                    {/* Quantity Stepper */}
+                    <View style={styles.sectionGroup}>
+                      <Text style={styles.sectionHeaderTitle}>Quantity:</Text>
+                      <View style={styles.stepperRow}>
                         <Pressable
-                          key={c.name}
-                          onPress={() => setSelectedColor(c.name)}
-                          style={[
-                            styles.colorSwatch,
-                            { backgroundColor: c.hex },
-                            isSelected && styles.colorSwatchSelected,
-                          ]}
+                          onPress={() => setItemQuantity((q) => Math.max(1, q - 1))}
+                          style={styles.stepperBtn}
                         >
-                          {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                          <Ionicons name="remove" size={18} color="#0F172A" />
                         </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Size Selection Chips */}
-                <View style={styles.sectionGroup}>
-                  <Text style={styles.sectionHeaderTitle}>Size:</Text>
-                  <View style={styles.sizesRow}>
-                    {selectedProduct.availableSizes.map((size) => {
-                      const isSelected = selectedSize === size;
-                      return (
+                        <Text style={styles.stepperValue}>{itemQuantity}</Text>
                         <Pressable
-                          key={size}
-                          onPress={() => setSelectedSize(size)}
-                          style={[styles.sizeChip, isSelected && styles.sizeChipSelected]}
+                          onPress={() => setItemQuantity((q) => q + 1)}
+                          style={styles.stepperBtn}
                         >
-                          <Text style={[styles.sizeText, isSelected && styles.sizeTextSelected]}>
-                            {size}
-                          </Text>
+                          <Ionicons name="add" size={18} color="#0F172A" />
                         </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
+                      </View>
+                    </View>
+                  </ScrollView>
 
-                {/* Quantity Stepper */}
-                <View style={styles.sectionGroup}>
-                  <Text style={styles.sectionHeaderTitle}>Quantity:</Text>
-                  <View style={styles.stepperRow}>
+                  {/* Detail Action Footer */}
+                  <View style={styles.detailFooter}>
                     <Pressable
-                      onPress={() => setItemQuantity((q) => Math.max(1, q - 1))}
-                      style={styles.stepperBtn}
+                      style={styles.addCartBtn}
+                      onPress={() => {
+                        addToCart(selectedProduct, itemQuantity);
+                      }}
                     >
-                      <Ionicons name="remove" size={18} color="#0F172A" />
+                      <Text style={styles.addCartBtnText}>Add to Cart</Text>
                     </Pressable>
-                    <Text style={styles.stepperValue}>{itemQuantity}</Text>
+
                     <Pressable
-                      onPress={() => setItemQuantity((q) => q + 1)}
-                      style={styles.stepperBtn}
+                      style={styles.buyNowBtn}
+                      onPress={() => {
+                        addToCart(selectedProduct, itemQuantity);
+                        setShowCartModal(true);
+                      }}
                     >
-                      <Ionicons name="add" size={18} color="#0F172A" />
+                      <Text style={styles.buyNowBtnText}>Buy Now</Text>
                     </Pressable>
                   </View>
-                </View>
-              </ScrollView>
-
-              {/* Detail Action Footer */}
-              <View style={styles.detailFooter}>
-                <Pressable
-                  style={styles.addCartBtn}
-                  onPress={() => {
-                    addToCart(selectedProduct, itemQuantity);
-                  }}
-                >
-                  <Text style={styles.addCartBtnText}>Add to Cart</Text>
-                </Pressable>
-
-                <Pressable
-                  style={styles.buyNowBtn}
-                  onPress={() => {
-                    addToCart(selectedProduct, itemQuantity);
-                    setSelectedProduct(null);
-                    setShowCartModal(true);
-                  }}
-                >
-                  <Text style={styles.buyNowBtnText}>Buy Now</Text>
-                </Pressable>
-              </View>
-            </SafeAreaView>
+                </SafeAreaView>
+              </Animated.View>
+            </View>
           )}
         </Modal>
 
@@ -915,6 +1100,7 @@ export default function MarketplaceScreen() {
             </Pressable>
           </Pressable>
         </Modal>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -929,6 +1115,31 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingBottom: spacing.xxl,
     gap: 16,
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    right: 20,
+    zIndex: 9999,
+    height: 52,
+    borderRadius: 999,
+    backgroundColor: '#761B36',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    gap: 10,
+    shadowColor: '#761B36',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  toastText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
@@ -1092,7 +1303,7 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
-    transform: [{ scale: 0.985 }],
+    transform: [{ scale: 0.96 }],
   },
   noResultContainer: {
     alignItems: 'center',
@@ -1131,6 +1342,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
+  },
+  detailOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  detailModalSheet: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
   },
   modalSafeArea: {
     flex: 1,

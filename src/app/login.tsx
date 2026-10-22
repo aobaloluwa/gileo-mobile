@@ -129,7 +129,7 @@ export default function LoginScreen() {
           ? {
               id: response.user.id ?? '',
               email: response.user.email ?? cleanEmail,
-              displayName: null,
+              displayName: (response.user as any).displayName ?? null,
             }
           : null,
       });

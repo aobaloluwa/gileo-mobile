@@ -4,6 +4,7 @@ import {
   Linking,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -67,9 +68,17 @@ const servicesList = [
 
 export default function ServicesScreen() {
   const [selectedService, setSelectedService] = useState<typeof servicesList[0] | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const handleCallSupport = () => {
     void Linking.openURL('tel:+2348165335594');
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
   return (
@@ -77,6 +86,14 @@ export default function ServicesScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#761B36"
+            colors={['#761B36']}
+          />
+        }
       >
         <Text style={styles.eyebrow}>PILLAR 1 • HEALTHCARE SERVICES</Text>
         <Text style={styles.title}>Services & Care</Text>

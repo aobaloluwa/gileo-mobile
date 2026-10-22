@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../theme';
 
@@ -34,8 +35,17 @@ const communityPosts = [
 ];
 
 export default function CommunityScreen() {
+  const [refreshing, setRefreshing] = useState(false);
+
   const handleCallSupport = () => {
     void Linking.openURL('tel:+2348165335594');
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
   return (
@@ -43,6 +53,14 @@ export default function CommunityScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#761B36"
+            colors={['#761B36']}
+          />
+        }
       >
         <Text style={styles.eyebrow}>PILLAR 3 • NURSES COMMUNITY</Text>
         <Text style={styles.title}>Gileo Community</Text>
