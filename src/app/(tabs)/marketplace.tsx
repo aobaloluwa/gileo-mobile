@@ -170,11 +170,6 @@ export default function MarketplaceScreen() {
   const [shippingAddress, setShippingAddress] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
-  // Toast Notification Bubble State & Animation
-  const [toastText, setToastText] = useState('');
-  const [isToastVisible, setIsToastVisible] = useState(false);
-  const toastAnim = useRef(new Animated.Value(-120)).current;
-
   // Page Entrance Animations
   const pageFadeAnim = useRef(new Animated.Value(0)).current;
   const pageSlideAnim = useRef(new Animated.Value(18)).current;
@@ -182,6 +177,11 @@ export default function MarketplaceScreen() {
   // Modal Animation Scale & Translate
   const modalScale = useRef(new Animated.Value(0.92)).current;
   const modalOpacity = useRef(new Animated.Value(0)).current;
+
+  // Toast Notification Bubble State & Animation
+  const [toastText, setToastText] = useState('');
+  const [isToastVisible, setIsToastVisible] = useState(false);
+  const toastAnim = useRef(new Animated.Value(-150)).current;
 
   // Custom Modern Alert Dialog State
   const [customAlert, setCustomAlert] = useState<CustomAlert>({
@@ -270,7 +270,6 @@ export default function MarketplaceScreen() {
     } catch {}
   };
 
-  // Load backend products if available
   useEffect(() => {
     void fetchProducts();
   }, []);
@@ -309,22 +308,21 @@ export default function MarketplaceScreen() {
     }
   }, [selectedProduct, modalScale, modalOpacity]);
 
-  // Toast Notification Bubble Function
   const triggerToast = (message: string) => {
     setToastText(message);
     setIsToastVisible(true);
-    toastAnim.setValue(-120);
+    toastAnim.setValue(-150);
 
     Animated.sequence([
       Animated.spring(toastAnim, {
-        toValue: insets.top + 8,
+        toValue: Math.max(insets.top, 12),
         friction: 8,
         tension: 40,
         useNativeDriver: true,
       }),
       Animated.delay(2200),
       Animated.timing(toastAnim, {
-        toValue: -120,
+        toValue: -150,
         duration: 280,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
@@ -402,10 +400,7 @@ export default function MarketplaceScreen() {
       ];
     });
 
-    // 1. Immediately close the product detail modal
     closeProductDetail();
-
-    // 2. Show sleek animated notification bubble toast
     triggerToast(`${product.title} added to cart!`);
   };
 
@@ -462,7 +457,6 @@ export default function MarketplaceScreen() {
     setIsSubmittingOrder(true);
 
     try {
-      // 1. Create order on backend
       const order = await apiRequest<any>('/shop/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -482,7 +476,6 @@ export default function MarketplaceScreen() {
         throw new Error('Could not create your order on the server.');
       }
 
-      // 2. Initialize Paystack Transaction via backend
       const paymentRes = await apiRequest<any>('/payments/initialize', {
         method: 'POST',
         body: JSON.stringify({
@@ -492,7 +485,7 @@ export default function MarketplaceScreen() {
       });
 
       if (!paymentRes?.authorizationUrl) {
-        throw new Error('Paystack initialization failed. Please check your backend payment setup.');
+        throw new Error('Paystack initialization failed. Please check your backend setup.');
       }
 
       const authUrl = paymentRes.authorizationUrl;
@@ -501,7 +494,6 @@ export default function MarketplaceScreen() {
       setOrderConfirmed(true);
       setCart([]);
 
-      // 3. Launch Paystack Portal in-app WebBrowser
       await WebBrowser.openBrowserAsync(authUrl).catch(() => {
         void Linking.openURL(authUrl);
       });
@@ -530,23 +522,22 @@ export default function MarketplaceScreen() {
     return matchesCategory && matchesSearch;
   });
 
+  const firstName = getFirstName(user);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Top Animated Notification Toast Bubble */}
+      {/* Toast Notification Banner (Positioned directly below status bar) */}
       {isToastVisible && (
         <Animated.View
           style={[
             styles.toastContainer,
-            { top: insets.top + 8, transform: [{ translateY: toastAnim }] },
+            { top: Math.max(insets.top, 12), transform: [{ translateY: toastAnim }] },
           ]}
         >
           <Ionicons name="bag-check" size={20} color="#FFFFFF" />
           <Text style={styles.toastText} numberOfLines={1}>
             {toastText}
           </Text>
-          <Pressable onPress={() => setIsToastVisible(false)} hitSlop={8}>
-            <Ionicons name="close" size={16} color="#FFFFFF" />
-          </Pressable>
         </Animated.View>
       )}
 
@@ -570,536 +561,490 @@ export default function MarketplaceScreen() {
           }}
         >
           {/* Top Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greetingText}>Hello, {getFirstName(user)} 👋</Text>
-            <Text style={styles.headerTitle}>Gileo Marketplace</Text>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
+              <Text style={styles.headerTitle}>Gileo Marketplace</Text>
+            </View>
+
+            <View style={styles.headerRight}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setShowCartModal(true)}
+                style={({ pressed }) => [styles.cartButton, pressed && styles.pressed]}
+              >
+                <Ionicons name="bag-handle-outline" size={22} color="#0F172A" />
+                {totalCartCount > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>{totalCartCount}</Text>
+                  </View>
+                )}
+              </Pressable>
+            </View>
           </View>
 
-          <View style={styles.headerRight}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setShowCartModal(true)}
-              style={styles.cartButton}
-            >
-              <Ionicons name="bag-handle-outline" size={22} color="#0F172A" />
-              {totalCartCount > 0 && (
-                <View style={styles.cartBadge}>
-                  <Text style={styles.cartBadgeText}>{totalCartCount}</Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Search Input Bar */}
-        <View style={styles.searchBarContainer}>
-          <View style={styles.searchBar}>
+          {/* Search Input Bar */}
+          <View style={styles.searchBarContainer}>
             <Ionicons name="search-outline" size={20} color="#94A3B8" />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search Gileo Scrubs, stethoscope, supplies..."
+              placeholder="Search Gileo Scrubs, stethoscope..."
               placeholderTextColor="#94A3B8"
               style={styles.searchInput}
             />
             {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')}>
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
                 <Ionicons name="close-circle" size={18} color="#94A3B8" />
               </Pressable>
             )}
           </View>
 
-          <View style={styles.searchBtn}>
-            <Ionicons name="search" size={20} color="#FFFFFF" />
-          </View>
-        </View>
-
-        {/* Category Filter Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesRow}
-        >
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat;
-            return (
-              <Pressable
-                key={cat}
-                onPress={() => setSelectedCategory(cat)}
-                style={[styles.categoryPill, isActive && styles.categoryPillActive]}
-              >
-                <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
-                  {cat}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {/* Product Catalog Grid OR Empty Search Result View */}
-        {filteredProducts.length === 0 ? (
-          <View style={styles.noResultContainer}>
-            <View style={styles.noResultIconBox}>
-              <Ionicons name="search-outline" size={40} color="#94A3B8" />
-            </View>
-            <Text style={styles.noResultTitle}>No results found</Text>
-            <Text style={styles.noResultSub}>
-              We couldn't find any items matching "{searchQuery}". Try searching for scrubs, stethoscope, or supplies.
-            </Text>
-            <Pressable
-              style={styles.clearSearchBtn}
-              onPress={() => {
-                setSearchQuery('');
-                setSelectedCategory('All');
-              }}
-            >
-              <Text style={styles.clearSearchBtnText}>Clear Search</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.productGrid}>
-            {filteredProducts.map((product) => {
-              const isFav = Boolean(favorites[product.id]);
+          {/* Category Filter Pills */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesRow}
+          >
+            {categories.map((cat) => {
+              const isActive = selectedCategory === cat;
               return (
                 <Pressable
-                  key={product.id}
-                  accessibilityRole="button"
-                  onPress={() => openProductDetail(product)}
-                  style={({ pressed }) => [styles.productCard, pressed && styles.pressed]}
+                  key={cat}
+                  onPress={() => setSelectedCategory(cat)}
+                  style={[styles.categoryPill, isActive && styles.categoryPillActive]}
                 >
-                  {/* Image Container */}
-                  <View style={styles.cardImageContainer}>
-                    <Ionicons name={product.icon} size={52} color={product.color} />
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(product.id);
-                      }}
-                      hitSlop={8}
-                      style={styles.favButton}
-                    >
-                      <Ionicons
-                        name={isFav ? 'heart' : 'heart-outline'}
-                        size={18}
-                        color={isFav ? '#EF4444' : '#64748B'}
-                      />
-                    </Pressable>
-                  </View>
-
-                  {/* Info Container */}
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {product.title}
-                    </Text>
-                    <View style={styles.ratingRow}>
-                      <Ionicons name="star" size={12} color="#F59E0B" />
-                      <Text style={styles.ratingText}>
-                        {product.rating} ({product.reviewsCount})
-                      </Text>
-                    </View>
-                    <Text style={styles.cardPrice}>{product.price}</Text>
-                  </View>
+                  <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
+                    {cat}
+                  </Text>
                 </Pressable>
               );
             })}
-          </View>
-        )}
+          </ScrollView>
 
-        {/* Animated Product Detail Modal */}
-        <Modal
-          visible={Boolean(selectedProduct)}
-          animationType="fade"
-          transparent
-          onRequestClose={closeProductDetail}
-        >
-          {selectedProduct && (
-            <View style={styles.detailOverlay}>
-              <Animated.View
-                style={[
-                  styles.detailModalSheet,
-                  {
-                    opacity: modalOpacity,
-                    transform: [{ scale: modalScale }],
-                  },
-                ]}
+          {/* Product Catalog Grid OR Empty Search View */}
+          {filteredProducts.length === 0 ? (
+            <View style={styles.noResultContainer}>
+              <View style={styles.noResultIconBox}>
+                <Ionicons name="search-outline" size={40} color="#94A3B8" />
+              </View>
+              <Text style={styles.noResultTitle}>No results found</Text>
+              <Text style={styles.noResultSub}>
+                We couldn't find any items matching "{searchQuery}".
+              </Text>
+              <Pressable
+                style={styles.clearSearchBtn}
+                onPress={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('All');
+                }}
               >
-                <SafeAreaView style={{ flex: 1 }}>
-                  <View style={styles.detailHeader}>
-                    <Pressable onPress={closeProductDetail} style={styles.circleBtn}>
-                      <Ionicons name="arrow-back" size={20} color="#0F172A" />
-                    </Pressable>
-
-                    <Pressable
-                      onPress={() => toggleFavorite(selectedProduct.id)}
-                      style={styles.circleBtn}
-                    >
-                      <Ionicons
-                        name={favorites[selectedProduct.id] ? 'heart' : 'heart-outline'}
-                        size={20}
-                        color={favorites[selectedProduct.id] ? '#EF4444' : '#0F172A'}
-                      />
-                    </Pressable>
-                  </View>
-
-                  <ScrollView contentContainerStyle={styles.detailScrollContent}>
-                    {/* Showcase Banner */}
-                    <View style={styles.showcaseBox}>
-                      <Ionicons name={selectedProduct.icon} size={110} color={selectedProduct.color} />
-                      <View style={styles.showcaseDots}>
-                        <View style={[styles.dot, styles.dotActive]} />
-                        <View style={styles.dot} />
-                        <View style={styles.dot} />
-                      </View>
+                <Text style={styles.clearSearchBtnText}>Clear Search</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.productGrid}>
+              {filteredProducts.map((product) => {
+                const isFav = Boolean(favorites[product.id]);
+                return (
+                  <Pressable
+                    key={product.id}
+                    accessibilityRole="button"
+                    onPress={() => openProductDetail(product)}
+                    style={({ pressed }) => [styles.productCard, pressed && styles.pressed]}
+                  >
+                    <View style={styles.cardImageContainer}>
+                      <Ionicons name={product.icon} size={52} color={product.color} />
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(product.id);
+                        }}
+                        hitSlop={8}
+                        style={styles.favButton}
+                      >
+                        <Ionicons
+                          name={isFav ? 'heart' : 'heart-outline'}
+                          size={18}
+                          color={isFav ? '#EF4444' : '#64748B'}
+                        />
+                      </Pressable>
                     </View>
 
-                    {/* Title & Price Header */}
-                    <View style={styles.detailTitleRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.detailTitle}>{selectedProduct.title}</Text>
-                        <View style={styles.detailRatingRow}>
-                          <Ionicons name="star" size={16} color="#F59E0B" />
-                          <Text style={styles.detailRatingText}>
-                            {selectedProduct.rating} ({selectedProduct.reviewsCount} Reviews)
-                          </Text>
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>
+                        {product.title}
+                      </Text>
+                      <View style={styles.ratingRow}>
+                        <Ionicons name="star" size={12} color="#F59E0B" />
+                        <Text style={styles.ratingText}>{product.rating} ({product.reviewsCount})</Text>
+                      </View>
+
+                      <View style={styles.cardPriceRow}>
+                        <Text style={styles.cardPrice}>{product.price}</Text>
+                        <View style={styles.addPillBtn}>
+                          <Ionicons name="add" size={16} color="#761B36" />
+                        </View>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Animated Product Detail Modal */}
+          <Modal
+            visible={Boolean(selectedProduct)}
+            animationType="fade"
+            transparent
+            onRequestClose={closeProductDetail}
+          >
+            {selectedProduct && (
+              <View style={styles.detailOverlay}>
+                <Animated.View
+                  style={[
+                    styles.detailModalSheet,
+                    {
+                      opacity: modalOpacity,
+                      transform: [{ scale: modalScale }],
+                    },
+                  ]}
+                >
+                  <SafeAreaView style={{ flex: 1 }}>
+                    <View style={styles.detailHeader}>
+                      <Pressable onPress={closeProductDetail} style={styles.circleBtn}>
+                        <Ionicons name="arrow-back" size={20} color="#0F172A" />
+                      </Pressable>
+
+                      <Pressable
+                        onPress={() => toggleFavorite(selectedProduct.id)}
+                        style={styles.circleBtn}
+                      >
+                        <Ionicons
+                          name={favorites[selectedProduct.id] ? 'heart' : 'heart-outline'}
+                          size={20}
+                          color={favorites[selectedProduct.id] ? '#EF4444' : '#0F172A'}
+                        />
+                      </Pressable>
+                    </View>
+
+                    <ScrollView contentContainerStyle={styles.detailScrollContent}>
+                      <View style={styles.showcaseBox}>
+                        <Ionicons name={selectedProduct.icon} size={110} color={selectedProduct.color} />
+                      </View>
+
+                      <View style={styles.detailTitleRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.detailTitle}>{selectedProduct.title}</Text>
+                          <View style={styles.detailRatingRow}>
+                            <Ionicons name="star" size={16} color="#F59E0B" />
+                            <Text style={styles.detailRatingText}>
+                              {selectedProduct.rating} ({selectedProduct.reviewsCount} Reviews)
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={styles.detailPrice}>{selectedProduct.price}</Text>
+                      </View>
+
+                      <View style={styles.sectionGroup}>
+                        <Text style={styles.sectionHeaderTitle}>Details</Text>
+                        <Text style={styles.detailDescriptionText}>
+                          {selectedProduct.description}
+                        </Text>
+                      </View>
+
+                      {/* Color Swatches */}
+                      <View style={styles.sectionGroup}>
+                        <Text style={styles.sectionHeaderTitle}>Color:</Text>
+                        <View style={styles.colorsRow}>
+                          {selectedProduct.availableColors.map((c) => {
+                            const isSelected = selectedColor === c.name;
+                            return (
+                              <Pressable
+                                key={c.name}
+                                onPress={() => setSelectedColor(c.name)}
+                                style={[
+                                  styles.colorSwatch,
+                                  { backgroundColor: c.hex },
+                                  isSelected && styles.colorSwatchSelected,
+                                ]}
+                              >
+                                {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                              </Pressable>
+                            );
+                          })}
                         </View>
                       </View>
 
-                      <Text style={styles.detailPrice}>{selectedProduct.price}</Text>
-                    </View>
-
-                    {/* Details Description */}
-                    <View style={styles.sectionGroup}>
-                      <Text style={styles.sectionHeaderTitle}>Details</Text>
-                      <Text style={styles.detailDescriptionText}>
-                        {selectedProduct.description}
-                      </Text>
-                    </View>
-
-                    {/* Color Selection Swatches */}
-                    <View style={styles.sectionGroup}>
-                      <Text style={styles.sectionHeaderTitle}>Color:</Text>
-                      <View style={styles.colorsRow}>
-                        {selectedProduct.availableColors.map((c) => {
-                          const isSelected = selectedColor === c.name;
-                          return (
-                            <Pressable
-                              key={c.name}
-                              onPress={() => setSelectedColor(c.name)}
-                              style={[
-                                styles.colorSwatch,
-                                { backgroundColor: c.hex },
-                                isSelected && styles.colorSwatchSelected,
-                              ]}
-                            >
-                              {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-                            </Pressable>
-                          );
-                        })}
+                      {/* Size Chips */}
+                      <View style={styles.sectionGroup}>
+                        <Text style={styles.sectionHeaderTitle}>Size:</Text>
+                        <View style={styles.sizesRow}>
+                          {selectedProduct.availableSizes.map((size) => {
+                            const isSelected = selectedSize === size;
+                            return (
+                              <Pressable
+                                key={size}
+                                onPress={() => setSelectedSize(size)}
+                                style={[styles.sizeChip, isSelected && styles.sizeChipSelected]}
+                              >
+                                <Text style={[styles.sizeText, isSelected && styles.sizeTextSelected]}>
+                                  {size}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
                       </View>
-                    </View>
 
-                    {/* Size Selection Chips */}
-                    <View style={styles.sectionGroup}>
-                      <Text style={styles.sectionHeaderTitle}>Size:</Text>
-                      <View style={styles.sizesRow}>
-                        {selectedProduct.availableSizes.map((size) => {
-                          const isSelected = selectedSize === size;
-                          return (
-                            <Pressable
-                              key={size}
-                              onPress={() => setSelectedSize(size)}
-                              style={[styles.sizeChip, isSelected && styles.sizeChipSelected]}
-                            >
-                              <Text style={[styles.sizeText, isSelected && styles.sizeTextSelected]}>
-                                {size}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
+                      {/* Stepper */}
+                      <View style={styles.sectionGroup}>
+                        <Text style={styles.sectionHeaderTitle}>Quantity:</Text>
+                        <View style={styles.stepperRow}>
+                          <Pressable
+                            onPress={() => setItemQuantity((q) => Math.max(1, q - 1))}
+                            style={styles.stepperBtn}
+                          >
+                            <Ionicons name="remove" size={18} color="#0F172A" />
+                          </Pressable>
+                          <Text style={styles.stepperValue}>{itemQuantity}</Text>
+                          <Pressable
+                            onPress={() => setItemQuantity((q) => q + 1)}
+                            style={styles.stepperBtn}
+                          >
+                            <Ionicons name="add" size={18} color="#0F172A" />
+                          </Pressable>
+                        </View>
                       </View>
-                    </View>
+                    </ScrollView>
 
-                    {/* Quantity Stepper */}
-                    <View style={styles.sectionGroup}>
-                      <Text style={styles.sectionHeaderTitle}>Quantity:</Text>
-                      <View style={styles.stepperRow}>
-                        <Pressable
-                          onPress={() => setItemQuantity((q) => Math.max(1, q - 1))}
-                          style={styles.stepperBtn}
-                        >
-                          <Ionicons name="remove" size={18} color="#0F172A" />
-                        </Pressable>
-                        <Text style={styles.stepperValue}>{itemQuantity}</Text>
-                        <Pressable
-                          onPress={() => setItemQuantity((q) => q + 1)}
-                          style={styles.stepperBtn}
-                        >
-                          <Ionicons name="add" size={18} color="#0F172A" />
-                        </Pressable>
-                      </View>
+                    <View style={styles.detailFooter}>
+                      <Pressable
+                        style={styles.addCartBtn}
+                        onPress={() => addToCart(selectedProduct, itemQuantity)}
+                      >
+                        <Text style={styles.addCartBtnText}>Add to Cart</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.buyNowBtn}
+                        onPress={() => {
+                          addToCart(selectedProduct, itemQuantity);
+                          setShowCartModal(true);
+                        }}
+                      >
+                        <Text style={styles.buyNowBtnText}>Buy Now</Text>
+                      </Pressable>
                     </View>
+                  </SafeAreaView>
+                </Animated.View>
+              </View>
+            )}
+          </Modal>
+
+          {/* Cart Modal */}
+          <Modal
+            visible={showCartModal}
+            animationType="slide"
+            onRequestClose={() => setShowCartModal(false)}
+          >
+            <SafeAreaView style={styles.modalSafeArea}>
+              <View style={styles.detailHeader}>
+                <Pressable onPress={() => setShowCartModal(false)} style={styles.circleBtn}>
+                  <Ionicons name="close" size={20} color="#0F172A" />
+                </Pressable>
+                <Text style={styles.cartHeaderTitle}>Your Cart ({totalCartCount})</Text>
+                <View style={{ width: 40 }} />
+              </View>
+
+              {cart.length === 0 ? (
+                <View style={styles.emptyCartContainer}>
+                  <Ionicons name="bag-handle-outline" size={64} color="#CBD5E1" />
+                  <Text style={styles.emptyCartTitle}>Your cart is empty</Text>
+                  <Text style={styles.emptyCartSub}>Add medical supplies to your cart.</Text>
+                </View>
+              ) : (
+                <>
+                  <ScrollView contentContainerStyle={styles.cartListContent}>
+                    {cart.map((item) => (
+                      <View key={item.id} style={styles.cartItemCard}>
+                        <View style={styles.cartIconBox}>
+                          <Ionicons name={item.icon} size={28} color="#761B36" />
+                        </View>
+
+                        <View style={{ flex: 1, gap: 4 }}>
+                          <Text style={styles.cartItemTitle}>{item.title}</Text>
+                          <Text style={styles.cartItemMeta}>Size: {item.size} • Color: {item.color}</Text>
+                          <Text style={styles.cartItemPrice}>{item.price}</Text>
+                        </View>
+
+                        <View style={styles.stepperRowSmall}>
+                          <Pressable onPress={() => updateCartQuantity(item.id, -1)} style={styles.stepperBtnSmall}>
+                            <Ionicons name="remove" size={14} color="#0F172A" />
+                          </Pressable>
+                          <Text style={styles.stepperValueSmall}>{item.quantity}</Text>
+                          <Pressable onPress={() => updateCartQuantity(item.id, 1)} style={styles.stepperBtnSmall}>
+                            <Ionicons name="add" size={14} color="#0F172A" />
+                          </Pressable>
+                        </View>
+                      </View>
+                    ))}
                   </ScrollView>
 
-                  {/* Detail Action Footer */}
-                  <View style={styles.detailFooter}>
-                    <Pressable
-                      style={styles.addCartBtn}
-                      onPress={() => {
-                        addToCart(selectedProduct, itemQuantity);
-                      }}
-                    >
-                      <Text style={styles.addCartBtnText}>Add to Cart</Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={styles.buyNowBtn}
-                      onPress={() => {
-                        addToCart(selectedProduct, itemQuantity);
-                        setShowCartModal(true);
-                      }}
-                    >
-                      <Text style={styles.buyNowBtnText}>Buy Now</Text>
-                    </Pressable>
-                  </View>
-                </SafeAreaView>
-              </Animated.View>
-            </View>
-          )}
-        </Modal>
-
-        {/* Cart Modal */}
-        <Modal
-          visible={showCartModal}
-          animationType="slide"
-          onRequestClose={() => setShowCartModal(false)}
-        >
-          <SafeAreaView style={styles.modalSafeArea}>
-            <View style={styles.detailHeader}>
-              <Pressable onPress={() => setShowCartModal(false)} style={styles.circleBtn}>
-                <Ionicons name="close" size={20} color="#0F172A" />
-              </Pressable>
-              <Text style={styles.cartHeaderTitle}>Your Cart ({totalCartCount})</Text>
-              <View style={{ width: 40 }} />
-            </View>
-
-            {cart.length === 0 ? (
-              <View style={styles.emptyCartContainer}>
-                <Ionicons name="bag-handle-outline" size={64} color="#CBD5E1" />
-                <Text style={styles.emptyCartTitle}>Your cart is empty</Text>
-                <Text style={styles.emptyCartSub}>
-                  Explore the marketplace and add items to your cart.
-                </Text>
-              </View>
-            ) : (
-              <>
-                <ScrollView contentContainerStyle={styles.cartListContent}>
-                  {cart.map((item) => (
-                    <View key={item.id} style={styles.cartItemCard}>
-                      <View style={styles.cartIconBox}>
-                        <Ionicons name={item.icon} size={28} color="#761B36" />
-                      </View>
-
-                      <View style={{ flex: 1, gap: 4 }}>
-                        <Text style={styles.cartItemTitle}>{item.title}</Text>
-                        <Text style={styles.cartItemMeta}>
-                          Size: {item.size} • Color: {item.color}
-                        </Text>
-                        <Text style={styles.cartItemPrice}>{item.price}</Text>
-                      </View>
-
-                      <View style={styles.stepperRowSmall}>
-                        <Pressable
-                          onPress={() => updateCartQuantity(item.id, -1)}
-                          style={styles.stepperBtnSmall}
-                        >
-                          <Ionicons name="remove" size={14} color="#0F172A" />
-                        </Pressable>
-                        <Text style={styles.stepperValueSmall}>{item.quantity}</Text>
-                        <Pressable
-                          onPress={() => updateCartQuantity(item.id, 1)}
-                          style={styles.stepperBtnSmall}
-                        >
-                          <Ionicons name="add" size={14} color="#0F172A" />
-                        </Pressable>
-                      </View>
+                  <View style={styles.cartFooter}>
+                    <View style={styles.totalRow}>
+                      <Text style={styles.totalLabel}>Subtotal</Text>
+                      <Text style={styles.totalValue}>{cartTotalFormatted}</Text>
                     </View>
-                  ))}
-                </ScrollView>
 
-                <View style={styles.cartFooter}>
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>Subtotal</Text>
-                    <Text style={styles.totalValue}>{cartTotalFormatted}</Text>
+                    <Pressable
+                      style={styles.checkoutBtn}
+                      onPress={() => {
+                        setShowCartModal(false);
+                        setShowCheckoutModal(true);
+                        setOrderConfirmed(false);
+                      }}
+                    >
+                      <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
+                    </Pressable>
                   </View>
+                </>
+              )}
+            </SafeAreaView>
+          </Modal>
+
+          {/* Checkout Modal */}
+          <Modal
+            visible={showCheckoutModal}
+            animationType="slide"
+            onRequestClose={() => setShowCheckoutModal(false)}
+          >
+            <SafeAreaView style={styles.modalSafeArea}>
+              <View style={styles.detailHeader}>
+                <Pressable onPress={() => setShowCheckoutModal(false)} style={styles.circleBtn}>
+                  <Ionicons name="close" size={20} color="#0F172A" />
+                </Pressable>
+                <Text style={styles.cartHeaderTitle}>Paystack Checkout</Text>
+                <View style={{ width: 40 }} />
+              </View>
+
+              {orderConfirmed ? (
+                <View style={styles.orderSuccessContainer}>
+                  <View style={styles.successIconCircle}>
+                    <Ionicons name="checkmark" size={40} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.successTitle}>Order Created!</Text>
+                  <Text style={styles.successRef}>Ref: {orderRef}</Text>
+
+                  {paystackUrl && (
+                    <Pressable
+                      style={styles.paystackLaunchBtn}
+                      onPress={() => {
+                        void WebBrowser.openBrowserAsync(paystackUrl).catch(() => {
+                          void Linking.openURL(paystackUrl);
+                        });
+                      }}
+                    >
+                      <Ionicons name="card" size={18} color="#FFFFFF" />
+                      <Text style={styles.paystackLaunchBtnText}>Open Paystack Gateway</Text>
+                    </Pressable>
+                  )}
 
                   <Pressable
                     style={styles.checkoutBtn}
                     onPress={() => {
-                      setShowCartModal(false);
-                      setShowCheckoutModal(true);
+                      setShowCheckoutModal(false);
                       setOrderConfirmed(false);
+                      setPaystackUrl(null);
                     }}
                   >
-                    <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
+                    <Text style={styles.checkoutBtnText}>Done</Text>
                   </Pressable>
                 </View>
-              </>
-            )}
-          </SafeAreaView>
-        </Modal>
-
-        {/* Checkout Modal with Direct Paystack Payment Integration */}
-        <Modal
-          visible={showCheckoutModal}
-          animationType="slide"
-          onRequestClose={() => setShowCheckoutModal(false)}
-        >
-          <SafeAreaView style={styles.modalSafeArea}>
-            <View style={styles.detailHeader}>
-              <Pressable
-                onPress={() => setShowCheckoutModal(false)}
-                style={styles.circleBtn}
-              >
-                <Ionicons name="close" size={20} color="#0F172A" />
-              </Pressable>
-              <Text style={styles.cartHeaderTitle}>Paystack Checkout</Text>
-              <View style={{ width: 40 }} />
-            </View>
-
-            {orderConfirmed ? (
-              <View style={styles.orderSuccessContainer}>
-                <View style={styles.successIconCircle}>
-                  <Ionicons name="checkmark" size={40} color="#FFFFFF" />
-                </View>
-                <Text style={styles.successTitle}>Order Created!</Text>
-                <Text style={styles.successRef}>Ref: {orderRef}</Text>
-                <Text style={styles.successSub}>
-                  Your order is ready for payment. Complete your checkout securely on the Paystack gateway:
-                </Text>
-
-                {paystackUrl && (
-                  <Pressable
-                    style={styles.paystackLaunchBtn}
-                    onPress={() => {
-                      void WebBrowser.openBrowserAsync(paystackUrl).catch(() => {
-                        void Linking.openURL(paystackUrl);
-                      });
-                    }}
-                  >
-                    <Ionicons name="card" size={18} color="#FFFFFF" />
-                    <Text style={styles.paystackLaunchBtnText}>Open Paystack Gateway</Text>
-                  </Pressable>
-                )}
-
-                <Pressable
-                  style={styles.checkoutBtn}
-                  onPress={() => {
-                    setShowCheckoutModal(false);
-                    setOrderConfirmed(false);
-                    setPaystackUrl(null);
-                  }}
-                >
-                  <Text style={styles.checkoutBtnText}>Done</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <ScrollView contentContainerStyle={styles.checkoutContent}>
-                <View style={styles.paystackNoticeBox}>
-                  <Ionicons name="shield-checkmark" size={22} color="#10B981" />
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={styles.paystackNoticeTitle}>Secure Paystack Payment</Text>
-                    <Text style={styles.paystackNoticeSub}>
-                      Pay securely with Debit/Credit Card, Bank Transfer, or USSD via Paystack.
-                    </Text>
+              ) : (
+                <ScrollView contentContainerStyle={styles.checkoutContent}>
+                  <View style={styles.paystackNoticeBox}>
+                    <Ionicons name="shield-checkmark" size={22} color="#761B36" />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.paystackNoticeTitle}>Secure Paystack Payment</Text>
+                      <Text style={styles.paystackNoticeSub}>Pay securely via Debit/Credit card or Transfer.</Text>
+                    </View>
                   </View>
-                </View>
 
-                <View style={styles.sectionGroup}>
-                  <Text style={styles.sectionHeaderTitle}>Delivery Details</Text>
-                  <TextInput
-                    value={shippingName}
-                    onChangeText={setShippingName}
-                    placeholder="Full Name"
-                    placeholderTextColor="#94A3B8"
-                    style={styles.inputField}
-                  />
-                  <TextInput
-                    value={shippingPhone}
-                    onChangeText={setShippingPhone}
-                    placeholder="Phone Number"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="phone-pad"
-                    style={styles.inputField}
-                  />
-                  <TextInput
-                    value={shippingAddress}
-                    onChangeText={setShippingAddress}
-                    placeholder="Delivery Address"
-                    placeholderTextColor="#94A3B8"
-                    multiline
-                    numberOfLines={3}
-                    style={[styles.inputField, { height: 80 }]}
-                  />
-                </View>
+                  <View style={styles.sectionGroup}>
+                    <Text style={styles.sectionHeaderTitle}>Delivery Details</Text>
+                    <TextInput
+                      value={shippingName}
+                      onChangeText={setShippingName}
+                      placeholder="Full Name"
+                      placeholderTextColor="#94A3B8"
+                      style={styles.inputField}
+                    />
+                    <TextInput
+                      value={shippingPhone}
+                      onChangeText={setShippingPhone}
+                      placeholder="Phone Number"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="phone-pad"
+                      style={styles.inputField}
+                    />
+                    <TextInput
+                      value={shippingAddress}
+                      onChangeText={setShippingAddress}
+                      placeholder="Delivery Address"
+                      placeholderTextColor="#94A3B8"
+                      multiline
+                      numberOfLines={3}
+                      style={[styles.inputField, { height: 80 }]}
+                    />
+                  </View>
 
-                <Pressable
-                  style={[styles.checkoutBtn, isSubmittingOrder && { opacity: 0.6 }]}
-                  disabled={isSubmittingOrder}
-                  onPress={handleCheckoutSubmit}
-                >
-                  <Ionicons name="card-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.checkoutBtnText}>
-                    {isSubmittingOrder
-                      ? 'Initializing Paystack...'
-                      : `Pay ${cartTotalFormatted} with Paystack`}
-                  </Text>
-                </Pressable>
-              </ScrollView>
-            )}
-          </SafeAreaView>
-        </Modal>
-
-        {/* Custom Modern Alert Modal */}
-        <Modal
-          visible={customAlert.visible}
-          transparent
-          animationType="fade"
-          onRequestClose={hideAlertModal}
-        >
-          <Pressable style={styles.customAlertOverlay} onPress={hideAlertModal}>
-            <Pressable style={styles.customAlertCard} onPress={(e) => e.stopPropagation()}>
-              <View style={[styles.customAlertIconBox, { backgroundColor: customAlert.iconColor + '18' }]}>
-                <Ionicons name={customAlert.icon} size={32} color={customAlert.iconColor} />
-              </View>
-
-              <Text style={styles.customAlertTitle}>{customAlert.title}</Text>
-              <Text style={styles.customAlertMessage}>{customAlert.message}</Text>
-
-              <View style={styles.customAlertActions}>
-                {customAlert.secondaryBtnText && (
                   <Pressable
-                    style={styles.customAlertSecondaryBtn}
-                    onPress={customAlert.onSecondaryPress}
+                    style={[styles.checkoutBtn, isSubmittingOrder && { opacity: 0.6 }]}
+                    disabled={isSubmittingOrder}
+                    onPress={handleCheckoutSubmit}
                   >
-                    <Text style={styles.customAlertSecondaryText}>
-                      {customAlert.secondaryBtnText}
+                    <Text style={styles.checkoutBtnText}>
+                      {isSubmittingOrder ? 'Initializing...' : `Pay ${cartTotalFormatted} with Paystack`}
                     </Text>
                   </Pressable>
-                )}
+                </ScrollView>
+              )}
+            </SafeAreaView>
+          </Modal>
 
-                <Pressable
-                  style={styles.customAlertPrimaryBtn}
-                  onPress={customAlert.onPrimaryPress}
-                >
-                  <Text style={styles.customAlertPrimaryText}>
-                    {customAlert.primaryBtnText}
-                  </Text>
-                </Pressable>
-              </View>
+          {/* Alert Modal */}
+          <Modal
+            visible={customAlert.visible}
+            transparent
+            animationType="fade"
+            onRequestClose={hideAlertModal}
+          >
+            <Pressable style={styles.customAlertOverlay} onPress={hideAlertModal}>
+              <Pressable style={styles.customAlertCard} onPress={(e) => e.stopPropagation()}>
+                <View style={[styles.customAlertIconBox, { backgroundColor: customAlert.iconColor + '18' }]}>
+                  <Ionicons name={customAlert.icon} size={32} color={customAlert.iconColor} />
+                </View>
+
+                <Text style={styles.customAlertTitle}>{customAlert.title}</Text>
+                <Text style={styles.customAlertMessage}>{customAlert.message}</Text>
+
+                <View style={styles.customAlertActions}>
+                  {customAlert.secondaryBtnText && (
+                    <Pressable style={styles.customAlertSecondaryBtn} onPress={customAlert.onSecondaryPress}>
+                      <Text style={styles.customAlertSecondaryText}>{customAlert.secondaryBtnText}</Text>
+                    </Pressable>
+                  )}
+
+                  <Pressable style={styles.customAlertPrimaryBtn} onPress={customAlert.onPrimaryPress}>
+                    <Text style={styles.customAlertPrimaryText}>{customAlert.primaryBtnText}</Text>
+                  </Pressable>
+                </View>
+              </Pressable>
             </Pressable>
-          </Pressable>
-        </Modal>
+          </Modal>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -1109,30 +1054,30 @@ export default function MarketplaceScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F6F7F9',
   },
   content: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 96,
     gap: 16,
   },
   toastContainer: {
     position: 'absolute',
-    top: 0,
-    left: 20,
-    right: 20,
+    left: 16,
+    right: 16,
     zIndex: 9999,
-    height: 52,
+    height: 48,
     borderRadius: 999,
     backgroundColor: '#761B36',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     gap: 10,
     shadowColor: '#761B36',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     elevation: 6,
   },
   toastText: {
@@ -1146,7 +1091,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  greetingText: {
+  greetingSubTitle: {
     color: '#64748B',
     fontSize: 13,
     fontWeight: '500',
@@ -1154,7 +1099,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: '#0F172A',
     fontSize: 26,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: -0.6,
   },
   headerRight: {
@@ -1165,11 +1110,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
     position: 'relative',
   },
   cartBadge: {
@@ -1187,37 +1135,26 @@ const styles = StyleSheet.create({
   cartBadgeText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   searchBarContainer: {
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  searchBar: {
-    flex: 1,
-    height: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    gap: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: '#0F172A',
-  },
-  searchBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#111111',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   categoriesRow: {
     gap: 8,
@@ -1227,18 +1164,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   categoryPillActive: {
-    backgroundColor: '#111111',
-    borderColor: '#111111',
+    backgroundColor: '#761B36',
   },
   categoryText: {
     fontSize: 13,
     color: '#64748B',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   categoryTextActive: {
     color: '#FFFFFF',
@@ -1250,17 +1189,20 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: '48%',
-    borderRadius: 22,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
     padding: 12,
     gap: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
   cardImageContainer: {
     width: '100%',
-    height: 130,
-    borderRadius: 16,
+    height: 125,
+    borderRadius: 18,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1278,7 +1220,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardInfo: {
-    gap: 3,
+    gap: 4,
   },
   cardTitle: {
     color: '#0F172A',
@@ -1293,17 +1235,30 @@ const styles = StyleSheet.create({
   ratingText: {
     color: '#64748B',
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  cardPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
   },
   cardPrice: {
     color: '#761B36',
     fontSize: 15,
-    fontWeight: '700',
-    marginTop: 2,
+    fontWeight: '800',
+  },
+  addPillBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFF1F2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.96 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
   noResultContainer: {
     alignItems: 'center',
@@ -1316,20 +1271,19 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   noResultTitle: {
     color: '#0F172A',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   noResultSub: {
     color: '#64748B',
     fontSize: 13,
     textAlign: 'center',
-    lineHeight: 20,
   },
   clearSearchBtn: {
     paddingHorizontal: 20,
@@ -1341,7 +1295,7 @@ const styles = StyleSheet.create({
   clearSearchBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   detailOverlay: {
     flex: 1,
@@ -1370,9 +1324,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1383,28 +1337,11 @@ const styles = StyleSheet.create({
   },
   showcaseBox: {
     width: '100%',
-    height: 240,
+    height: 220,
     borderRadius: 24,
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  showcaseDots: {
-    position: 'absolute',
-    bottom: 12,
-    flexDirection: 'row',
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#CBD5E1',
-  },
-  dotActive: {
-    width: 18,
-    backgroundColor: '#761B36',
   },
   detailTitleRow: {
     flexDirection: 'row',
@@ -1415,8 +1352,7 @@ const styles = StyleSheet.create({
   detailTitle: {
     color: '#0F172A',
     fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.4,
+    fontWeight: '800',
   },
   detailRatingRow: {
     flexDirection: 'row',
@@ -1427,12 +1363,12 @@ const styles = StyleSheet.create({
   detailRatingText: {
     color: '#64748B',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   detailPrice: {
     color: '#761B36',
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   sectionGroup: {
     gap: 8,
@@ -1440,7 +1376,7 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     color: '#0F172A',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   detailDescriptionText: {
     color: '#64748B',
@@ -1470,9 +1406,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
   },
   sizeChipSelected: {
     backgroundColor: '#111111',
@@ -1495,15 +1431,15 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepperValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
   },
   detailFooter: {
@@ -1518,9 +1454,9 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 54,
     borderRadius: 999,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1545,7 +1481,7 @@ const styles = StyleSheet.create({
   cartHeaderTitle: {
     color: '#0F172A',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   emptyCartContainer: {
     flex: 1,
@@ -1557,7 +1493,7 @@ const styles = StyleSheet.create({
   emptyCartTitle: {
     color: '#0F172A',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   emptyCartSub: {
     color: '#64748B',
@@ -1573,16 +1509,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 18,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
     gap: 12,
   },
   cartIconBox: {
     width: 52,
     height: 52,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1599,7 +1538,7 @@ const styles = StyleSheet.create({
   cartItemPrice: {
     color: '#761B36',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   stepperRowSmall: {
     flexDirection: 'row',
@@ -1610,15 +1549,15 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepperValueSmall: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
   },
   cartFooter: {
@@ -1636,12 +1575,12 @@ const styles = StyleSheet.create({
   totalLabel: {
     color: '#64748B',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   totalValue: {
     color: '#0F172A',
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   checkoutBtn: {
     height: 54,
@@ -1667,41 +1606,26 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderRadius: 20,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#FFF1F2',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#FECDD3',
   },
   paystackNoticeTitle: {
-    color: '#065F46',
+    color: '#761B36',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   paystackNoticeSub: {
-    color: '#047857',
+    color: '#9F1239',
     fontSize: 12,
     lineHeight: 18,
   },
-  paystackLaunchBtn: {
-    height: 52,
-    borderRadius: 999,
-    backgroundColor: '#059669',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    width: '100%',
-  },
-  paystackLaunchBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
   inputField: {
     height: 52,
-    borderRadius: 14,
-    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     paddingHorizontal: 16,
     color: '#0F172A',
     fontSize: 14,
@@ -1717,25 +1641,34 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#10B981',
+    backgroundColor: '#761B36',
     alignItems: 'center',
     justifyContent: 'center',
   },
   successTitle: {
     color: '#0F172A',
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   successRef: {
     color: '#761B36',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  successSub: {
-    color: '#64748B',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 20,
+  paystackLaunchBtn: {
+    height: 52,
+    borderRadius: 999,
+    backgroundColor: '#761B36',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+  },
+  paystackLaunchBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   customAlertOverlay: {
     flex: 1,
@@ -1747,7 +1680,7 @@ const styles = StyleSheet.create({
   customAlertCard: {
     width: '100%',
     maxWidth: 360,
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: '#FFFFFF',
     padding: 24,
     alignItems: 'center',
@@ -1764,7 +1697,7 @@ const styles = StyleSheet.create({
   customAlertTitle: {
     color: '#0F172A',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
   },
   customAlertMessage: {
@@ -1793,9 +1726,9 @@ const styles = StyleSheet.create({
   customAlertSecondaryBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -7,7 +7,7 @@ import {
   TextStyle,
   ViewStyle,
 } from 'react-native';
-import { colors, radii, spacing } from '../../theme';
+import { colors, spacing } from '../../theme';
 
 type PrimaryButtonProps = {
   title: string;
@@ -48,12 +48,12 @@ export default function PrimaryButton({
         isSecondary && styles.buttonSecondary,
         isOutline && styles.buttonOutline,
         unavailable && styles.disabled,
-        pressed && !unavailable && (isOutline ? styles.pressedOutline : styles.pressed),
+        pressed && !unavailable && styles.pressed,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={isOutline ? colors.text : '#FFFFFF'} />
+        <ActivityIndicator color={isOutline || isSecondary ? '#0F172A' : '#FFFFFF'} />
       ) : (
         <Text
           style={[
@@ -72,51 +72,49 @@ export default function PrimaryButton({
 
 const styles = StyleSheet.create({
   button: {
-    height: 56,
+    height: 54,
     paddingHorizontal: spacing.xl,
-    borderRadius: radii.button,
-    backgroundColor: colors.primary,
+    borderRadius: 999,
+    backgroundColor: '#761B36',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
+    shadowColor: '#761B36',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonSecondary: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: '#F4F5F7',
     shadowOpacity: 0,
     elevation: 0,
   },
   buttonOutline: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
     shadowOpacity: 0,
     elevation: 0,
   },
   label: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: -0.2,
   },
   labelSecondary: {
-    color: colors.text,
+    color: '#0F172A',
+    fontWeight: '700',
   },
   labelOutline: {
-    color: colors.text,
+    color: '#0F172A',
+    fontWeight: '600',
   },
   disabled: {
-    opacity: 0.45,
+    opacity: 0.5,
   },
   pressed: {
-    backgroundColor: colors.primaryPressed,
-    transform: [{ scale: 0.985 }],
-  },
-  pressedOutline: {
-    backgroundColor: colors.surfaceSubtle,
-    transform: [{ scale: 0.985 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
 });

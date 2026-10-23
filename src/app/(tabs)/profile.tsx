@@ -61,7 +61,7 @@ const mockOrders: Order[] = [
     totalKobo: 2850000,
     createdAt: new Date().toISOString(),
     shippingAddress: {
-      name: 'Nurse Aobaloluwa',
+      name: 'Nurse Siyam Ahamed',
       phone: '+234 816 533 5594',
       address: 'Gileo Care Center, Lagos, Nigeria',
     },
@@ -80,7 +80,7 @@ const mockOrders: Order[] = [
     totalKobo: 3500000,
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     shippingAddress: {
-      name: 'Nurse Aobaloluwa',
+      name: 'Nurse Siyam Ahamed',
       phone: '+234 816 533 5594',
       address: 'General Hospital, Ikeja, Lagos',
     },
@@ -114,6 +114,7 @@ export default function ProfileScreen() {
   const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState<'orders' | 'settings'>('orders');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Edit Profile State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -139,25 +140,7 @@ export default function ProfileScreen() {
   // Notification Toast State
   const [toastText, setToastText] = useState('');
   const [isToastVisible, setIsToastVisible] = useState(false);
-  const toastAnim = useRef(new Animated.Value(-120)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 380,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 420,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-  const [refreshing, setRefreshing] = useState(false);
+  const toastAnim = useRef(new Animated.Value(-150)).current;
 
   const loadUserData = async () => {
     const storedUser = await getStoredUser();
@@ -208,18 +191,18 @@ export default function ProfileScreen() {
   const triggerToast = (message: string) => {
     setToastText(message);
     setIsToastVisible(true);
-    toastAnim.setValue(-120);
+    toastAnim.setValue(-150);
 
     Animated.sequence([
       Animated.spring(toastAnim, {
-        toValue: insets.top + 4,
+        toValue: Math.max(insets.top, 12),
         friction: 8,
         tension: 40,
         useNativeDriver: true,
       }),
       Animated.delay(2200),
       Animated.timing(toastAnim, {
-        toValue: -120,
+        toValue: -150,
         duration: 280,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
@@ -242,8 +225,7 @@ export default function ProfileScreen() {
     setIsSavingProfile(true);
 
     try {
-      // 1. Update backend user profile
-      const updatedBackend = await apiRequest<any>('/profile/me', {
+      await apiRequest<any>('/profile/me', {
         method: 'PATCH',
         body: JSON.stringify({
           displayName: editName.trim(),
@@ -251,15 +233,14 @@ export default function ProfileScreen() {
         }),
       }).catch(() => null);
 
-      // 2. Update local stored session user details
       const updatedUser: AuthUser = {
         id: user?.id || 'user-id',
         email: user?.email || '',
         displayName: editName.trim(),
       };
 
-      const existingToken = await AsyncStorage.getItem('@gileo/accessToken') || 'dummy-token';
-      const existingRefreshToken = await AsyncStorage.getItem('@gileo/refreshToken') || 'dummy-refresh';
+      const existingToken = (await AsyncStorage.getItem('@gileo/accessToken')) || 'dummy-token';
+      const existingRefreshToken = (await AsyncStorage.getItem('@gileo/refreshToken')) || 'dummy-refresh';
 
       await storeAuthSession({
         accessToken: existingToken,
@@ -302,12 +283,12 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Toast Notification Banner (Safe Area Below) */}
+      {/* Toast Notification Banner */}
       {isToastVisible && (
         <Animated.View
           style={[
             styles.toastContainer,
-            { top: insets.top + 4, transform: [{ translateY: toastAnim }] },
+            { top: Math.max(insets.top, 12), transform: [{ translateY: toastAnim }] },
           ]}
         >
           <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
@@ -357,12 +338,10 @@ export default function ProfileScreen() {
             },
           ]}
         >
-          {/* User Profile Card */}
+          {/* User Profile Hero Card */}
           <View style={styles.userCard}>
             <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>
-                {firstName.charAt(0).toUpperCase()}
-              </Text>
+              <Text style={styles.avatarText}>{firstName.charAt(0).toUpperCase()}</Text>
             </View>
 
             <View style={styles.userInfo}>
@@ -374,15 +353,12 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            <Pressable
-              style={styles.editProfileBtn}
-              onPress={() => setShowEditModal(true)}
-            >
+            <Pressable style={styles.editProfileBtn} onPress={() => setShowEditModal(true)}>
               <Ionicons name="create-outline" size={18} color="#761B36" />
             </Pressable>
           </View>
 
-          {/* Tab Selector */}
+          {/* Tab Selector Bar */}
           <View style={styles.tabBar}>
             <Pressable
               onPress={() => setActiveTab('orders')}
@@ -481,7 +457,7 @@ export default function ProfileScreen() {
               )}
             </View>
           ) : (
-            /* Tab Content 2: Account Settings (No Healthcare Identity) */
+            /* Tab Content 2: Account Settings */
             <View style={styles.settingsSection}>
               <View style={styles.settingsGroup}>
                 <Pressable style={styles.settingsRow} onPress={() => setShowEditModal(true)}>
@@ -544,10 +520,7 @@ export default function ProfileScreen() {
           animationType="fade"
           onRequestClose={() => setSelectedOrder(null)}
         >
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setSelectedOrder(null)}
-          >
+          <Pressable style={styles.modalOverlay} onPress={() => setSelectedOrder(null)}>
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               {selectedOrder && (
                 <>
@@ -572,9 +545,15 @@ export default function ProfileScreen() {
                   {selectedOrder.shippingAddress && (
                     <View style={styles.addressBox}>
                       <Text style={styles.addressBoxTitle}>Delivery Recipient</Text>
-                      <Text style={styles.addressText}>{selectedOrder.shippingAddress.name || user?.displayName}</Text>
-                      <Text style={styles.addressText}>{selectedOrder.shippingAddress.phone || '+234 816 533 5594'}</Text>
-                      <Text style={styles.addressText}>{selectedOrder.shippingAddress.address || 'Gileo Medical Center, Lagos'}</Text>
+                      <Text style={styles.addressText}>
+                        {selectedOrder.shippingAddress.name || user?.displayName}
+                      </Text>
+                      <Text style={styles.addressText}>
+                        {selectedOrder.shippingAddress.phone || '+234 816 533 5594'}
+                      </Text>
+                      <Text style={styles.addressText}>
+                        {selectedOrder.shippingAddress.address || 'Gileo Medical Center, Lagos'}
+                      </Text>
                     </View>
                   )}
 
@@ -601,10 +580,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
 
-                  <Pressable
-                    style={styles.modalPrimaryBtn}
-                    onPress={handleCallSupport}
-                  >
+                  <Pressable style={styles.modalPrimaryBtn} onPress={handleCallSupport}>
                     <Ionicons name="call" size={18} color="#FFFFFF" />
                     <Text style={styles.modalPrimaryText}>Contact Support Regarding Order</Text>
                   </Pressable>
@@ -621,10 +597,7 @@ export default function ProfileScreen() {
           animationType="fade"
           onRequestClose={() => setShowEditModal(false)}
         >
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setShowEditModal(false)}
-          >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowEditModal(false)}>
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalIconBox}>
@@ -700,10 +673,7 @@ export default function ProfileScreen() {
                   </Pressable>
                 )}
 
-                <Pressable
-                  style={styles.alertPrimaryBtn}
-                  onPress={customAlert.onPrimaryPress}
-                >
+                <Pressable style={styles.alertPrimaryBtn} onPress={customAlert.onPrimaryPress}>
                   <Text style={styles.alertPrimaryText}>{customAlert.primaryBtnText}</Text>
                 </Pressable>
               </View>
@@ -712,9 +682,7 @@ export default function ProfileScreen() {
         </Modal>
 
         {/* Footer Note */}
-        <Text style={styles.footerNote}>
-          GILEO MEDICALS GLOBAL LIMITED • 2026
-        </Text>
+        <Text style={styles.footerNote}>GILEO MEDICALS GLOBAL LIMITED • 2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -723,11 +691,12 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F6F7F9',
   },
   content: {
-    padding: spacing.xl,
-    paddingBottom: spacing.xxl,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 96,
     gap: 20,
   },
   toastContainer: {
@@ -765,14 +734,17 @@ const styles = StyleSheet.create({
     marginLeft: -25,
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   animatedContainer: {
     gap: 20,
@@ -780,17 +752,20 @@ const styles = StyleSheet.create({
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
-    borderRadius: 24,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    padding: 20,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     gap: 16,
   },
   avatarCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#761B36',
     alignItems: 'center',
     justifyContent: 'center',
@@ -798,7 +773,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   userInfo: {
     flex: 1,
@@ -807,7 +782,7 @@ const styles = StyleSheet.create({
   userName: {
     color: '#0F172A',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: -0.3,
   },
   userEmail: {
@@ -823,7 +798,7 @@ const styles = StyleSheet.create({
   roleText: {
     color: '#10B981',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   editProfileBtn: {
     width: 38,
@@ -835,28 +810,26 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 4,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
   },
   tabItem: {
     flex: 1,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   tabItemActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    backgroundColor: '#FFF1F2',
   },
   tabLabel: {
     color: '#64748B',
@@ -865,7 +838,7 @@ const styles = StyleSheet.create({
   },
   tabLabelActive: {
     color: '#761B36',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   ordersSection: {
     gap: 12,
@@ -874,16 +847,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    borderRadius: 22,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     gap: 12,
   },
   emptyOrdersTitle: {
     color: '#0F172A',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   emptyOrdersSub: {
     color: '#64748B',
@@ -900,14 +876,17 @@ const styles = StyleSheet.create({
   shopBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   orderCard: {
-    padding: 16,
-    borderRadius: 20,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     gap: 10,
   },
   orderCardHeader: {
@@ -923,7 +902,7 @@ const styles = StyleSheet.create({
   orderRefText: {
     color: '#0F172A',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -932,7 +911,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   orderItemSummary: {
@@ -950,7 +929,7 @@ const styles = StyleSheet.create({
   orderTotalText: {
     color: '#761B36',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   viewReceiptLink: {
     flexDirection: 'row',
@@ -960,16 +939,19 @@ const styles = StyleSheet.create({
   viewReceiptText: {
     color: '#761B36',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   settingsSection: {
     gap: 16,
   },
   settingsGroup: {
-    borderRadius: 22,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     overflow: 'hidden',
   },
   settingsRow: {
@@ -981,10 +963,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   settingsIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -995,7 +977,7 @@ const styles = StyleSheet.create({
   settingsTitle: {
     color: '#0F172A',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   settingsSub: {
     color: '#64748B',
@@ -1005,7 +987,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 18,
-    borderRadius: 22,
+    borderRadius: 24,
     backgroundColor: '#761B36',
     gap: 14,
   },
@@ -1013,14 +995,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   supportCardTitle: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   supportCardSub: {
     color: '#F1F5F9',
@@ -1030,7 +1012,7 @@ const styles = StyleSheet.create({
   supportCardPhone: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   logoutBtn: {
     height: 54,
@@ -1046,11 +1028,11 @@ const styles = StyleSheet.create({
   logoutBtnText: {
     color: '#EF4444',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   pressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.97 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
   modalOverlay: {
     flex: 1,
@@ -1062,7 +1044,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 380,
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: '#FFFFFF',
     padding: 24,
     gap: 12,
@@ -1075,7 +1057,7 @@ const styles = StyleSheet.create({
   modalIconBox: {
     width: 48,
     height: 48,
-    borderRadius: 18,
+    borderRadius: 20,
     backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1083,7 +1065,7 @@ const styles = StyleSheet.create({
   modalRefTitle: {
     color: '#0F172A',
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   statusRow: {
     flexDirection: 'row',
@@ -1103,20 +1085,20 @@ const styles = StyleSheet.create({
   modalStatusText: {
     color: '#059669',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   addressBox: {
     padding: 12,
-    borderRadius: 14,
-    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     gap: 2,
   },
   addressBoxTitle: {
     color: '#8A7045',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     textTransform: 'uppercase',
     marginBottom: 2,
   },
@@ -1127,7 +1109,7 @@ const styles = StyleSheet.create({
   itemsSectionTitle: {
     color: '#0F172A',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 4,
   },
   receiptItemsList: {
@@ -1154,7 +1136,7 @@ const styles = StyleSheet.create({
   receiptItemPrice: {
     color: '#0F172A',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   receiptTotalRow: {
     flexDirection: 'row',
@@ -1170,7 +1152,7 @@ const styles = StyleSheet.create({
   receiptTotalValue: {
     color: '#0F172A',
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   modalPrimaryBtn: {
     height: 52,
@@ -1185,7 +1167,7 @@ const styles = StyleSheet.create({
   modalPrimaryText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   inputGroup: {
     gap: 8,
@@ -1197,11 +1179,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalInput: {
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: '#FAFAFA',
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     paddingHorizontal: 16,
     color: '#0F172A',
     fontSize: 14,
@@ -1209,7 +1191,7 @@ const styles = StyleSheet.create({
   customAlertCard: {
     width: '100%',
     maxWidth: 360,
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: '#FFFFFF',
     padding: 24,
     alignItems: 'center',
@@ -1225,7 +1207,7 @@ const styles = StyleSheet.create({
   alertTitle: {
     color: '#0F172A',
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   alertMessage: {
     color: '#64748B',
@@ -1253,9 +1235,9 @@ const styles = StyleSheet.create({
   alertSecondaryBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1267,7 +1249,7 @@ const styles = StyleSheet.create({
   footerNote: {
     color: '#94A3B8',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 1,
     textAlign: 'center',
     paddingTop: 8,

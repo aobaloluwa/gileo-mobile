@@ -218,7 +218,7 @@ export default function RegisterScreen() {
                   hitSlop={8}
                   style={styles.backButton}
                 >
-                  <Ionicons name="arrow-back" size={20} color={colors.text} />
+                  <Ionicons name="arrow-back" size={20} color="#0F172A" />
                 </Pressable>
               </Animated.View>
             ) : (
@@ -243,10 +243,25 @@ export default function RegisterScreen() {
               },
             ]}
           >
+            {/* Segmented Control Pill Bar */}
+            <View style={styles.segmentedContainer}>
+              <View style={styles.segmentedBar}>
+                <Pressable
+                  style={styles.segmentItem}
+                  onPress={() => router.push('/login')}
+                >
+                  <Text style={styles.segmentInactiveText}>Log in</Text>
+                </Pressable>
+                <Pressable style={[styles.segmentItem, styles.segmentActive]}>
+                  <Text style={styles.segmentActiveText}>Sign up</Text>
+                </Pressable>
+              </View>
+            </View>
+
             <View style={styles.heading}>
-              <Text style={styles.title}>Create your account</Text>
+              <Text style={styles.title}>Sign up</Text>
               <Text style={styles.subtitle}>
-                Join Gileo for healthcare services, marketplace, and community.
+                Join Gileo for healthcare services, medical marketplace, and community.
               </Text>
             </View>
 
@@ -319,7 +334,7 @@ export default function RegisterScreen() {
                   <Ionicons
                     name="alert-circle-outline"
                     size={18}
-                    color={colors.error}
+                    color="#EF4444"
                   />
                   <Text style={styles.errorText}>{errorMessage}</Text>
                 </View>
@@ -345,13 +360,13 @@ export default function RegisterScreen() {
                 disabled={isSubmitting}
                 onPress={handleGoogleSignUp}
                 style={({ pressed }) => [
-                  styles.googleButton,
-                  pressed && styles.googleButtonPressed,
+                  styles.socialButton,
+                  pressed && styles.socialButtonPressed,
                   isSubmitting && styles.disabledButton,
                 ]}
               >
                 <FontAwesome name="google" size={18} color="#4285F4" />
-                <Text style={styles.googleLabel}>
+                <Text style={styles.socialLabel}>
                   {isSubmitting ? 'Please wait…' : 'Continue with Google'}
                 </Text>
               </Pressable>
@@ -373,7 +388,7 @@ export default function RegisterScreen() {
             <Ionicons
               name="shield-checkmark-outline"
               size={15}
-              color={colors.textSecondary}
+              color="#64748B"
             />
             <Text style={styles.footerNote}>
               Your health information is safely secured.
@@ -403,7 +418,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
   backButton: {
     width: 42,
@@ -411,9 +426,9 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
   },
   brandLogo: {
     width: 120,
@@ -422,6 +437,42 @@ const styles = StyleSheet.create({
   },
   animatedContainer: {
     flex: 1,
+  },
+  segmentedContainer: {
+    marginBottom: 20,
+  },
+  segmentedBar: {
+    flexDirection: 'row',
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: '#F8F9FA',
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#EAECEF',
+  },
+  segmentItem: {
+    flex: 1,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  segmentActiveText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  segmentInactiveText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '600',
   },
   heading: {
     marginBottom: spacing.xl,
@@ -454,7 +505,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    color: colors.error,
+    color: '#EF4444',
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,
@@ -471,7 +522,7 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#EAECEF',
   },
   dividerText: {
     color: '#94A3B8',
@@ -479,26 +530,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
   },
-  googleButton: {
-    height: 54,
+  socialButton: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
     borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FA',
     paddingHorizontal: spacing.lg,
   },
-  googleButtonPressed: {
-    backgroundColor: '#F8FAFC',
+  socialButtonPressed: {
+    backgroundColor: '#FFFFFF',
     transform: [{ scale: 0.985 }],
   },
   disabledButton: {
     opacity: 0.6,
   },
-  googleLabel: {
+  socialLabel: {
     color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',

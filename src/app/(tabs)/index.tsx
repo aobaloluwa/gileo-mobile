@@ -23,8 +23,7 @@ import { colors, spacing } from '../../theme';
 const pillars = [
   {
     id: 'services',
-    icon: 'heart-outline' as const,
-    activeIcon: 'heart' as const,
+    icon: 'heart' as const,
     title: 'Healthcare',
     subtitle: 'Home care & nursing',
     bg: '#FFF1F2',
@@ -33,8 +32,7 @@ const pillars = [
   },
   {
     id: 'marketplace',
-    icon: 'bag-handle-outline' as const,
-    activeIcon: 'bag-handle' as const,
+    icon: 'bag-handle' as const,
     title: 'Marketplace',
     subtitle: 'Scrubs & supplies',
     bg: '#FEF3C7',
@@ -43,8 +41,7 @@ const pillars = [
   },
   {
     id: 'community',
-    icon: 'people-outline' as const,
-    activeIcon: 'people' as const,
+    icon: 'people' as const,
     title: 'Community',
     subtitle: 'Nurses network',
     bg: '#ECFDF5',
@@ -53,10 +50,9 @@ const pillars = [
   },
   {
     id: 'learning',
-    icon: 'school-outline' as const,
-    activeIcon: 'school' as const,
-    title: 'Learning Hub',
-    subtitle: 'E-books & Elevate',
+    icon: 'school' as const,
+    title: 'Elevate',
+    subtitle: 'Learning hub',
     bg: '#EEF2FF',
     iconColor: '#4F46E5',
     targetRoute: '/(tabs)/community',
@@ -66,21 +62,21 @@ const pillars = [
 const featuredServices = [
   {
     id: 'wound-dressing',
-    title: 'Home-Service Wound Dressing',
-    category: 'Healthcare Service',
+    title: 'Home Wound Care',
+    category: 'Home Nursing',
     price: '₦20,000 / session',
-    description: 'Professional sterile clinical wound dressing and nursing management delivered at home.',
-    icon: 'medkit-outline' as const,
+    description: 'Professional sterile clinical wound dressing delivered at home.',
+    icon: 'medkit' as const,
     color: '#761B36',
     actionRoute: '/(tabs)/services',
   },
   {
     id: 'gileo-scrubs',
-    title: 'Gileo Scrubs & Medical Apparel',
-    category: 'Medical Marketplace',
-    price: 'Authentic Gileo Collection',
-    description: 'Premium fluid-resistant medical scrubs and clinical wear tailored for comfort.',
-    icon: 'bag-handle-outline' as const,
+    title: 'Gileo Premium Scrubs',
+    category: 'Medical Wear',
+    price: 'Authentic Collection',
+    description: 'Fluid-resistant medical scrubs tailored for clinical comfort.',
+    icon: 'shirt' as const,
     color: '#B45309',
     actionRoute: '/(tabs)/marketplace',
   },
@@ -97,20 +93,13 @@ const featuredBooks = [
   },
   {
     id: 'book-2',
-    title: 'Global Nursing Careers & Opportunities',
+    title: 'Global Nursing Careers & Pathways',
     author: 'Gileo Learning',
     price: '₦6,500',
-    description: 'Discover international opportunities, registration requirements, and career pathways.',
+    description: 'Discover international licensure requirements, registration, and career pathways.',
     format: 'E-Book Resource',
   },
 ];
-
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good Morning 👋';
-  if (hour < 17) return 'Good Afternoon 👋';
-  return 'Good Evening 👋';
-}
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -183,334 +172,229 @@ export default function HomeScreen() {
             transform: [{ translateY: slideAnim }],
           }}
         >
-          {/* Top Bar Header */}
-        <View style={styles.topBar}>
-          <Image
-            source={require('../../../assets/gileo-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-            accessibilityLabel="Gileo Medicals"
-          />
-
-          <View style={styles.headerRight}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Support"
-              onPress={handleCallSupport}
-              style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-            >
-              <Ionicons name="call-outline" size={20} color="#0F172A" />
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-              onPress={() => router.push('/(tabs)/community')}
-              style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-            >
-              <Ionicons name="notifications-outline" size={20} color="#0F172A" />
-              <View style={styles.notifBadge} />
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Profile"
-              onPress={() => router.push('/(tabs)/profile')}
-              style={({ pressed }) => [styles.avatarBtn, pressed && styles.pressed]}
-            >
-              <Ionicons name="person" size={18} color="#FFFFFF" />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* User Greeting Section */}
-        <View style={styles.greetingSection}>
-          <Text style={styles.greetingText}>Hello, {firstName} 👋</Text>
-          <Text style={styles.welcomeHeading}>Welcome to Gileo</Text>
-          <Text style={styles.welcomeSubtext}>
-            Healthcare. Medical Essentials. Professional Growth.
-          </Text>
-        </View>
-
-        {/* Clean Search Input */}
-        <View style={styles.searchWrapper}>
-          <Ionicons name="search-outline" size={20} color="#94A3B8" />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search care, scrubs, e-books..."
-            placeholderTextColor="#94A3B8"
-            style={styles.searchInput}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
-            </Pressable>
-          )}
-        </View>
-
-        {/* Quick Category Pillars (Row) */}
-        <View style={styles.pillarsRow}>
-          {pillars.map((item) => (
-            <Pressable
-              key={item.id}
-              accessibilityRole="button"
-              onPress={() => router.push(item.targetRoute as any)}
-              style={({ pressed }) => [styles.pillarCard, pressed && styles.pressed]}
-            >
-              <View style={[styles.pillarIconCircle, { backgroundColor: item.bg }]}>
-                <Ionicons name={item.icon} size={22} color={item.iconColor} />
-              </View>
-              <Text style={styles.pillarTitle}>{item.title}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Featured Hero Banner Card (Gileo Wine Red #761B36 theme) */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroTop}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeText}>GILEO ELEVATE</Text>
-            </View>
-            <Ionicons name="sparkles" size={18} color="#F59E0B" />
-          </View>
-
-          <Text style={styles.heroTitle}>Cohort Enrolment Open</Text>
-          <Text style={styles.heroDescription}>
-            Advance your nursing career with structured professional development & mentorship.
-          </Text>
-
-          <View style={styles.heroFooter}>
-            <View style={styles.heroTimeBox}>
-              <Ionicons name="calendar-outline" size={14} color="#F8FAFC" />
-              <Text style={styles.heroTimeText}>Next Cohort Starts Soon</Text>
+          {/* Top Bar Header with Two-Line Greeting & Profile Badge */}
+          <View style={styles.topHeaderRow}>
+            <View style={styles.greetingBox}>
+              <Text style={styles.greetingSubTitle}>Hello,</Text>
+              <Text style={styles.greetingTitle}>
+                {user?.displayName || `${firstName}!`}
+              </Text>
             </View>
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/(tabs)/community')}
-              style={({ pressed }) => [
-                styles.heroActionBtn,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.heroActionText}>Explore Cohort</Text>
-              <Ionicons name="arrow-forward" size={14} color="#761B36" />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* The 4 Pillars Section */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Four Connected Pillars</Text>
-          </View>
-
-          <View style={styles.pillarsGrid}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/(tabs)/services')}
-              style={({ pressed }) => [
-                styles.gridCard,
-                { backgroundColor: '#FFF1F2' },
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={styles.gridIconCircle}>
-                <Ionicons name="heart" size={20} color="#761B36" />
-              </View>
-              <Text style={styles.gridTitle}>Healthcare Services</Text>
-              <Text style={styles.gridSub}>Home care & nursing</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/(tabs)/marketplace')}
-              style={({ pressed }) => [
-                styles.gridCard,
-                { backgroundColor: '#FEF3C7' },
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={styles.gridIconCircle}>
-                <Ionicons name="bag-handle" size={20} color="#B45309" />
-              </View>
-              <Text style={styles.gridTitle}>Medical Marketplace</Text>
-              <Text style={styles.gridSub}>Scrubs & equipment</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/(tabs)/community')}
-              style={({ pressed }) => [
-                styles.gridCard,
-                { backgroundColor: '#ECFDF5' },
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={styles.gridIconCircle}>
-                <Ionicons name="people" size={20} color="#059669" />
-              </View>
-              <Text style={styles.gridTitle}>Nurses Community</Text>
-              <Text style={styles.gridSub}>Connect & grow</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/(tabs)/community')}
-              style={({ pressed }) => [
-                styles.gridCard,
-                { backgroundColor: '#EEF2FF' },
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={styles.gridIconCircle}>
-                <Ionicons name="school" size={20} color="#4F46E5" />
-              </View>
-              <Text style={styles.gridTitle}>Learning & Elevate</Text>
-              <Text style={styles.gridSub}>E-books & courses</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Featured Offerings */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured Offerings</Text>
-          </View>
-
-          {featuredServices.map((item) => (
-            <Pressable
-              key={item.title}
-              accessibilityRole="button"
-              onPress={() => router.push(item.actionRoute as any)}
-              style={({ pressed }) => [
-                styles.featuredCard,
-                pressed && styles.pressed,
-              ]}
-            >
-              <View style={[styles.featuredIconBox, { backgroundColor: item.color + '15' }]}>
-                <Ionicons name={item.icon} size={22} color={item.color} />
-              </View>
-
-              <View style={styles.featuredContent}>
-                <Text style={styles.featuredCategory}>{item.category}</Text>
-                <Text style={styles.featuredTitle}>{item.title}</Text>
-                <Text style={styles.featuredPrice}>{item.price}</Text>
-              </View>
-
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Gileo Learning Hub Books Spotlight */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Learning Hub E-Books</Text>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalBooks}
-          >
-            {featuredBooks.map((book) => (
+            <View style={styles.topRightActions}>
               <Pressable
-                key={book.title}
                 accessibilityRole="button"
-                onPress={() => setSelectedBook(book)}
-                style={({ pressed }) => [
-                  styles.bookCard,
-                  pressed && styles.pressed,
-                ]}
+                onPress={() => router.push('/(tabs)/community')}
+                style={({ pressed }) => [styles.circleIconBtn, pressed && styles.pressed]}
               >
-                <View style={styles.bookCover}>
-                  <Ionicons name="book" size={32} color="#761B36" />
-                </View>
-                <Text numberOfLines={2} style={styles.bookTitle}>
-                  {book.title}
+                <Ionicons name="notifications-outline" size={20} color="#0F172A" />
+                <View style={styles.notifBadgeDot} />
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/(tabs)/profile')}
+                style={({ pressed }) => [styles.avatarBadgeBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.avatarInitialText}>
+                  {firstName.charAt(0).toUpperCase()}
                 </Text>
-                <Text style={styles.bookFormat}>{book.price}</Text>
+                <View style={styles.proBadgePill}>
+                  <Text style={styles.proBadgeText}>MEMBER</Text>
+                </View>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Pure White Search Container */}
+          <View style={styles.searchCardWrapper}>
+            <Ionicons name="search-outline" size={20} color="#94A3B8" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search care, scrubs, e-books..."
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInputField}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </Pressable>
+            )}
+          </View>
+
+          {/* Quick Category Pillars Row */}
+          <View style={styles.pillarsGridRow}>
+            {pillars.map((item) => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="button"
+                onPress={() => router.push(item.targetRoute as any)}
+                style={({ pressed }) => [styles.pillarCardBox, pressed && styles.pressed]}
+              >
+                <View style={[styles.pillarIconCircleBox, { backgroundColor: item.bg }]}>
+                  <Ionicons name={item.icon} size={22} color={item.iconColor} />
+                </View>
+                <Text style={styles.pillarTitleText}>{item.title}</Text>
               </Pressable>
             ))}
-          </ScrollView>
-        </View>
-
-        {/* Real Person Support Banner */}
-        <Pressable
-          accessibilityRole="button"
-          onPress={handleCallSupport}
-          style={({ pressed }) => [styles.supportBanner, pressed && styles.pressed]}
-        >
-          <View style={styles.supportIconCircle}>
-            <Ionicons name="headset" size={22} color="#FFFFFF" />
           </View>
 
-          <View style={styles.supportTextContainer}>
-            <Text style={styles.supportBannerTitle}>Need Assistance?</Text>
-            <Text style={styles.supportBannerSubtitle}>
-              Speak directly with GILEO Support
+          {/* Featured Spotlight Banner Card (Gileo Wine Red #761B36) */}
+          <View style={styles.spotlightHeroCard}>
+            <View style={styles.spotlightHeaderRow}>
+              <View style={styles.spotlightTagPill}>
+                <Text style={styles.spotlightTagText}>GILEO ELEVATE</Text>
+              </View>
+              <Ionicons name="sparkles" size={18} color="#F59E0B" />
+            </View>
+
+            <Text style={styles.spotlightTitle}>Executive Leadership Cohort</Text>
+            <Text style={styles.spotlightSub}>
+              Advance your nursing practice with 6 weeks of structured mentorship and international career guidance.
             </Text>
-            <Text style={styles.supportPhone}>+234 816 533 5594</Text>
+
+            <View style={styles.spotlightFooterRow}>
+              <View style={styles.timeTagBox}>
+                <Ionicons name="calendar" size={14} color="#FFFFFF" />
+                <Text style={styles.timeTagText}>Starts Nov 2026 • 6 Weeks</Text>
+              </View>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/(tabs)/community')}
+                style={({ pressed }) => [styles.spotlightPillBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.spotlightPillBtnText}>Explore Cohort</Text>
+                <Ionicons name="arrow-forward" size={14} color="#761B36" />
+              </Pressable>
+            </View>
           </View>
 
-          <Ionicons name="call" size={20} color="#FFFFFF" />
-        </Pressable>
+          {/* Featured Services Section */}
+          <View style={styles.sectionGroup}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeadingText}>Featured Offerings</Text>
+              <Pressable onPress={() => router.push('/(tabs)/services')}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </Pressable>
+            </View>
 
-        {/* E-Book Modal */}
-        <Modal
-          visible={Boolean(selectedBook)}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setSelectedBook(null)}
-        >
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => setSelectedBook(null)}
-          >
-            <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-              {selectedBook && (
-                <>
-                  <View style={styles.modalHeader}>
-                    <View style={styles.modalIconBox}>
-                      <Ionicons name="book" size={24} color="#761B36" />
-                    </View>
-                    <Pressable
-                      onPress={() => setSelectedBook(null)}
-                      hitSlop={10}
-                    >
-                      <Ionicons name="close" size={22} color="#64748B" />
-                    </Pressable>
+            {featuredServices.map((item) => (
+              <Pressable
+                key={item.title}
+                accessibilityRole="button"
+                onPress={() => router.push(item.actionRoute as any)}
+                style={({ pressed }) => [styles.offeringCard, pressed && styles.pressed]}
+              >
+                <View style={[styles.offeringIconSquare, { backgroundColor: item.color + '15' }]}>
+                  <Ionicons name={item.icon} size={24} color={item.color} />
+                </View>
+
+                <View style={styles.offeringMeta}>
+                  <Text style={styles.offeringCategory}>{item.category}</Text>
+                  <Text style={styles.offeringTitle}>{item.title}</Text>
+                  <Text style={styles.offeringPrice}>{item.price}</Text>
+                </View>
+
+                <View style={styles.bookNowPill}>
+                  <Text style={styles.bookNowText}>Book Now</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Learning Hub E-Books Carousel */}
+          <View style={styles.sectionGroup}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeadingText}>Learning Hub E-Books</Text>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.booksScrollRow}
+            >
+              {featuredBooks.map((book) => (
+                <Pressable
+                  key={book.title}
+                  accessibilityRole="button"
+                  onPress={() => setSelectedBook(book)}
+                  style={({ pressed }) => [styles.eBookCard, pressed && styles.pressed]}
+                >
+                  <View style={styles.eBookCoverBox}>
+                    <Ionicons name="book" size={32} color="#761B36" />
                   </View>
-
-                  <Text style={styles.modalCategory}>{selectedBook.format}</Text>
-                  <Text style={styles.modalTitle}>{selectedBook.title}</Text>
-                  <Text style={styles.modalPrice}>{selectedBook.price}</Text>
-
-                  <Text style={styles.modalDescription}>
-                    {selectedBook.description}
+                  <Text numberOfLines={2} style={styles.eBookCardTitle}>
+                    {book.title}
                   </Text>
+                  <Text style={styles.eBookCardPrice}>{book.price}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
 
-                  <View style={styles.modalFooter}>
-                    <Pressable
-                      style={styles.modalPrimaryBtn}
-                      onPress={handleCallSupport}
-                    >
-                      <Ionicons name="call" size={18} color="#FFFFFF" />
-                      <Text style={styles.modalPrimaryText}>Purchase via Support (+234 816 533 5594)</Text>
-                    </Pressable>
-                  </View>
-                </>
-              )}
-            </Pressable>
+          {/* Customer Support Banner */}
+          <Pressable
+            accessibilityRole="button"
+            onPress={handleCallSupport}
+            style={({ pressed }) => [styles.supportBannerCard, pressed && styles.pressed]}
+          >
+            <View style={styles.supportIconSquare}>
+              <Ionicons name="headset" size={22} color="#FFFFFF" />
+            </View>
+
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.supportTitle}>Need Assistance?</Text>
+              <Text style={styles.supportSub}>Speak directly with GILEO Support</Text>
+              <Text style={styles.supportPhone}>+234 816 533 5594</Text>
+            </View>
+
+            <Ionicons name="call" size={20} color="#FFFFFF" />
           </Pressable>
-        </Modal>
 
-        {/* Footer Note */}
-        <Text style={styles.footerNote}>
-          GILEO MEDICALS GLOBAL LIMITED • 2026
-        </Text>
+          {/* E-Book Modal */}
+          <Modal
+            visible={Boolean(selectedBook)}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setSelectedBook(null)}
+          >
+            <Pressable
+              style={styles.modalOverlay}
+              onPress={() => setSelectedBook(null)}
+            >
+              <Pressable style={styles.modalCardContent} onPress={(e) => e.stopPropagation()}>
+                {selectedBook && (
+                  <>
+                    <View style={styles.modalHeaderRow}>
+                      <View style={styles.modalIconCircle}>
+                        <Ionicons name="book" size={24} color="#761B36" />
+                      </View>
+                      <Pressable onPress={() => setSelectedBook(null)} hitSlop={10}>
+                        <Ionicons name="close" size={22} color="#64748B" />
+                      </Pressable>
+                    </View>
+
+                    <Text style={styles.modalCategoryText}>{selectedBook.format}</Text>
+                    <Text style={styles.modalHeadingText}>{selectedBook.title}</Text>
+                    <Text style={styles.modalPriceText}>{selectedBook.price}</Text>
+
+                    <Text style={styles.modalBodyText}>{selectedBook.description}</Text>
+
+                    <Pressable style={styles.modalActionPillBtn} onPress={handleCallSupport}>
+                      <Ionicons name="call" size={18} color="#FFFFFF" />
+                      <Text style={styles.modalActionPillText}>
+                        Purchase via Support (+234 816 533 5594)
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+              </Pressable>
+            </Pressable>
+          </Modal>
+
+          <Text style={styles.footerNoteText}>GILEO MEDICALS GLOBAL LIMITED • 2026</Text>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -520,332 +404,337 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F6F7F9',
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 32,
+    paddingTop: 12,
+    paddingBottom: 96,
     gap: 20,
   },
-  topBar: {
+  topHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 4,
   },
-  logo: {
-    width: 120,
-    height: 38,
-    marginLeft: -25,
+  greetingBox: {
+    gap: 2,
   },
-  headerRight: {
+  greetingSubTitle: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  greetingTitle: {
+    color: '#0F172A',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  topRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  circleIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
     position: 'relative',
   },
-  notifBadge: {
+  notifBadgeDot: {
     position: 'absolute',
-    top: 9,
-    right: 9,
+    top: 11,
+    right: 11,
     width: 7,
     height: 7,
     borderRadius: 4,
     backgroundColor: '#EF4444',
   },
-  avatarBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  avatarBadgeBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#761B36',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  greetingSection: {
-    gap: 4,
+  avatarInitialText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
   },
-  greetingText: {
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '500',
+  proBadgePill: {
+    position: 'absolute',
+    bottom: -4,
+    backgroundColor: '#111111',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
   },
-  welcomeHeading: {
-    color: '#0F172A',
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.6,
+  proBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  welcomeSubtext: {
-    color: '#64748B',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  searchWrapper: {
-    height: 52,
+  searchCardWrapper: {
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    gap: 12,
   },
-  searchInput: {
+  searchInputField: {
     flex: 1,
     fontSize: 14,
     color: '#0F172A',
-    paddingVertical: 8,
   },
-  pillarsRow: {
+  pillarsGridRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 10,
+  },
+  pillarCardBox: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 12,
     alignItems: 'center',
     gap: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  pillarCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 6,
-  },
-  pillarIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
+  pillarIconCircleBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillarTitle: {
+  pillarTitleText: {
     color: '#0F172A',
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'center',
   },
-  heroCard: {
-    borderRadius: 24,
+  spotlightHeroCard: {
+    borderRadius: 26,
     backgroundColor: '#761B36',
-    padding: 20,
+    padding: 22,
     gap: 12,
     shadowColor: '#761B36',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 5,
   },
-  heroTop: {
+  spotlightHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  heroBadge: {
+  spotlightTagPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: 'rgba(255, 255, 255, 0.18)',
   },
-  heroBadgeText: {
+  spotlightTagText: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 1,
   },
-  heroTitle: {
+  spotlightTitle: {
     color: '#FFFFFF',
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: -0.4,
   },
-  heroDescription: {
+  spotlightSub: {
     color: '#F8FAFC',
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 20,
     opacity: 0.9,
   },
-  heroFooter: {
+  spotlightFooterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+    borderTopColor: 'rgba(255, 255, 255, 0.18)',
   },
-  heroTimeBox: {
+  timeTagBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  heroTimeText: {
+  timeTagText: {
     color: '#FFFFFF',
     fontSize: 12,
+    fontWeight: '500',
   },
-  heroActionBtn: {
+  spotlightPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
   },
-  heroActionText: {
+  spotlightPillBtnText: {
     color: '#761B36',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  sectionContainer: {
+  sectionGroup: {
     gap: 12,
   },
-  sectionHeader: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: {
+  sectionHeadingText: {
     color: '#0F172A',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   seeAllText: {
     color: '#761B36',
     fontSize: 13,
-    fontWeight: '600',
-  },
-  pillarsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  gridCard: {
-    width: '48%',
-    padding: 16,
-    borderRadius: 20,
-    gap: 6,
-  },
-  gridIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  gridTitle: {
-    color: '#0F172A',
-    fontSize: 14,
     fontWeight: '700',
   },
-  gridSub: {
-    color: '#64748B',
-    fontSize: 11,
-  },
-  featuredCard: {
+  offeringCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 20,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 12,
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    gap: 14,
   },
-  featuredIconBox: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
+  offeringIconSquare: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featuredContent: {
+  offeringMeta: {
     flex: 1,
     gap: 2,
   },
-  featuredCategory: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '600',
+  offeringCategory: {
+    color: '#8A7045',
+    fontSize: 10,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  featuredTitle: {
+  offeringTitle: {
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
-  featuredPrice: {
+  offeringPrice: {
+    color: '#761B36',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  bookNowPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#FFF1F2',
+  },
+  bookNowText: {
     color: '#761B36',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  horizontalBooks: {
+  booksScrollRow: {
     gap: 12,
   },
-  bookCard: {
-    width: 140,
-    padding: 12,
-    borderRadius: 18,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  eBookCard: {
+    width: 150,
+    padding: 14,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     gap: 8,
   },
-  bookCover: {
+  eBookCoverBox: {
     width: '100%',
-    height: 100,
-    borderRadius: 12,
+    height: 110,
+    borderRadius: 16,
     backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bookTitle: {
+  eBookCardTitle: {
     color: '#0F172A',
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
   },
-  bookFormat: {
+  eBookCardPrice: {
     color: '#761B36',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
   },
-  supportBanner: {
+  supportBannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 22,
+    padding: 18,
+    borderRadius: 24,
     backgroundColor: '#761B36',
-    gap: 12,
+    gap: 14,
   },
-  supportIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  supportIconSquare: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  supportTextContainer: {
-    flex: 1,
-    gap: 2,
-  },
-  supportBannerTitle: {
+  supportTitle: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  supportBannerSubtitle: {
+  supportSub: {
     color: '#F1F5F9',
     fontSize: 11,
     opacity: 0.9,
@@ -853,20 +742,20 @@ const styles = StyleSheet.create({
   supportPhone: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     marginTop: 2,
   },
-  footerNote: {
+  footerNoteText: {
     color: '#94A3B8',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 1,
     textAlign: 'center',
     paddingTop: 8,
   },
   pressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.985 }],
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
   modalOverlay: {
     flex: 1,
@@ -875,52 +764,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
   },
-  modalContent: {
+  modalCardContent: {
     width: '100%',
     maxWidth: 380,
-    borderRadius: 24,
+    borderRadius: 28,
     backgroundColor: '#FFFFFF',
     padding: 24,
     gap: 12,
   },
-  modalHeader: {
+  modalHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  modalIconBox: {
+  modalIconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 18,
+    borderRadius: 20,
     backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalCategory: {
+  modalCategoryText: {
     color: '#8A7045',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     textTransform: 'uppercase',
   },
-  modalTitle: {
+  modalHeadingText: {
     color: '#0F172A',
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  modalPrice: {
+  modalPriceText: {
     color: '#761B36',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  modalDescription: {
+  modalBodyText: {
     color: '#64748B',
     fontSize: 14,
     lineHeight: 22,
   },
-  modalFooter: {
-    paddingTop: 8,
-  },
-  modalPrimaryBtn: {
+  modalActionPillBtn: {
     height: 52,
     borderRadius: 999,
     backgroundColor: '#761B36',
@@ -928,10 +814,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    marginTop: 8,
   },
-  modalPrimaryText: {
+  modalActionPillText: {
     color: '#FFFFFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

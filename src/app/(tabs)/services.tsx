@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   Linking,
   Modal,
   Pressable,
@@ -70,6 +72,26 @@ export default function ServicesScreen() {
   const [selectedService, setSelectedService] = useState<typeof servicesList[0] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 380,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 420,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
   const handleCallSupport = () => {
     void Linking.openURL('tel:+2348165335594');
   };
@@ -95,7 +117,14 @@ export default function ServicesScreen() {
           />
         }
       >
-        <Text style={styles.eyebrow}>PILLAR 1 • HEALTHCARE SERVICES</Text>
+        <Animated.View
+          style={{
+            gap: 16,
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }}
+        >
+          <Text style={styles.eyebrow}>PILLAR 1 • HEALTHCARE SERVICES</Text>
         <Text style={styles.title}>Services & Care</Text>
         <Text style={styles.subtitle}>
           Request trusted home nursing, elderly care, and specialized medical coverage.
@@ -200,6 +229,7 @@ export default function ServicesScreen() {
             </Pressable>
           </Pressable>
         </Modal>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

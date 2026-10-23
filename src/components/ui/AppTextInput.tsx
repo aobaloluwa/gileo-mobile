@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii, spacing } from '../../theme';
+import { colors, spacing } from '../../theme';
 
 type AppTextInputProps = TextInputProps & {
   label: string;
@@ -50,8 +50,8 @@ export default function AppTextInput({
             setFocused(false);
             textInputProps.onBlur?.(event);
           }}
-          placeholderTextColor={colors.placeholder}
-          selectionColor={colors.primary}
+          placeholderTextColor="#94A3B8"
+          selectionColor="#761B36"
           style={[styles.input, style]}
           accessibilityLabel={label}
         />
@@ -69,7 +69,7 @@ export default function AppTextInput({
             <Ionicons
               name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color={colors.textSecondary}
+              color="#64748B"
             />
           </Pressable>
         )}
@@ -85,37 +85,37 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    color: colors.text,
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: -0.1,
   },
   inputWrapper: {
-    height: 54,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.input,
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: spacing.lg,
+    borderColor: '#EAECEF',
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
   },
   inputFocused: {
-    borderColor: colors.borderFocus,
+    borderColor: '#0F172A',
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: '#EF4444',
     backgroundColor: '#FFF8F8',
   },
   input: {
     flex: 1,
     minWidth: 0,
     paddingVertical: 12,
-    color: colors.text,
+    color: '#0F172A',
     fontSize: 15,
-    fontWeight: '400',
+    fontWeight: '500',
   },
   eyeButton: {
     paddingLeft: spacing.sm,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    color: colors.error,
+    color: '#EF4444',
     fontSize: 12,
     fontWeight: '500',
     marginTop: 2,

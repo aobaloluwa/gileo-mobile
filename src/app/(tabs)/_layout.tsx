@@ -1,6 +1,6 @@
-
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme';
 
@@ -11,25 +11,24 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarShowLabel: false,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          height: 62 + insets.bottom,
-          paddingTop: 7,
-          paddingBottom: Math.max(insets.bottom, 8),
-          elevation: 0,
-        },
-        tabBarLabelStyle: {
-          fontFamily: 'Inter_600SemiBold',
-          fontSize: 10,
-          marginTop: 3,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 1,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          height: 64,
+          marginHorizontal: 16,
+          marginBottom: Math.max(insets.bottom, 12),
+          borderRadius: 32,
+          position: 'absolute',
+          elevation: 12,
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.1,
+          shadowRadius: 16,
+          paddingHorizontal: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
       }}
     >
@@ -37,12 +36,15 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={size}
-              color={color}
-            />
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={18}
+                color={focused ? '#FFFFFF' : '#64748B'}
+              />
+              {focused && <Text style={styles.tabLabel}>Home</Text>}
+            </View>
           ),
         }}
       />
@@ -51,12 +53,15 @@ export default function TabsLayout() {
         name="services"
         options={{
           title: 'Services',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'heart' : 'heart-outline'}
-              size={size}
-              color={color}
-            />
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+              <Ionicons
+                name={focused ? 'heart' : 'heart-outline'}
+                size={18}
+                color={focused ? '#FFFFFF' : '#64748B'}
+              />
+              {focused && <Text style={styles.tabLabel}>Services</Text>}
+            </View>
           ),
         }}
       />
@@ -65,12 +70,15 @@ export default function TabsLayout() {
         name="marketplace"
         options={{
           title: 'Marketplace',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'bag-handle' : 'bag-handle-outline'}
-              size={size}
-              color={color}
-            />
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+              <Ionicons
+                name={focused ? 'bag-handle' : 'bag-handle-outline'}
+                size={18}
+                color={focused ? '#FFFFFF' : '#64748B'}
+              />
+              {focused && <Text style={styles.tabLabel}>Shop</Text>}
+            </View>
           ),
         }}
       />
@@ -79,12 +87,15 @@ export default function TabsLayout() {
         name="community"
         options={{
           title: 'Community',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'people' : 'people-outline'}
-              size={size}
-              color={color}
-            />
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+              <Ionicons
+                name={focused ? 'people' : 'people-outline'}
+                size={18}
+                color={focused ? '#FFFFFF' : '#64748B'}
+              />
+              {focused && <Text style={styles.tabLabel}>Community</Text>}
+            </View>
           ),
         }}
       />
@@ -93,15 +104,40 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'person-circle' : 'person-circle-outline'}
-              size={size}
-              color={color}
-            />
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.tabItem, focused && styles.tabItemActive]}>
+              <Ionicons
+                name={focused ? 'person' : 'person-outline'}
+                size={18}
+                color={focused ? '#FFFFFF' : '#64748B'}
+              />
+              {focused && <Text style={styles.tabLabel}>Profile</Text>}
+            </View>
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  tabItemActive: {
+    backgroundColor: '#761B36',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  tabLabel: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+});
