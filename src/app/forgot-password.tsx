@@ -291,32 +291,25 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Row Header */}
+          {/* Top Row Header with Close Button */}
           <View style={styles.topRow}>
             {(stage !== 'email' || canGoBack) ? (
               <Animated.View style={{ transform: [{ scale: backScale }] }}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Go back"
+                  accessibilityLabel="Close"
                   onPress={handleBack}
                   onPressIn={() => animateBack(0.92)}
                   onPressOut={() => animateBack(1)}
                   hitSlop={8}
-                  style={styles.backButton}
+                  style={styles.closeButton}
                 >
-                  <Ionicons name="arrow-back" size={20} color={colors.text} />
+                  <Ionicons name="arrow-back" size={20} color="#0F172A" />
                 </Pressable>
               </Animated.View>
             ) : (
               <View style={{ width: 42, height: 42 }} />
             )}
-
-            <Image
-              source={require('../../assets/gileo-logo.png')}
-              style={styles.brandLogo}
-              resizeMode="contain"
-              accessibilityLabel="Gileo Medicals"
-            />
           </View>
 
           {/* Animated Main Content */}
@@ -329,6 +322,18 @@ export default function ForgotPasswordScreen() {
               },
             ]}
           >
+            {/* Centered Brand Logo */}
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/gileo-logo.png')}
+                style={styles.brandLogo}
+                resizeMode="contain"
+                accessibilityLabel="Gileo Medicals"
+              />
+            </View>
+
+            <Text style={styles.centeredTitle}>{title}</Text>
+
             {/* Step indicators */}
             <View style={styles.progressRow}>
               {(['email', 'code', 'password'] as Stage[]).map((item, index) => {
@@ -346,7 +351,6 @@ export default function ForgotPasswordScreen() {
             </View>
 
             <View style={styles.heading}>
-              <Text style={styles.title}>{title}</Text>
               <Text style={styles.subtitle}>{description}</Text>
             </View>
 
@@ -473,7 +477,7 @@ export default function ForgotPasswordScreen() {
                   <Ionicons
                     name="alert-circle-outline"
                     size={18}
-                    color={colors.error}
+                    color="#EF4444"
                   />
                   <Text style={styles.errorText}>{errorMessage}</Text>
                 </View>
@@ -527,7 +531,7 @@ export default function ForgotPasswordScreen() {
             <Ionicons
               name="shield-checkmark-outline"
               size={15}
-              color={colors.textSecondary}
+              color="#64748B"
             />
             <Text style={styles.footerNote}>
               Your health information is safely secured.
@@ -550,29 +554,41 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xl,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xs,
   },
-  backButton: {
+  closeButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   brandLogo: {
-    width: 120,
-    height: 40,
-    marginRight: -10,
+    width: 140,
+    height: 48,
+  },
+  centeredTitle: {
+    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.6,
+    marginBottom: 16,
   },
   animatedContainer: {
     flex: 1,
@@ -589,23 +605,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
   },
   progressDotActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#761B36',
   },
   heading: {
-    marginBottom: spacing.xl,
-  },
-  title: {
-    color: '#0F172A',
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.6,
+    marginBottom: spacing.lg,
   },
   subtitle: {
     color: '#64748B',
     fontSize: 14,
     lineHeight: 22,
-    marginTop: 6,
-    maxWidth: 340,
+    textAlign: 'center',
   },
   form: {
     gap: spacing.lg,
@@ -617,9 +626,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 14,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F9FA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#EAECEF',
   },
   emailBadgeText: {
     flex: 1,
@@ -645,8 +654,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FAFAFA',
+    borderColor: '#EAECEF',
+    backgroundColor: '#F8F9FA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -697,7 +706,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    color: colors.error,
+    color: '#EF4444',
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,
@@ -709,8 +718,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FAFAFA',
+    borderColor: '#EAECEF',
+    backgroundColor: '#F8F9FA',
   },
   infoText: {
     flex: 1,
@@ -742,7 +751,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     marginTop: 'auto',
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.xl,
   },
   footerNote: {
     color: '#64748B',

@@ -13,6 +13,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,12 +23,25 @@ import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/au
 import { getFirstName } from './profile';
 import { colors, spacing } from '../../theme';
 
-type Resource = {
+type FeedPost = {
   id: string;
-  title: string;
-  summary: string;
-  category: string;
+  authorName: string;
+  authorRole: string;
+  timeAgo: string;
   content: string;
+  likesCount: number;
+  commentsCount: number;
+  repostsCount: number;
+  isLiked?: boolean;
+  isSaved?: boolean;
+  category: string;
+};
+
+type CommunityMember = {
+  id: string;
+  name: string;
+  role: string;
+  isFollowing?: boolean;
 };
 
 type Cohort = {
@@ -43,24 +57,40 @@ type Cohort = {
   enrolledCount: number;
 };
 
-const initialResources: Resource[] = [
+const memberStories: CommunityMember[] = [
+  { id: '1', name: 'Nurse Laila', role: 'Concierge Lead' },
+  { id: '2', name: 'Nurse Gia', role: 'ICU Specialist' },
+  { id: '3', name: 'Nurse Jeanne', role: 'Clinical Educator' },
+  { id: '4', name: 'Nurse Keanu', role: 'Pediatric Care' },
+  { id: '5', name: 'Nurse Valerie', role: 'Health Tech' },
+];
+
+const initialFeedPosts: FeedPost[] = [
   {
-    id: 'res-1',
-    title: 'Exploring Non-Traditional Nursing Pathways in 2026',
-    category: 'Career Guidance',
-    summary:
-      'Learn about nurse concierge roles, corporate healthcare coordination, and independent clinical practice.',
+    id: 'post-1',
+    authorName: 'Nurse Laila Gibson',
+    authorRole: 'Concierge Nurse Lead',
+    timeAgo: '2 hr ago',
+    category: 'Career Growth',
     content:
-      'Traditional bedside nursing is only one aspect of a rewarding healthcare career. Today, healthcare systems and private clients actively seek nurses for concierge healthcare management, executive health coordination, and independent consulting.',
+      'Taking that first step into independent nursing practice is powerful! Explore new ideas, build your executive portfolio, and see where your clinical expertise can take you. The best time to start is now! 🩺🚀',
+    likesCount: 172,
+    commentsCount: 28,
+    repostsCount: 12,
+    isLiked: false,
   },
   {
-    id: 'res-2',
-    title: 'How to Build a High-Impact Executive Nursing Portfolio',
-    category: 'Professional Growth',
-    summary:
-      'Key guidelines for structuring clinical experience, certifications, and leadership achievements for global roles.',
+    id: 'post-2',
+    authorName: 'Nurse Valerie Azer',
+    authorRole: 'Clinical Operations Specialist',
+    timeAgo: '4 hr ago',
+    category: 'Clinical Practice',
     content:
-      'A professional nursing portfolio highlights your clinical competencies, certifications, leadership experience, and continuous professional development. When applying for global nursing roles or executive positions, a well-structured portfolio differentiates you.',
+      'Hands-on experience combined with continuous learning creates excellence in healthcare. Always stay curious and never stop expanding your clinical knowledge! 💡✨',
+    likesCount: 245,
+    commentsCount: 42,
+    repostsCount: 18,
+    isLiked: true,
   },
 ];
 
@@ -105,13 +135,25 @@ const initialCohorts: Cohort[] = [
 export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'resources' | 'elevate'>('resources');
-  const [resources, setResources] = useState<Resource[]>(initialResources);
+  const [activeTab, setActiveTab] = useState<'for_you' | 'following' | 'elevate'>('for_you');
+  const [posts, setPosts] = useState<FeedPost[]>(initialFeedPosts);
+  const [members, setMembers] = useState<CommunityMember[]>(memberStories);
   const [cohorts, setCohorts] = useState<Cohort[]>(initialCohorts);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Selected Item Modals
-  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  // New Post State
+  const [newPostText, setNewPostText] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+
+  // Comment Modal State
+  const [selectedPostForComments, setSelectedPostForComments] = useState<FeedPost | null>(null);
+  const [commentInput, setCommentInput] = useState('');
+  const [postComments, setPostComments] = useState<string[]>([
+    'Great insight! Thank you for sharing. 🩺',
+    'So inspiring! Excited for the future of nursing.',
+  ]);
+
+  // Selected Cohort Modal State
   const [selectedCohort, setSelectedCohort] = useState<Cohort | null>(null);
 
   // Enrolment Paystack State
@@ -134,17 +176,12 @@ export default function CommunityScreen() {
     setUser(u);
 
     try {
-      const communityData = await apiRequest<any>('/community/resources').catch(() => null);
-      if (communityData?.resources && Array.isArray(communityData.resources) && communityData.resources.length > 0) {
-        setResources(communityData.resources);
-      }
-
       const fetchedCohorts = await apiRequest<Cohort[]>('/learning/cohorts').catch(() => null);
       if (Array.isArray(fetchedCohorts) && fetchedCohorts.length > 0) {
         setCohorts(fetchedCohorts);
       }
     } catch {
-      // Keep demo data for offline/demo
+      // Keep initial demo data
     }
   };
 
@@ -201,24 +238,94 @@ export default function CommunityScreen() {
     });
   };
 
-  const handleJoinCommunity = async () => {
-    const token = await getStoredAccessToken();
-    if (!token) {
-      triggerToast('Please sign in to register for Gileo Community');
-      router.push('/login');
+  const handleCallSupport = () => {
+    void Linking.openURL('tel:+2348165335594');
+  };
+
+  const toggleLikePost = (postId: string) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          const isLiked = !p.isLiked;
+          return {
+            ...p,
+            isLiked,
+            likesCount: isLiked ? p.likesCount + 1 : Math.max(0, p.likesCount - 1),
+          };
+        }
+        return p;
+      }),
+    );
+  };
+
+  const toggleSavePost = (postId: string) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          const isSaved = !p.isSaved;
+          if (isSaved) triggerToast('Post saved to your bookmarks');
+          return { ...p, isSaved };
+        }
+        return p;
+      }),
+    );
+  };
+
+  const toggleFollowMember = (memberId: string) => {
+    setMembers((prev) =>
+      prev.map((m) => {
+        if (m.id === memberId) {
+          const isFollowing = !m.isFollowing;
+          triggerToast(isFollowing ? `Connected with ${m.name}` : `Unfollowed ${m.name}`);
+          return { ...m, isFollowing };
+        }
+        return m;
+      }),
+    );
+  };
+
+  const handleCreatePost = () => {
+    if (!newPostText.trim()) {
+      triggerToast('Please write something before publishing');
       return;
     }
 
-    try {
-      await apiRequest('/community/join', { method: 'POST' });
-      triggerToast('Welcome! You are now a registered Gileo Community Member.');
-    } catch {
-      triggerToast('Joined Gileo Community!');
-    }
+    setIsPosting(true);
+    const firstNameStr = getFirstName(user);
+
+    const newPost: FeedPost = {
+      id: `post-${Date.now()}`,
+      authorName: user?.displayName || `Nurse ${firstNameStr}`,
+      authorRole: 'Gileo Community Member',
+      timeAgo: 'Just now',
+      category: 'Community Share',
+      content: newPostText.trim(),
+      likesCount: 1,
+      commentsCount: 0,
+      repostsCount: 0,
+      isLiked: true,
+    };
+
+    setPosts([newPost, ...posts]);
+    setNewPostText('');
+    setIsPosting(false);
+    triggerToast('Post published to Gileo Community Feed!');
   };
 
-  const handleCallSupport = () => {
-    void Linking.openURL('tel:+2348165335594');
+  const handleAddComment = () => {
+    if (!commentInput.trim()) return;
+    setPostComments([...postComments, commentInput.trim()]);
+    if (selectedPostForComments) {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === selectedPostForComments.id
+            ? { ...p, commentsCount: p.commentsCount + 1 }
+            : p,
+        ),
+      );
+    }
+    setCommentInput('');
+    triggerToast('Comment added');
   };
 
   const handleEnrolInCohort = async (cohort: Cohort) => {
@@ -295,12 +402,12 @@ export default function CommunityScreen() {
       >
         <Animated.View
           style={{
-            gap: 18,
+            gap: 16,
             opacity: pageFadeAnim,
             transform: [{ translateY: pageSlideAnim }],
           }}
         >
-          {/* Top Bar Header */}
+          {/* Top Header */}
           <View style={styles.header}>
             <View>
               <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
@@ -310,105 +417,193 @@ export default function CommunityScreen() {
             <Pressable
               accessibilityRole="button"
               onPress={handleCallSupport}
-              style={({ pressed }) => [styles.callBtn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.circleIconBtn, pressed && styles.pressed]}
             >
-              <Ionicons name="call-outline" size={20} color="#0F172A" />
+              <Ionicons name="notifications-outline" size={20} color="#0F172A" />
+              <View style={styles.notifBadgeDot} />
             </Pressable>
           </View>
 
-          {/* Hero Banner Card in Gileo Wine Red Theme */}
-          <View style={styles.heroCard}>
-            <View style={styles.heroTop}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>PILLAR 3 & 4 • NURSES NETWORK</Text>
-              </View>
-              <Ionicons name="people" size={22} color="#761B36" />
-            </View>
-
-            <Text style={styles.heroTitle}>Empowering Nursing Leaders</Text>
-            <Text style={styles.heroText}>
-              A connected destination for nurses to explore non-traditional career pathways, share clinical insights, and enrol in Gileo Elevate paid cohorts.
-            </Text>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleJoinCommunity}
-              style={({ pressed }) => [styles.joinBtn, pressed && styles.pressed]}
-            >
-              <Ionicons name="checkmark-circle" size={16} color="#761B36" />
-              <Text style={styles.joinBtnText}>Join Free Community</Text>
-            </Pressable>
+          {/* Member Stories Carousel */}
+          <View style={styles.storiesContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesRow}>
+              {members.map((member) => (
+                <Pressable
+                  key={member.id}
+                  onPress={() => toggleFollowMember(member.id)}
+                  style={styles.storyItem}
+                >
+                  <View style={[styles.storyAvatarRing, member.isFollowing && styles.storyAvatarRingActive]}>
+                    <View style={styles.storyAvatarCircle}>
+                      <Text style={styles.storyAvatarInitial}>{member.name.charAt(6) || 'N'}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.storyNameText} numberOfLines={1}>{member.name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
 
-          {/* Tab Switcher */}
-          <View style={styles.tabBar}>
+          {/* Segmented Sub-Navigation Pills */}
+          <View style={styles.segmentedTabBar}>
             <Pressable
-              onPress={() => setActiveTab('resources')}
-              style={[styles.tabItem, activeTab === 'resources' && styles.tabItemActive]}
+              onPress={() => setActiveTab('for_you')}
+              style={[styles.segmentedItem, activeTab === 'for_you' && styles.segmentedItemActive]}
             >
-              <Ionicons
-                name="document-text-outline"
-                size={16}
-                color={activeTab === 'resources' ? '#761B36' : '#64748B'}
-              />
-              <Text style={[styles.tabLabel, activeTab === 'resources' && styles.tabLabelActive]}>
-                Resource Hub
+              <Text style={[styles.segmentedLabel, activeTab === 'for_you' && styles.segmentedLabelActive]}>
+                For You
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setActiveTab('following')}
+              style={[styles.segmentedItem, activeTab === 'following' && styles.segmentedItemActive]}
+            >
+              <Text style={[styles.segmentedLabel, activeTab === 'following' && styles.segmentedLabelActive]}>
+                Network
               </Text>
             </Pressable>
 
             <Pressable
               onPress={() => setActiveTab('elevate')}
-              style={[styles.tabItem, activeTab === 'elevate' && styles.tabItemActive]}
+              style={[styles.segmentedItem, activeTab === 'elevate' && styles.segmentedItemActive]}
             >
-              <Ionicons
-                name="school"
-                size={16}
-                color={activeTab === 'elevate' ? '#761B36' : '#64748B'}
-              />
-              <Text style={[styles.tabLabel, activeTab === 'elevate' && styles.tabLabelActive]}>
-                Gileo Elevate ({cohorts.length})
+              <Text style={[styles.segmentedLabel, activeTab === 'elevate' && styles.segmentedLabelActive]}>
+                Elevate ({cohorts.length})
               </Text>
             </Pressable>
           </View>
 
-          {/* Tab Content 1: Free Community Resources */}
-          {activeTab === 'resources' ? (
-            <View style={styles.resourcesSection}>
-              <Text style={styles.sectionHeaderTitle}>Free Career Resources & Updates</Text>
+          {/* Feed Content */}
+          {activeTab !== 'elevate' ? (
+            <>
+              {/* Share New Post Box */}
+              <View style={styles.createPostCard}>
+                <View style={styles.createPostTopRow}>
+                  <View style={styles.smallAvatarCircle}>
+                    <Text style={styles.smallAvatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <TextInput
+                    value={newPostText}
+                    onChangeText={setNewPostText}
+                    placeholder="Share an update or question with fellow nurses..."
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    style={styles.createPostInput}
+                  />
+                </View>
 
-              <View style={styles.resourceList}>
-                {resources.map((res) => (
-                  <Pressable
-                    key={res.id}
-                    accessibilityRole="button"
-                    onPress={() => setSelectedResource(res)}
-                    style={({ pressed }) => [styles.resourceCard, pressed && styles.pressed]}
-                  >
-                    <View style={styles.resourceCardHeader}>
-                      <View style={styles.resourceIconBox}>
-                        <Ionicons name="compass-outline" size={22} color="#761B36" />
+                {newPostText.trim().length > 0 && (
+                  <View style={styles.createPostFooter}>
+                    <Pressable style={styles.publishPillBtn} onPress={handleCreatePost}>
+                      <Text style={styles.publishPillBtnText}>Post Update</Text>
+                      <Ionicons name="send" size={14} color="#FFFFFF" />
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+
+              {/* Feed Posts List */}
+              <View style={styles.feedList}>
+                {posts.map((post) => (
+                  <View key={post.id} style={styles.feedPostCard}>
+                    {/* Post Author Header */}
+                    <View style={styles.postHeaderRow}>
+                      <View style={styles.authorAvatarCircle}>
+                        <Text style={styles.authorAvatarInitial}>{post.authorName.charAt(6) || 'N'}</Text>
                       </View>
+
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.resourceCategory}>{res.category}</Text>
-                        <Text style={styles.resourceTitle}>{res.title}</Text>
+                        <Text style={styles.authorNameText}>{post.authorName}</Text>
+                        <Text style={styles.authorRoleText}>{post.authorRole} • {post.timeAgo}</Text>
+                      </View>
+
+                      <View style={styles.categoryPillTag}>
+                        <Text style={styles.categoryPillTagText}>{post.category}</Text>
                       </View>
                     </View>
 
-                    <Text style={styles.resourceSummary}>{res.summary}</Text>
+                    {/* Post Content Body */}
+                    <Text style={styles.postContentText}>{post.content}</Text>
 
-                    <View style={styles.resourceFooter}>
-                      <Text style={styles.resourceAuthor}>By Gileo Community Lead</Text>
-                      <View style={styles.readLink}>
-                        <Text style={styles.readLinkText}>Read Guide</Text>
-                        <Ionicons name="arrow-forward" size={12} color="#761B36" />
-                      </View>
+                    {/* Interactive Social Action Row */}
+                    <View style={styles.socialActionBar}>
+                      <Pressable
+                        style={styles.actionItem}
+                        onPress={() => toggleLikePost(post.id)}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name={post.isLiked ? 'heart' : 'heart-outline'}
+                          size={20}
+                          color={post.isLiked ? '#EF4444' : '#64748B'}
+                        />
+                        <Text style={[styles.actionCountText, post.isLiked && { color: '#EF4444' }]}>
+                          {post.likesCount}
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.actionItem}
+                        onPress={() => setSelectedPostForComments(post)}
+                        hitSlop={8}
+                      >
+                        <Ionicons name="chatbubble-outline" size={18} color="#64748B" />
+                        <Text style={styles.actionCountText}>{post.commentsCount}</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={styles.actionItem}
+                        onPress={() => triggerToast('Post link copied')}
+                        hitSlop={8}
+                      >
+                        <Ionicons name="repeat-outline" size={20} color="#64748B" />
+                        <Text style={styles.actionCountText}>{post.repostsCount}</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.actionItem, { marginLeft: 'auto' }]}
+                        onPress={() => toggleSavePost(post.id)}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name={post.isSaved ? 'bookmark' : 'bookmark-outline'}
+                          size={19}
+                          color={post.isSaved ? '#761B36' : '#64748B'}
+                        />
+                      </Pressable>
                     </View>
-                  </Pressable>
+                  </View>
                 ))}
               </View>
-            </View>
+
+              {/* Suggested Members Section */}
+              <View style={styles.suggestedSectionCard}>
+                <Text style={styles.suggestedTitle}>Suggested Nurses to Connect</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                  {members.map((m) => (
+                    <View key={m.id} style={styles.suggestedMemberCard}>
+                      <View style={styles.suggestedAvatarCircle}>
+                        <Text style={styles.suggestedAvatarInitial}>{m.name.charAt(6) || 'N'}</Text>
+                      </View>
+                      <Text style={styles.suggestedMemberName}>{m.name}</Text>
+                      <Text style={styles.suggestedMemberRole}>{m.role}</Text>
+
+                      <Pressable
+                        style={[styles.connectPillBtn, m.isFollowing && styles.connectPillBtnActive]}
+                        onPress={() => toggleFollowMember(m.id)}
+                      >
+                        <Text style={[styles.connectPillText, m.isFollowing && styles.connectPillTextActive]}>
+                          {m.isFollowing ? 'Connected' : 'Connect'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </>
           ) : (
-            /* Tab Content 2: Gileo Elevate Paid Cohorts */
+            /* Tab Content: Gileo Elevate Paid Cohorts */
             <View style={styles.elevateSection}>
               <View style={styles.elevateHeaderBox}>
                 <Ionicons name="school" size={24} color="#761B36" />
@@ -436,7 +631,6 @@ export default function CommunityScreen() {
                       <Text style={styles.cohortTitle}>{cohort.title}</Text>
                       <Text style={styles.cohortOverview}>{cohort.overview}</Text>
 
-                      {/* Learning Outcomes List */}
                       <View style={styles.outcomesBox}>
                         <Text style={styles.outcomesBoxTitle}>Key Learning Outcomes:</Text>
                         {cohort.learningOutcomes.map((outcome, idx) => (
@@ -461,6 +655,154 @@ export default function CommunityScreen() {
             </View>
           )}
 
+          {/* Comments Modal Drawer */}
+          <Modal
+            visible={Boolean(selectedPostForComments)}
+            animationType="slide"
+            onRequestClose={() => setSelectedPostForComments(null)}
+          >
+            <SafeAreaView style={styles.modalSafeArea}>
+              <View style={styles.modalHeader}>
+                <Pressable onPress={() => setSelectedPostForComments(null)} style={styles.circleBtn}>
+                  <Ionicons name="close" size={20} color="#0F172A" />
+                </Pressable>
+                <Text style={styles.modalHeaderTitle}>Comments</Text>
+                <View style={{ width: 40 }} />
+              </View>
+
+              <ScrollView contentContainerStyle={styles.commentsListContent}>
+                {postComments.map((c, idx) => (
+                  <View key={idx} style={styles.commentItemCard}>
+                    <Ionicons name="person-circle-outline" size={24} color="#761B36" />
+                    <Text style={styles.commentText}>{c}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+
+              <View style={styles.commentInputRow}>
+                <TextInput
+                  value={commentInput}
+                  onChangeText={setCommentInput}
+                  placeholder="Write a comment..."
+                  placeholderTextColor="#94A3B8"
+                  style={styles.commentInputField}
+                />
+                <Pressable style={styles.sendCommentBtn} onPress={handleAddComment}>
+                  <Ionicons name="send" size={16} color="#FFFFFF" />
+                </Pressable>
+              </View>
+            </SafeAreaView>
+          </Modal>
+
+          {/* Cohort Paystack Enrolment Modal */}
+          <Modal
+            visible={Boolean(selectedCohort)}
+            animationType="slide"
+            onRequestClose={() => {
+              setSelectedCohort(null);
+              setEnrolmentSuccess(false);
+            }}
+          >
+            <SafeAreaView style={styles.modalSafeArea}>
+              {selectedCohort && (
+                <>
+                  <View style={styles.modalHeader}>
+                    <Pressable
+                      onPress={() => {
+                        setSelectedCohort(null);
+                        setEnrolmentSuccess(false);
+                      }}
+                      style={styles.circleBtn}
+                    >
+                      <Ionicons name="close" size={20} color="#0F172A" />
+                    </Pressable>
+                    <Text style={styles.modalHeaderTitle}>Gileo Elevate Enrolment</Text>
+                    <View style={{ width: 40 }} />
+                  </View>
+
+                  {enrolmentSuccess ? (
+                    <View style={styles.enrolSuccessContainer}>
+                      <View style={styles.successIconCircle}>
+                        <Ionicons name="checkmark" size={40} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.successTitle}>Enrolment Order Created!</Text>
+                      <Text style={styles.successRef}>Ref: {enrolmentRef}</Text>
+
+                      {paystackUrl && (
+                        <Pressable
+                          style={styles.paystackLaunchBtn}
+                          onPress={() => {
+                            void WebBrowser.openBrowserAsync(paystackUrl).catch(() => {
+                              void Linking.openURL(paystackUrl);
+                            });
+                          }}
+                        >
+                          <Ionicons name="card" size={18} color="#FFFFFF" />
+                          <Text style={styles.paystackLaunchBtnText}>Open Paystack Gateway</Text>
+                        </Pressable>
+                      )}
+
+                      <Pressable
+                        style={styles.doneBtn}
+                        onPress={() => {
+                          setSelectedCohort(null);
+                          setEnrolmentSuccess(false);
+                        }}
+                      >
+                        <Text style={styles.doneBtnText}>Done</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <ScrollView contentContainerStyle={styles.enrolContent}>
+                      <View style={styles.cohortDetailHeader}>
+                        <Text style={styles.cohortDetailTitle}>{selectedCohort.title}</Text>
+                        <Text style={styles.cohortDetailPrice}>
+                          ₦{(selectedCohort.priceKobo / 100).toLocaleString()}
+                        </Text>
+                      </View>
+
+                      <View style={styles.paystackNoticeBox}>
+                        <Ionicons name="shield-checkmark" size={22} color="#761B36" />
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text style={styles.paystackNoticeTitle}>Paystack Cohort Verification</Text>
+                          <Text style={styles.paystackNoticeSub}>
+                            Enrolment is verified instantly upon successful Paystack payment confirmation.
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.sectionGroup}>
+                        <Text style={styles.modalSectionHeaderTitle}>Cohort Overview</Text>
+                        <Text style={styles.detailOverviewText}>{selectedCohort.overview}</Text>
+                      </View>
+
+                      <View style={styles.sectionGroup}>
+                        <Text style={styles.modalSectionHeaderTitle}>Curriculum & Learning Outcomes</Text>
+                        {selectedCohort.learningOutcomes.map((outcome, idx) => (
+                          <View key={idx} style={styles.modalOutcomeRow}>
+                            <Ionicons name="checkmark-circle" size={16} color="#761B36" />
+                            <Text style={styles.outcomeDetailText}>{outcome}</Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      <Pressable
+                        style={[styles.paystackEnrolBtn, isEnrolling && { opacity: 0.6 }]}
+                        disabled={isEnrolling}
+                        onPress={() => handleEnrolInCohort(selectedCohort)}
+                      >
+                        <Ionicons name="card-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.paystackEnrolText}>
+                          {isEnrolling ? 'Initializing Paystack...' : 'Proceed to Paystack Enrolment'}
+                        </Text>
+                      </Pressable>
+                    </ScrollView>
+                  )}
+                </>
+              )}
+            </SafeAreaView>
+          </Modal>
+
           {/* Support Banner */}
           <Pressable
             accessibilityRole="button"
@@ -477,163 +819,9 @@ export default function CommunityScreen() {
             </View>
             <Ionicons name="call" size={20} color="#FFFFFF" />
           </Pressable>
+
+          <Text style={styles.footerNote}>GILEO MEDICALS GLOBAL LIMITED • 2026</Text>
         </Animated.View>
-
-        {/* Resource Reader Modal */}
-        <Modal
-          visible={Boolean(selectedResource)}
-          animationType="slide"
-          onRequestClose={() => setSelectedResource(null)}
-        >
-          <SafeAreaView style={styles.modalSafeArea}>
-            {selectedResource && (
-              <>
-                <View style={styles.modalHeader}>
-                  <Pressable onPress={() => setSelectedResource(null)} style={styles.circleBtn}>
-                    <Ionicons name="close" size={20} color="#0F172A" />
-                  </Pressable>
-                  <Text style={styles.modalHeaderTitle}>{selectedResource.category}</Text>
-                  <View style={{ width: 40 }} />
-                </View>
-
-                <ScrollView contentContainerStyle={styles.readerContent}>
-                  <Text style={styles.readerTitle}>{selectedResource.title}</Text>
-                  <View style={styles.readerAuthorRow}>
-                    <Ionicons name="person-circle-outline" size={18} color="#761B36" />
-                    <Text style={styles.readerAuthorText}>By Gileo Community Lead</Text>
-                  </View>
-
-                  <View style={styles.readerBodyCard}>
-                    <Text style={styles.readerBodyText}>{selectedResource.content}</Text>
-                  </View>
-
-                  <Pressable
-                    style={styles.shareBtn}
-                    onPress={() => triggerToast('Resource link copied')}
-                  >
-                    <Ionicons name="share-social" size={16} color="#0F172A" />
-                    <Text style={styles.shareBtnText}>Share Resource</Text>
-                  </Pressable>
-                </ScrollView>
-              </>
-            )}
-          </SafeAreaView>
-        </Modal>
-
-        {/* Cohort Detail & Paystack Enrolment Modal */}
-        <Modal
-          visible={Boolean(selectedCohort)}
-          animationType="slide"
-          onRequestClose={() => {
-            setSelectedCohort(null);
-            setEnrolmentSuccess(false);
-          }}
-        >
-          <SafeAreaView style={styles.modalSafeArea}>
-            {selectedCohort && (
-              <>
-                <View style={styles.modalHeader}>
-                  <Pressable
-                    onPress={() => {
-                      setSelectedCohort(null);
-                      setEnrolmentSuccess(false);
-                    }}
-                    style={styles.circleBtn}
-                  >
-                    <Ionicons name="close" size={20} color="#0F172A" />
-                  </Pressable>
-                  <Text style={styles.modalHeaderTitle}>Gileo Elevate Enrolment</Text>
-                  <View style={{ width: 40 }} />
-                </View>
-
-                {enrolmentSuccess ? (
-                  <View style={styles.enrolSuccessContainer}>
-                    <View style={styles.successIconCircle}>
-                      <Ionicons name="checkmark" size={40} color="#FFFFFF" />
-                    </View>
-                    <Text style={styles.successTitle}>Enrolment Order Created!</Text>
-                    <Text style={styles.successRef}>Ref: {enrolmentRef}</Text>
-                    <Text style={styles.successSub}>
-                      Complete your cohort enrolment fee payment securely on the Paystack gateway:
-                    </Text>
-
-                    {paystackUrl && (
-                      <Pressable
-                        style={styles.paystackLaunchBtn}
-                        onPress={() => {
-                          void WebBrowser.openBrowserAsync(paystackUrl).catch(() => {
-                            void Linking.openURL(paystackUrl);
-                          });
-                        }}
-                      >
-                        <Ionicons name="card" size={18} color="#FFFFFF" />
-                        <Text style={styles.paystackLaunchBtnText}>Open Paystack Gateway</Text>
-                      </Pressable>
-                    )}
-
-                    <Pressable
-                      style={styles.doneBtn}
-                      onPress={() => {
-                        setSelectedCohort(null);
-                        setEnrolmentSuccess(false);
-                      }}
-                    >
-                      <Text style={styles.doneBtnText}>Done</Text>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <ScrollView contentContainerStyle={styles.enrolContent}>
-                    <View style={styles.cohortDetailHeader}>
-                      <Text style={styles.cohortDetailTitle}>{selectedCohort.title}</Text>
-                      <Text style={styles.cohortDetailPrice}>
-                        ₦{(selectedCohort.priceKobo / 100).toLocaleString()}
-                      </Text>
-                    </View>
-
-                    <View style={styles.paystackNoticeBox}>
-                      <Ionicons name="shield-checkmark" size={22} color="#761B36" />
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={styles.paystackNoticeTitle}>Paystack Cohort Verification</Text>
-                        <Text style={styles.paystackNoticeSub}>
-                          Enrolment is verified instantly upon successful Paystack payment confirmation.
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.sectionGroup}>
-                      <Text style={styles.modalSectionHeaderTitle}>Cohort Overview</Text>
-                      <Text style={styles.detailOverviewText}>{selectedCohort.overview}</Text>
-                    </View>
-
-                    <View style={styles.sectionGroup}>
-                      <Text style={styles.modalSectionHeaderTitle}>Curriculum & Learning Outcomes</Text>
-                      {selectedCohort.learningOutcomes.map((outcome, idx) => (
-                        <View key={idx} style={styles.modalOutcomeRow}>
-                          <Ionicons name="checkmark-circle" size={16} color="#761B36" />
-                          <Text style={styles.outcomeDetailText}>{outcome}</Text>
-                        </View>
-                      ))}
-                    </View>
-
-                    <Pressable
-                      style={[styles.paystackEnrolBtn, isEnrolling && { opacity: 0.6 }]}
-                      disabled={isEnrolling}
-                      onPress={() => handleEnrolInCohort(selectedCohort)}
-                    >
-                      <Ionicons name="card-outline" size={18} color="#FFFFFF" />
-                      <Text style={styles.paystackEnrolText}>
-                        {isEnrolling ? 'Initializing Paystack...' : 'Proceed to Paystack Enrolment'}
-                      </Text>
-                    </Pressable>
-                  </ScrollView>
-                )}
-              </>
-            )}
-          </SafeAreaView>
-        </Modal>
-
-        {/* Footer Note */}
-        <Text style={styles.footerNote}>GILEO MEDICALS GLOBAL LIMITED • 2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -648,7 +836,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 96,
-    gap: 18,
+    gap: 16,
   },
   toastContainer: {
     position: 'absolute',
@@ -690,7 +878,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.6,
   },
-  callBtn: {
+  circleIconBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -702,59 +890,62 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 2,
+    position: 'relative',
   },
-  heroCard: {
-    padding: 22,
-    borderRadius: 26,
+  notifBadgeDot: {
+    position: 'absolute',
+    top: 11,
+    right: 11,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  storiesContainer: {
+    marginHorizontal: -20,
+  },
+  storiesRow: {
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  storyItem: {
+    alignItems: 'center',
+    gap: 4,
+    width: 68,
+  },
+  storyAvatarRing: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: '#EAECEF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  storyAvatarRingActive: {
+    borderColor: '#761B36',
+  },
+  storyAvatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#FFF1F2',
-    borderWidth: 1,
-    borderColor: '#FECDD3',
-    gap: 12,
-  },
-  heroTop: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-  },
-  badgeText: {
+  storyAvatarInitial: {
     color: '#761B36',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  heroTitle: {
-    color: '#761B36',
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: '800',
   },
-  heroText: {
-    color: '#9F1239',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  joinBtn: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    marginTop: 4,
-  },
-  joinBtnText: {
+  storyNameText: {
     color: '#0F172A',
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
   },
-  tabBar: {
+  segmentedTabBar: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -765,40 +956,85 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 1,
   },
-  tabItem: {
+  segmentedItem: {
     flex: 1,
-    height: 44,
+    height: 42,
     borderRadius: 16,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  tabItemActive: {
-    backgroundColor: '#FFF1F2',
+  segmentedItemActive: {
+    backgroundColor: '#761B36',
   },
-  tabLabel: {
+  segmentedLabel: {
     color: '#64748B',
     fontSize: 13,
     fontWeight: '600',
   },
-  tabLabelActive: {
-    color: '#761B36',
+  segmentedLabelActive: {
+    color: '#FFFFFF',
     fontWeight: '800',
   },
-  resourcesSection: {
+  createPostCard: {
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     gap: 12,
   },
-  sectionHeaderTitle: {
+  createPostTopRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  smallAvatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#761B36',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  smallAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  createPostInput: {
+    flex: 1,
     color: '#0F172A',
-    fontSize: 18,
+    fontSize: 14,
+    minHeight: 40,
+    paddingTop: 8,
+  },
+  createPostFooter: {
+    alignItems: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 10,
+  },
+  publishPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#761B36',
+  },
+  publishPillBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '800',
-    letterSpacing: -0.3,
   },
-  resourceList: {
-    gap: 12,
+  feedList: {
+    gap: 14,
   },
-  resourceCard: {
+  feedPostCard: {
     padding: 18,
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
@@ -807,58 +1043,136 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 2,
-    gap: 10,
+    gap: 12,
   },
-  resourceCardHeader: {
+  postHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  resourceIconBox: {
+  authorAvatarCircle: {
     width: 44,
     height: 44,
-    borderRadius: 16,
+    borderRadius: 22,
     backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  resourceCategory: {
+  authorAvatarInitial: {
     color: '#761B36',
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: '800',
-    textTransform: 'uppercase',
   },
-  resourceTitle: {
+  authorNameText: {
     color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
   },
-  resourceSummary: {
+  authorRoleText: {
     color: '#64748B',
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 11,
   },
-  resourceFooter: {
+  categoryPillTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#FFF1F2',
+  },
+  categoryPillTagText: {
+    color: '#761B36',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  postContentText: {
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  socialActionBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
+    gap: 20,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
-  resourceAuthor: {
-    color: '#94A3B8',
-    fontSize: 11,
-  },
-  readLink: {
+  actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
-  readLinkText: {
-    color: '#761B36',
+  actionCountText: {
+    color: '#64748B',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
+  },
+  suggestedSectionCard: {
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    gap: 14,
+  },
+  suggestedTitle: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  suggestedMemberCard: {
+    width: 140,
+    padding: 14,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#EAECEF',
+    alignItems: 'center',
+    gap: 6,
+  },
+  suggestedAvatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFF1F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestedAvatarInitial: {
+    color: '#761B36',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  suggestedMemberName: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  suggestedMemberRole: {
+    color: '#64748B',
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  connectPillBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#111111',
+    marginTop: 4,
+  },
+  connectPillBtnActive: {
+    backgroundColor: '#FFF1F2',
+  },
+  connectPillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  connectPillTextActive: {
+    color: '#761B36',
   },
   elevateSection: {
     gap: 14,
@@ -1029,53 +1343,53 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
-  readerContent: {
+  commentsListContent: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
-    gap: 16,
+    paddingBottom: 24,
+    gap: 12,
   },
-  readerTitle: {
-    color: '#0F172A',
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  readerAuthorRow: {
+  commentItemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  readerAuthorText: {
-    color: '#64748B',
-    fontSize: 13,
-  },
-  readerBodyCard: {
-    padding: 18,
-    borderRadius: 24,
+    gap: 10,
+    padding: 14,
+    borderRadius: 18,
     backgroundColor: '#F8F9FA',
     borderWidth: 1,
     borderColor: '#EAECEF',
   },
-  readerBodyText: {
-    color: '#334155',
-    fontSize: 14,
-    lineHeight: 24,
+  commentText: {
+    flex: 1,
+    color: '#0F172A',
+    fontSize: 13,
   },
-  shareBtn: {
-    height: 52,
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  commentInputField: {
+    flex: 1,
+    height: 48,
     borderRadius: 999,
     backgroundColor: '#F8F9FA',
     borderWidth: 1,
     borderColor: '#EAECEF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  shareBtnText: {
+    paddingHorizontal: 16,
     color: '#0F172A',
     fontSize: 14,
-    fontWeight: '700',
+  },
+  sendCommentBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#761B36',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   enrolContent: {
     paddingHorizontal: 20,
@@ -1118,7 +1432,7 @@ const styles = StyleSheet.create({
   sectionGroup: {
     gap: 8,
   },
-  sectionHeaderTitle: {
+  modalSectionHeaderTitle: {
     color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
@@ -1128,7 +1442,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
   },
-  outcomeRow: {
+  modalOutcomeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,

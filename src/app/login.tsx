@@ -186,18 +186,18 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Row Header */}
+          {/* Top Row Header with Close Button */}
           <View style={styles.topRow}>
             {canGoBack ? (
               <Animated.View style={{ transform: [{ scale: backScale }] }}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Go back"
+                  accessibilityLabel="Close"
                   onPress={handleBack}
                   onPressIn={() => animateBack(0.92)}
                   onPressOut={() => animateBack(1)}
                   hitSlop={8}
-                  style={styles.backButton}
+                  style={styles.closeButton}
                 >
                   <Ionicons name="arrow-back" size={20} color="#0F172A" />
                 </Pressable>
@@ -205,16 +205,9 @@ export default function LoginScreen() {
             ) : (
               <View style={{ width: 42, height: 42 }} />
             )}
-
-            <Image
-              source={require('../../assets/gileo-logo.png')}
-              style={styles.brandLogo}
-              resizeMode="contain"
-              accessibilityLabel="Gileo Medicals"
-            />
           </View>
 
-          {/* Animated Heading & Form */}
+          {/* Animated Centered Brand & Form */}
           <Animated.View
             style={[
               styles.animatedContainer,
@@ -224,7 +217,17 @@ export default function LoginScreen() {
               },
             ]}
           >
-            {/* Segmented Control Pill Bar */}
+            {/* Centered Brand Logo (Positioned Lower & Slightly Bigger) */}
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/gileo-logo.png')}
+                style={styles.brandLogo}
+                resizeMode="contain"
+                accessibilityLabel="Gileo Medicals"
+              />
+            </View>
+
+            {/* Segmented Control Pill Bar Directly Below Logo */}
             <View style={styles.segmentedContainer}>
               <View style={styles.segmentedBar}>
                 <Pressable style={[styles.segmentItem, styles.segmentActive]}>
@@ -237,13 +240,6 @@ export default function LoginScreen() {
                   <Text style={styles.segmentInactiveText}>Sign up</Text>
                 </Pressable>
               </View>
-            </View>
-
-            <View style={styles.heading}>
-              <Text style={styles.title}>Log in</Text>
-              <Text style={styles.subtitle}>
-                Sign in to manage your health services, marketplace orders, and community.
-              </Text>
             </View>
 
             <View style={styles.form}>
@@ -312,7 +308,7 @@ export default function LoginScreen() {
 
               <View style={styles.dividerRow}>
                 <View style={styles.divider} />
-                <Text style={styles.dividerText}>OR</Text>
+                <Text style={styles.dividerText}>or</Text>
                 <View style={styles.divider} />
               </View>
 
@@ -342,7 +338,7 @@ export default function LoginScreen() {
                   accessibilityRole="link"
                   hitSlop={8}
                 >
-                  <Text style={styles.registerLink}> Signup</Text>
+                  <Text style={styles.registerLink}> Sign up</Text>
                 </Pressable>
               </View>
             </View>
@@ -375,16 +371,16 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.xl,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
-  backButton: {
+  closeButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -394,16 +390,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EAECEF',
   },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 28,
+    marginBottom: 24,
+  },
   brandLogo: {
-    width: 120,
-    height: 40,
-    marginRight: -10,
+    width: 160,
+    height: 54,
   },
   animatedContainer: {
     flex: 1,
   },
   segmentedContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   segmentedBar: {
     flexDirection: 'row',
@@ -437,22 +438,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 14,
     fontWeight: '600',
-  },
-  heading: {
-    marginBottom: spacing.xl,
-  },
-  title: {
-    color: '#0F172A',
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.6,
-  },
-  subtitle: {
-    color: '#64748B',
-    fontSize: 14,
-    lineHeight: 22,
-    marginTop: 6,
-    maxWidth: 340,
   },
   form: {
     gap: spacing.lg,
@@ -502,9 +487,8 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 1,
+    fontSize: 12,
+    fontWeight: '500',
   },
   socialButton: {
     height: 52,
@@ -551,7 +535,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     marginTop: 'auto',
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.xl,
   },
   footerNote: {
     color: '#64748B',
