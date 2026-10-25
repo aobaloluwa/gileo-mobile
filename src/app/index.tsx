@@ -14,7 +14,7 @@ export default function IndexRoute() {
   const scaleAnim = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
-    // Fade in and scale animation for initial splash screen
+    // Smooth fade-in & scale animation for standalone logo
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -33,8 +33,8 @@ export default function IndexRoute() {
     let active = true;
 
     async function chooseDestination() {
-      // Small pause to let splash logo show cleanly
-      const delayPromise = new Promise((resolve) => setTimeout(resolve, 1200));
+      // Pause to let logo show cleanly
+      const delayPromise = new Promise((resolve) => setTimeout(resolve, 1100));
 
       try {
         const [onboardingCompleted, legacyOnboardingCompleted, token] = await Promise.all([
@@ -73,7 +73,7 @@ export default function IndexRoute() {
         }}
       >
         <Image
-          source={require('../assets/gileo-logo.png')}
+          source={require('../../assets/gileo-logo.png')}
           style={styles.splashLogo}
           resizeMode="contain"
           accessibilityLabel="Gileo Logo"
@@ -86,12 +86,12 @@ export default function IndexRoute() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F6F7F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   splashLogo: {
-    width: 200,
-    height: 80,
+    width: 220,
+    height: 90,
   },
 });

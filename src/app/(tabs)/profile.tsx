@@ -10,6 +10,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -41,6 +42,22 @@ type Order = {
   items: OrderItem[];
 };
 
+type FeedPost = {
+  id: string;
+  authorId?: string;
+  authorEmail?: string;
+  authorName: string;
+  authorRole: string;
+  createdAt: number;
+  content: string;
+  likesCount: number;
+  commentsCount: number;
+  repostsCount: number;
+  isLiked?: boolean;
+  isSaved?: boolean;
+  commentsList: any[];
+};
+
 type CustomAlert = {
   visible: boolean;
   title: string;
@@ -52,47 +69,6 @@ type CustomAlert = {
   secondaryBtnText?: string;
   onSecondaryPress?: () => void;
 };
-
-const mockOrders: Order[] = [
-  {
-    id: 'ord-1',
-    reference: 'GIL-849201',
-    status: 'PAID',
-    totalKobo: 2850000,
-    createdAt: new Date().toISOString(),
-    shippingAddress: {
-      name: 'Nurse Siyam Ahamed',
-      phone: '+234 816 533 5594',
-      address: 'Gileo Care Center, Lagos, Nigeria',
-    },
-    items: [
-      {
-        titleSnapshot: 'Gileo Dri-FIT Premium Scrubs Set (Size: M, Gileo Wine)',
-        quantity: 1,
-        unitPriceKobo: 2850000,
-      },
-    ],
-  },
-  {
-    id: 'ord-2',
-    reference: 'GIL-620194',
-    status: 'PROCESSING',
-    totalKobo: 3500000,
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    shippingAddress: {
-      name: 'Nurse Siyam Ahamed',
-      phone: '+234 816 533 5594',
-      address: 'General Hospital, Ikeja, Lagos',
-    },
-    items: [
-      {
-        titleSnapshot: 'Clinical Dual-Head Stethoscope',
-        quantity: 1,
-        unitPriceKobo: 3500000,
-      },
-    ],
-  },
-];
 
 export function getFirstName(user: AuthUser | null): string {
   if (user?.displayName && user.displayName.trim()) {
@@ -111,9 +87,12 @@ export function getFirstName(user: AuthUser | null): string {
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [myPosts, setMyPosts] = useState<FeedPost[]>([]);
+  const [bookmarkedPosts, setBookmarkedPosts] = useState<FeedPost[]>([]);
+  const [connectionsCount, setConnectionsCount] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [activeTab, setActiveTab] = useState<'orders' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'posts' | 'orders' | 'bookmarks' | 'settings'>('posts');
   const [refreshing, setRefreshing] = useState(false);
 
   // Edit Profile State
@@ -142,21 +121,87 @@ export default function ProfileScreen() {
   const [isToastVisible, setIsToastVisible] = useState(false);
   const toastAnim = useRef(new Animated.Value(-150)).current;
 
-  const loadUserData = async () => {
+  const loadProfileData = async () => {
     const storedUser = await getStoredUser();
     setUser(storedUser);
+    const userIdKey = storedUser?.id || 'guest';
+
     if (storedUser) {
       setEditName(storedUser.displayName || '');
     }
 
     try {
       const myOrders = await apiRequest<Order[]>('/shop/orders/mine');
-      if (Array.isArray(myOrders) && myOrders.length > 0) {
+      if (Array.isArray(myOrders)) {
         setOrders(myOrders);
       }
     } catch {
-      // Keep mock orders for offline/demo
+      setOrders([]);
     }
+
+    // Load connections count from backend
+    try {
+      const connRes = await apiRequest<string[]>('/community/connections');
+      if (Array.isArray(connRes)) {
+        setConnectionsCount(connRes.length);
+      } else {
+        setConnectionsCount(0);
+      }
+    } catch {
+      setConnectionsCount(0);
+    }
+
+    // Load My Posts from backend API
+    try {
+      const myPostsRes = await apiRequest<any[]>('/community/posts/mine');
+      if (Array.isArray(myPostsRes)) {
+        const mappedMyPosts: FeedPost[] = myPostsRes.map((p) => ({
+          id: p.id,
+          authorId: p.authorId || storedUser?.id,
+          authorName: p.authorName || storedUser?.displayName || 'Gileo Nurse',
+          authorRole: p.authorRole || 'Community Member',
+          createdAt: p.createdAt || Date.now(),
+          category: p.category || 'Community Share',
+          content: p.content,
+          likesCount: p.likesCount || 0,
+          commentsCount: p.commentsCount || 0,
+          repostsCount: 0,
+          commentsList: p.commentsList || [],
+        }));
+        setMyPosts(mappedMyPosts);
+      } else {
+        setMyPosts([]);
+      }
+    } catch {
+      setMyPosts([]);
+    }
+
+    // Load Saved Bookmarks from backend API
+    try {
+      const savedRes = await apiRequest<any[]>('/community/saved-posts');
+      if (Array.isArray(savedRes)) {
+        const mappedSaved: FeedPost[] = savedRes.map((p) => ({
+          id: p.id,
+          authorId: p.authorId,
+          authorName: p.authorName || 'Gileo Nurse',
+          authorRole: p.authorRole || 'Community Member',
+          createdAt: p.createdAt || Date.now(),
+          category: p.category || 'Community Share',
+          content: p.content,
+          likesCount: p.likesCount || 0,
+          commentsCount: p.commentsCount || 0,
+          repostsCount: 0,
+          isSaved: true,
+          commentsList: p.commentsList || [],
+        }));
+        setBookmarkedPosts(mappedSaved);
+      } else {
+        setBookmarkedPosts([]);
+      }
+    } catch {
+      setBookmarkedPosts([]);
+    }
+
   };
 
   useEffect(() => {
@@ -175,13 +220,13 @@ export default function ProfileScreen() {
       }),
     ]).start();
 
-    void loadUserData();
+    void loadProfileData();
   }, [fadeAnim, slideAnim]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await loadUserData();
+      await loadProfileData();
     } catch {
     } finally {
       setRefreshing(false);
@@ -214,6 +259,16 @@ export default function ProfileScreen() {
 
   const handleCallSupport = () => {
     void Linking.openURL('tel:+2348165335594');
+  };
+
+  const handleSharePost = async (post: FeedPost) => {
+    try {
+      await Share.share({
+        message: `Gileo Community Post by ${post.authorName}: "${post.content}" - Read on Gileo App!`,
+      });
+    } catch {
+      triggerToast('Post link copied to clipboard');
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -328,7 +383,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {/* Animated Page Main Body */}
+        {/* Animated Page Body */}
         <Animated.View
           style={[
             styles.animatedContainer,
@@ -347,9 +402,15 @@ export default function ProfileScreen() {
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{user?.displayName || `Nurse ${firstName}`}</Text>
               <Text style={styles.userEmail}>{user?.email || 'user@gileo.com'}</Text>
-              <View style={styles.roleBadge}>
-                <Ionicons name="shield-checkmark" size={12} color="#10B981" />
-                <Text style={styles.roleText}>Verified Gileo Member</Text>
+              <View style={styles.statsBadgeRow}>
+                <View style={styles.roleBadge}>
+                  <Ionicons name="shield-checkmark" size={12} color="#10B981" />
+                  <Text style={styles.roleText}>Verified Member</Text>
+                </View>
+                <View style={styles.connectionsPillTag}>
+                  <Ionicons name="people" size={12} color="#761B36" />
+                  <Text style={styles.connectionsPillText}>{connectionsCount} Connections</Text>
+                </View>
               </View>
             </View>
 
@@ -358,19 +419,32 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Tab Selector Bar */}
+          {/* 4 Tab Selector Bar */}
           <View style={styles.tabBar}>
+            <Pressable
+              onPress={() => setActiveTab('posts')}
+              style={[styles.tabItem, activeTab === 'posts' && styles.tabItemActive]}
+            >
+              <Text style={[styles.tabLabel, activeTab === 'posts' && styles.tabLabelActive]}>
+                My Posts ({myPosts.length})
+              </Text>
+            </Pressable>
+
             <Pressable
               onPress={() => setActiveTab('orders')}
               style={[styles.tabItem, activeTab === 'orders' && styles.tabItemActive]}
             >
-              <Ionicons
-                name="bag-handle"
-                size={16}
-                color={activeTab === 'orders' ? '#761B36' : '#64748B'}
-              />
               <Text style={[styles.tabLabel, activeTab === 'orders' && styles.tabLabelActive]}>
-                My Orders ({orders.length})
+                Orders ({orders.length})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setActiveTab('bookmarks')}
+              style={[styles.tabItem, activeTab === 'bookmarks' && styles.tabItemActive]}
+            >
+              <Text style={[styles.tabLabel, activeTab === 'bookmarks' && styles.tabLabelActive]}>
+                Saved ({bookmarkedPosts.length})
               </Text>
             </Pressable>
 
@@ -378,32 +452,79 @@ export default function ProfileScreen() {
               onPress={() => setActiveTab('settings')}
               style={[styles.tabItem, activeTab === 'settings' && styles.tabItemActive]}
             >
-              <Ionicons
-                name="settings-outline"
-                size={16}
-                color={activeTab === 'settings' ? '#761B36' : '#64748B'}
-              />
               <Text style={[styles.tabLabel, activeTab === 'settings' && styles.tabLabelActive]}>
-                Account Settings
+                Settings
               </Text>
             </Pressable>
           </View>
 
-          {/* Tab Content 1: My Orders */}
-          {activeTab === 'orders' ? (
+          {/* Tab 1: My Posts */}
+          {activeTab === 'posts' && (
+            <View style={styles.postsSection}>
+              {myPosts.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Ionicons name="document-text-outline" size={40} color="#CBD5E1" />
+                  <Text style={styles.emptyTitle}>No posts published yet</Text>
+                  <Text style={styles.emptySub}>
+                    Share updates, career questions, and clinical insights with fellow nurses in the Community tab!
+                  </Text>
+                  <Pressable
+                    style={styles.primaryActionBtn}
+                    onPress={() => router.push('/(tabs)/community')}
+                  >
+                    <Text style={styles.primaryActionBtnText}>Go to Community Feed</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                myPosts.map((post) => (
+                  <View key={post.id} style={styles.postCard}>
+                    <View style={styles.postHeaderRow}>
+                      <View style={styles.postAvatarCircle}>
+                        <Text style={styles.postAvatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.postAuthorName}>{post.authorName}</Text>
+                        <Text style={styles.postAuthorRole}>{post.authorRole}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.postBodyText}>{post.content}</Text>
+
+                    <View style={styles.postActionBar}>
+                      <View style={styles.actionPill}>
+                        <Ionicons name="heart" size={16} color="#EF4444" />
+                        <Text style={styles.actionPillText}>{post.likesCount}</Text>
+                      </View>
+                      <View style={styles.actionPill}>
+                        <Ionicons name="chatbubble-outline" size={16} color="#64748B" />
+                        <Text style={styles.actionPillText}>{post.commentsList?.length || 0}</Text>
+                      </View>
+                      <Pressable style={styles.actionPill} onPress={() => handleSharePost(post)}>
+                        <Ionicons name="share-outline" size={16} color="#64748B" />
+                        <Text style={styles.actionPillText}>Share</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
+          {/* Tab 2: My Orders (Real Orders Only) */}
+          {activeTab === 'orders' && (
             <View style={styles.ordersSection}>
               {orders.length === 0 ? (
-                <View style={styles.emptyOrdersCard}>
-                  <Ionicons name="bag-handle-outline" size={48} color="#CBD5E1" />
-                  <Text style={styles.emptyOrdersTitle}>No orders yet</Text>
-                  <Text style={styles.emptyOrdersSub}>
+                <View style={styles.emptyCard}>
+                  <Ionicons name="bag-handle-outline" size={40} color="#CBD5E1" />
+                  <Text style={styles.emptyTitle}>No orders available</Text>
+                  <Text style={styles.emptySub}>
                     When you purchase scrubs or medical equipment, your orders will appear here.
                   </Text>
                   <Pressable
-                    style={styles.shopBtn}
+                    style={styles.primaryActionBtn}
                     onPress={() => router.push('/(tabs)/marketplace')}
                   >
-                    <Text style={styles.shopBtnText}>Explore Marketplace</Text>
+                    <Text style={styles.primaryActionBtnText}>Explore Marketplace</Text>
                   </Pressable>
                 </View>
               ) : (
@@ -456,8 +577,62 @@ export default function ProfileScreen() {
                 })
               )}
             </View>
-          ) : (
-            /* Tab Content 2: Account Settings */
+          )}
+
+          {/* Tab 3: Saved Bookmarks (Full Feed Post Card Layout) */}
+          {activeTab === 'bookmarks' && (
+            <View style={styles.bookmarksSection}>
+              {bookmarkedPosts.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Ionicons name="bookmark-outline" size={40} color="#CBD5E1" />
+                  <Text style={styles.emptyTitle}>No saved bookmarks</Text>
+                  <Text style={styles.emptySub}>
+                    Bookmark useful community guides and posts to easily reference them here anytime.
+                  </Text>
+                  <Pressable
+                    style={styles.primaryActionBtn}
+                    onPress={() => router.push('/(tabs)/community')}
+                  >
+                    <Text style={styles.primaryActionBtnText}>Browse Community Posts</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                bookmarkedPosts.map((post) => (
+                  <View key={post.id} style={styles.postCard}>
+                    <View style={styles.postHeaderRow}>
+                      <View style={styles.postAvatarCircle}>
+                        <Text style={styles.postAvatarText}>{post.authorName.charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.postAuthorName}>{post.authorName}</Text>
+                        <Text style={styles.postAuthorRole}>{post.authorRole}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.postBodyText}>{post.content}</Text>
+
+                    <View style={styles.postActionBar}>
+                      <View style={styles.actionPill}>
+                        <Ionicons name="heart" size={16} color="#EF4444" />
+                        <Text style={styles.actionPillText}>{post.likesCount}</Text>
+                      </View>
+                      <View style={styles.actionPill}>
+                        <Ionicons name="chatbubble-outline" size={16} color="#64748B" />
+                        <Text style={styles.actionPillText}>{post.commentsList?.length || 0}</Text>
+                      </View>
+                      <Pressable style={styles.actionPill} onPress={() => handleSharePost(post)}>
+                        <Ionicons name="share-outline" size={16} color="#64748B" />
+                        <Text style={styles.actionPillText}>Share</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+
+          {/* Tab 4: Account Settings */}
+          {activeTab === 'settings' && (
             <View style={styles.settingsSection}>
               <View style={styles.settingsGroup}>
                 <Pressable style={styles.settingsRow} onPress={() => setShowEditModal(true)}>
@@ -513,7 +688,7 @@ export default function ProfileScreen() {
           </Pressable>
         </Animated.View>
 
-        {/* Detailed Order Receipt Modal */}
+        {/* Order Receipt Modal */}
         <Modal
           visible={Boolean(selectedOrder)}
           transparent
@@ -789,14 +964,33 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 13,
   },
+  statsBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
   roleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 2,
   },
   roleText: {
     color: '#10B981',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  connectionsPillTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: '#FFF1F2',
+  },
+  connectionsPillText: {
+    color: '#761B36',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -821,29 +1015,94 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     flex: 1,
-    height: 44,
+    height: 42,
     borderRadius: 16,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
   tabItemActive: {
     backgroundColor: '#FFF1F2',
   },
   tabLabel: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
   },
   tabLabelActive: {
     color: '#761B36',
     fontWeight: '800',
   },
+  postsSection: {
+    gap: 12,
+  },
+  postCard: {
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    gap: 12,
+  },
+  postHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  postAvatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#761B36',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  postAuthorName: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  postAuthorRole: {
+    color: '#64748B',
+    fontSize: 11,
+  },
+  postBodyText: {
+    color: '#334155',
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  postActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  actionPillText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   ordersSection: {
     gap: 12,
   },
-  emptyOrdersCard: {
+  bookmarksSection: {
+    gap: 12,
+  },
+  emptyCard: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
@@ -856,24 +1115,25 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: 12,
   },
-  emptyOrdersTitle: {
+  emptyTitle: {
     color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
   },
-  emptyOrdersSub: {
+  emptySub: {
     color: '#64748B',
     fontSize: 13,
     textAlign: 'center',
+    lineHeight: 20,
   },
-  shopBtn: {
+  primaryActionBtn: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#111111',
+    backgroundColor: '#761B36',
     marginTop: 4,
   },
-  shopBtnText: {
+  primaryActionBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',

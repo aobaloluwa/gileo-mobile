@@ -18,6 +18,7 @@ export default function RootLayout() {
         <Stack.Screen name="reset-password" />
         <Stack.Screen name="verify-email" />
         <Stack.Screen name="privacy-security" />
+        <Stack.Screen name="notifications" />
       </Stack>
     </SafeAreaProvider>
   );

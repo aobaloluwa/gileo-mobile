@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { router } from 'expo-router';
+import * as LinkingExpo from 'expo-linking';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   Image,
@@ -16,10 +18,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+
+WebBrowser.maybeCompleteAuthSession();
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
+import { addNotification } from '../../services/notificationsStorage';
 import { getFirstName } from './profile';
 import { colors, spacing } from '../../theme';
 
@@ -164,6 +170,12 @@ export default function MarketplaceScreen() {
   const [orderRef, setOrderRef] = useState('');
   const [paystackUrl, setPaystackUrl] = useState<string | null>(null);
 
+  // Verification & Order Success State
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [showOrderSuccessModal, setShowOrderSuccessModal] = useState(false);
+  const [confirmedOrderRef, setConfirmedOrderRef] = useState('');
+  const [confirmedOrderTotal, setConfirmedOrderTotal] = useState('');
+
   // Shipping Form State
   const [shippingName, setShippingName] = useState('');
   const [shippingPhone, setShippingPhone] = useState('');
@@ -231,7 +243,16 @@ export default function MarketplaceScreen() {
     void initMarketplace();
   }, [pageFadeAnim, pageSlideAnim]);
 
-  // 2. Persistent Cart Saving whenever Cart Changes
+  const params = useLocalSearchParams<{ productId?: string }>();
+
+  useEffect(() => {
+    if (params.productId && productsList.length > 0) {
+      const target = productsList.find((p) => p.id === params.productId);
+      if (target) {
+        openProductDetail(target);
+      }
+    }
+  }, [params.productId, productsList]);
   useEffect(() => {
     if (!isCartLoaded) return;
     async function saveCart() {
@@ -422,6 +443,94 @@ export default function MarketplaceScreen() {
   const cartTotalFormatted = `₦${(cartTotalKobo / 100).toLocaleString()}`;
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const verifyPaymentWithBackend = async (ref: string, totalAmountFormatted?: string) => {
+    if (!ref) return;
+    setIsVerifyingPayment(true);
+    try {
+      const res = await apiRequest<any>(`/payments/verify/${encodeURIComponent(ref)}`, {
+        method: 'POST',
+      });
+
+      if (res?.status === 'success' || res?.status === 'VERIFIED') {
+        setCart([]);
+        void AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify([]));
+        setConfirmedOrderRef(ref);
+        if (totalAmountFormatted) {
+          setConfirmedOrderTotal(totalAmountFormatted);
+        }
+        setShowOrderSuccessModal(true);
+
+        const currentU = user || (await getStoredUser());
+        void addNotification(currentU?.id || 'guest', {
+          title: 'Payment Successful',
+          body: `Order ${ref} has been verified and paid successfully!`,
+          icon: 'bag-check',
+          iconBg: '#ECFDF5',
+          iconColor: '#10B981',
+        });
+      } else {
+        showAlertModal({
+          title: 'Payment Unconfirmed',
+          message:
+            'Your payment could not be confirmed immediately by Paystack. If you were charged, please check your profile orders shortly.',
+          icon: 'alert-circle-outline',
+          iconColor: '#F59E0B',
+          primaryBtnText: 'OK',
+          onPrimaryPress: hideAlertModal,
+        });
+      }
+    } catch (error) {
+      showAlertModal({
+        title: 'Payment Verification Error',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Could not verify payment with the server.',
+        icon: 'alert-circle-outline',
+        iconColor: '#EF4444',
+        primaryBtnText: 'OK',
+        onPrimaryPress: hideAlertModal,
+      });
+    } finally {
+      setIsVerifyingPayment(false);
+    }
+  };
+
+  useEffect(() => {
+    void LinkingExpo.getInitialURL().then((url) => {
+      if (url && url.includes('payment-callback')) {
+        try {
+          WebBrowser.dismissBrowser();
+          WebBrowser.dismissAuthSession();
+        } catch (_) {}
+        const parsed = LinkingExpo.parse(url);
+        const ref = parsed.queryParams?.reference || parsed.queryParams?.trxref;
+        if (ref) {
+          void verifyPaymentWithBackend(String(ref));
+        }
+      }
+    });
+
+    const handleDeepLink = (event: { url: string }) => {
+      if (event.url && event.url.includes('payment-callback')) {
+        try {
+          WebBrowser.dismissBrowser();
+          WebBrowser.dismissAuthSession();
+        } catch (_) {}
+        const parsed = LinkingExpo.parse(event.url);
+        const ref = parsed.queryParams?.reference || parsed.queryParams?.trxref;
+        if (ref) {
+          void verifyPaymentWithBackend(String(ref));
+        }
+      }
+    };
+
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   const handleCheckoutSubmit = async () => {
     if (!shippingName.trim() || !shippingPhone.trim() || !shippingAddress.trim()) {
       showAlertModal({
@@ -455,6 +564,7 @@ export default function MarketplaceScreen() {
     }
 
     setIsSubmittingOrder(true);
+    const totalFormatted = cartTotalFormatted;
 
     try {
       const order = await apiRequest<any>('/shop/orders', {
@@ -489,14 +599,32 @@ export default function MarketplaceScreen() {
       }
 
       const authUrl = paymentRes.authorizationUrl;
-      setPaystackUrl(authUrl);
-      setOrderRef(order.reference || paymentRes.reference || 'GILEO-ORDER');
-      setOrderConfirmed(true);
-      setCart([]);
+      const ref = paymentRes.reference || order.reference || 'GILEO-ORDER';
+      setShowCheckoutModal(false);
 
-      await WebBrowser.openBrowserAsync(authUrl).catch(() => {
-        void Linking.openURL(authUrl);
-      });
+      const redirectUrl = LinkingExpo.createURL('payment-callback');
+      const browserResult = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl).catch(
+        async () => {
+          await Linking.openURL(authUrl);
+          return null;
+        },
+      );
+
+      try {
+        WebBrowser.dismissBrowser();
+        WebBrowser.dismissAuthSession();
+      } catch (_) {}
+
+      let returnedRef = ref;
+      if (browserResult && browserResult.type === 'success' && browserResult.url) {
+        const parsed = LinkingExpo.parse(browserResult.url);
+        if (parsed.queryParams?.reference || parsed.queryParams?.trxref) {
+          returnedRef = String(parsed.queryParams.reference || parsed.queryParams.trxref);
+        }
+      }
+
+      // Cross-check payment with the backend
+      await verifyPaymentWithBackend(returnedRef, totalFormatted);
     } catch (error) {
       showAlertModal({
         title: 'Checkout Error',
@@ -930,65 +1058,31 @@ export default function MarketplaceScreen() {
                 <View style={{ width: 40 }} />
               </View>
 
-              {orderConfirmed ? (
-                <View style={styles.orderSuccessContainer}>
-                  <View style={styles.successIconCircle}>
-                    <Ionicons name="checkmark" size={40} color="#FFFFFF" />
+              <ScrollView contentContainerStyle={styles.checkoutContent}>
+                <View style={styles.paystackNoticeBox}>
+                  <Ionicons name="shield-checkmark" size={22} color="#761B36" />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.paystackNoticeTitle}>Secure Paystack Payment</Text>
+                    <Text style={styles.paystackNoticeSub}>Pay securely via Debit/Credit card or Transfer.</Text>
                   </View>
-                  <Text style={styles.successTitle}>Order Created!</Text>
-                  <Text style={styles.successRef}>Ref: {orderRef}</Text>
-
-                  {paystackUrl && (
-                    <Pressable
-                      style={styles.paystackLaunchBtn}
-                      onPress={() => {
-                        void WebBrowser.openBrowserAsync(paystackUrl).catch(() => {
-                          void Linking.openURL(paystackUrl);
-                        });
-                      }}
-                    >
-                      <Ionicons name="card" size={18} color="#FFFFFF" />
-                      <Text style={styles.paystackLaunchBtnText}>Open Paystack Gateway</Text>
-                    </Pressable>
-                  )}
-
-                  <Pressable
-                    style={styles.checkoutBtn}
-                    onPress={() => {
-                      setShowCheckoutModal(false);
-                      setOrderConfirmed(false);
-                      setPaystackUrl(null);
-                    }}
-                  >
-                    <Text style={styles.checkoutBtnText}>Done</Text>
-                  </Pressable>
                 </View>
-              ) : (
-                <ScrollView contentContainerStyle={styles.checkoutContent}>
-                  <View style={styles.paystackNoticeBox}>
-                    <Ionicons name="shield-checkmark" size={22} color="#761B36" />
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.paystackNoticeTitle}>Secure Paystack Payment</Text>
-                      <Text style={styles.paystackNoticeSub}>Pay securely via Debit/Credit card or Transfer.</Text>
-                    </View>
-                  </View>
 
-                  <View style={styles.sectionGroup}>
-                    <Text style={styles.sectionHeaderTitle}>Delivery Details</Text>
-                    <TextInput
-                      value={shippingName}
-                      onChangeText={setShippingName}
-                      placeholder="Full Name"
-                      placeholderTextColor="#94A3B8"
-                      style={styles.inputField}
-                    />
-                    <TextInput
-                      value={shippingPhone}
-                      onChangeText={setShippingPhone}
-                      placeholder="Phone Number"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="phone-pad"
-                      style={styles.inputField}
+                <View style={styles.sectionGroup}>
+                  <Text style={styles.sectionHeaderTitle}>Delivery Details</Text>
+                  <TextInput
+                    value={shippingName}
+                    onChangeText={setShippingName}
+                    placeholder="Full Name"
+                    placeholderTextColor="#94A3B8"
+                    style={styles.inputField}
+                  />
+                  <TextInput
+                    value={shippingPhone}
+                    onChangeText={setShippingPhone}
+                    placeholder="Phone Number"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="phone-pad"
+                    style={styles.inputField}
                     />
                     <TextInput
                       value={shippingAddress}
@@ -1011,8 +1105,74 @@ export default function MarketplaceScreen() {
                     </Text>
                   </Pressable>
                 </ScrollView>
-              )}
             </SafeAreaView>
+          </Modal>
+
+          {/* Order Success Modal */}
+          <Modal
+            visible={showOrderSuccessModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowOrderSuccessModal(false)}
+          >
+            <View style={styles.successModalOverlay}>
+              <View style={styles.successCard}>
+                <View style={styles.successBadgeBox}>
+                  <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+                </View>
+
+                <Text style={styles.successHeading}>Your order was successful!</Text>
+                <Text style={styles.successMessage}>
+                  Thank you for your purchase. We have verified your payment with the server and your order is being processed.
+                </Text>
+
+                {confirmedOrderRef ? (
+                  <View style={styles.orderRefBadge}>
+                    <Text style={styles.orderRefLabel}>ORDER REFERENCE</Text>
+                    <Text style={styles.orderRefValue}>{confirmedOrderRef}</Text>
+                  </View>
+                ) : null}
+
+                {confirmedOrderTotal ? (
+                  <Text style={styles.orderTotalPaidText}>Total Paid: {confirmedOrderTotal}</Text>
+                ) : null}
+
+                <View style={styles.successActionButtons}>
+                  <Pressable
+                    style={styles.primarySuccessBtn}
+                    onPress={() => setShowOrderSuccessModal(false)}
+                  >
+                    <Text style={styles.primarySuccessBtnText}>Continue Shopping</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.secondarySuccessBtn}
+                    onPress={() => {
+                      setShowOrderSuccessModal(false);
+                      router.push('/profile');
+                    }}
+                  >
+                    <Text style={styles.secondarySuccessBtnText}>View Orders</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Verifying Payment Overlay */}
+          <Modal
+            visible={isVerifyingPayment}
+            transparent
+            animationType="fade"
+            onRequestClose={() => {}}
+          >
+            <View style={styles.verifyingModalOverlay}>
+              <View style={styles.verifyingCard}>
+                <ActivityIndicator size="large" color="#761B36" />
+                <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
+                <Text style={styles.verifyingSub}>Confirming transaction with Gileo server</Text>
+              </View>
+            </View>
           </Modal>
 
           {/* Alert Modal */}
@@ -1736,5 +1896,129 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontSize: 14,
     fontWeight: '600',
+  },
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+    elevation: 8,
+  },
+  successBadgeBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  successHeading: {
+    color: '#0F172A',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  successMessage: {
+    color: '#64748B',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  orderRefBadge: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 4,
+  },
+  orderRefLabel: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  orderRefValue: {
+    color: '#761B36',
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  orderTotalPaidText: {
+    color: '#10B981',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  successActionButtons: {
+    width: '100%',
+    gap: 10,
+    marginTop: 8,
+  },
+  primarySuccessBtn: {
+    height: 50,
+    borderRadius: 999,
+    backgroundColor: '#761B36',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primarySuccessBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  secondarySuccessBtn: {
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondarySuccessBtnText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  verifyingModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  verifyingCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    padding: 28,
+    alignItems: 'center',
+    gap: 12,
+  },
+  verifyingTitle: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  verifyingSub: {
+    color: '#64748B',
+    fontSize: 13,
+    textAlign: 'center',
   },
 });
