@@ -84,41 +84,7 @@ const initialRegisteredMembers: RegisteredMember[] = [
   { id: 'm-4', displayName: 'Nurse Keanu Anson', email: 'keanu@gileo.com', isConnected: false },
 ];
 
-const initialFeedPosts: FeedPost[] = [
-  {
-    id: 'post-1',
-    authorId: 'm-1',
-    authorName: 'Nurse Laila Gibson',
-    authorRole: 'Concierge Nurse Lead',
-    createdAt: Date.now() - 3600000 * 2, // 2 hours ago
-    content:
-      'Taking that first step into independent nursing practice is powerful! Explore new ideas, build your executive portfolio, and see where your clinical expertise can take you. The best time to start is now! 🩺🚀',
-    likesCount: 14,
-    commentsCount: 2,
-    repostsCount: 1,
-    isLiked: false,
-    commentsList: [
-      { id: 'c-1', authorName: 'Nurse Gia Monroe', text: 'Very inspiring! Independent nursing is the future.' },
-      { id: 'c-2', authorName: 'Nurse Valerie Azer', text: 'Thank you for leading the way, Nurse Laila!' },
-    ],
-  },
-  {
-    id: 'post-2',
-    authorId: 'm-3',
-    authorName: 'Nurse Valerie Azer',
-    authorRole: 'Clinical Operations Specialist',
-    createdAt: Date.now() - 3600000 * 5, // 5 hours ago
-    content:
-      'Hands-on clinical experience combined with continuous learning creates true excellence in patient care. Always stay curious and keep expanding your clinical knowledge! 💡✨',
-    likesCount: 22,
-    commentsCount: 1,
-    repostsCount: 3,
-    isLiked: true,
-    commentsList: [
-      { id: 'c-3', authorName: 'Nurse Keanu Anson', text: 'Continuous learning is essential for quality healthcare.' },
-    ],
-  },
-];
+
 
 const initialCohorts: Cohort[] = [
   {
@@ -212,7 +178,7 @@ export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [activeTab, setActiveTab] = useState<'for_you' | 'network' | 'elevate'>('for_you');
-  const [posts, setPosts] = useState<FeedPost[]>(initialFeedPosts);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [registeredMembers, setRegisteredMembers] = useState<RegisteredMember[]>(initialRegisteredMembers);
   const [memberConnectionsCount, setMemberConnectionsCount] = useState<Record<string, number>>({});
   const [cohorts, setCohorts] = useState<Cohort[]>(initialCohorts);
@@ -310,7 +276,7 @@ export default function CommunityScreen() {
         }));
         setPosts(mappedFeed);
       } else {
-        setPosts(initialFeedPosts);
+        setPosts([]);
       }
 
       // 3. Load cohorts

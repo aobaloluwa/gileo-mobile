@@ -6,9 +6,9 @@ import {
   storeAuthSession,
 } from './tokenStorage';
 
-const localHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 const configuredBaseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-export const API_BASE_URL = (configuredBaseUrl || `http://${localHost}:3000/api/v1`).replace(/\/$/, '');
+export const API_BASE_URL = (configuredBaseUrl || 'https://gileo.onrender.com/api/v1').replace(/\/$/, '');
+
 
 let isRefreshingToken = false;
 
