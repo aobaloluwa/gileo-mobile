@@ -52,19 +52,7 @@ type ServiceRequestItem = {
 const defaultServices: ServiceItem[] = [
   {
     id: 's-1',
-    title: 'Home-Service Wound Dressing & Clinical Nursing',
-    slug: 'home-service-wound-dressing',
-    description:
-      'Professional clinical wound care, sterile dressing, suture removal, and post-procedure management delivered at your home by a registered nurse.',
-    audience: 'Patients recovering from surgery, chronic wound management, or post-hospital discharge.',
-    whatIsIncluded:
-      'Sterile wound dressing change, clinical assessment, vitals check, physician notes coordination, and care instructions.',
-    priceKobo: 2000000,
-    priceLabel: '₦20,000 / session • Indicative Demo Pricing',
-  },
-  {
-    id: 's-2',
-    title: 'Elderly Care & Post-Hospital Recovery Support',
+    title: 'Elderly Care & Post-Hospital Recovery',
     slug: 'elderly-care-post-hospital-recovery',
     description:
       'Dedicated nursing assistance, vitals monitoring, medication support, mobility aid, and recovery companionship for seniors and recovering patients.',
@@ -75,19 +63,7 @@ const defaultServices: ServiceItem[] = [
     priceLabel: 'Custom Care Estimate • Contact Support',
   },
   {
-    id: 's-3',
-    title: 'Event Medical Coverage & First Aid Standby',
-    slug: 'event-medical-coverage',
-    description:
-      'On-site standby nurses, emergency response, and equipped first-aid coverage for public gatherings, sports events, and corporate functions.',
-    audience: 'Event organizers, corporate event planners, and venue managers.',
-    whatIsIncluded:
-      'On-site registered nurses, emergency response kit, triage station setup, ambulance coordination, and incident reporting.',
-    priceKobo: 5000000,
-    priceLabel: 'Custom Event Quote • Contact Support',
-  },
-  {
-    id: 's-4',
+    id: 's-2',
     title: 'On-Set & Production Medical Coverage',
     slug: 'onset-film-production-medical',
     description:
@@ -99,8 +75,56 @@ const defaultServices: ServiceItem[] = [
     priceLabel: 'Custom Production Quote • Contact Support',
   },
   {
+    id: 's-3',
+    title: 'Home-Service Wound Dressing & Clinical Nursing',
+    slug: 'home-service-wound-dressing',
+    description:
+      'Professional clinical wound care, sterile dressing, suture removal, and post-procedure management delivered at your home by a registered nurse.',
+    audience: 'Patients recovering from surgery, chronic wound management, or post-hospital discharge.',
+    whatIsIncluded:
+      'Sterile wound dressing change, clinical assessment, vitals check, physician notes coordination, and care instructions.',
+    priceKobo: 2000000,
+    priceLabel: '₦20,000 / session • Indicative Demo Pricing',
+  },
+  {
+    id: 's-4',
+    title: 'Event Medical Coverage & First Aid Standby',
+    slug: 'event-medical-coverage',
+    description:
+      'On-site standby nurses, emergency response, and equipped first-aid coverage for public gatherings, sports events, and corporate functions.',
+    audience: 'Event organizers, corporate event planners, and venue managers.',
+    whatIsIncluded:
+      'On-site registered nurses, emergency response kit, triage station setup, ambulance coordination, and incident reporting.',
+    priceKobo: 5000000,
+    priceLabel: 'Custom Event Quote • Contact Support',
+  },
+  {
     id: 's-5',
-    title: 'Community & Corporate Health Outreaches',
+    title: 'Corporate & Organisational Medical Services',
+    slug: 'corporate-organisational-medical',
+    description:
+      'On-site corporate wellness checks, employee health screenings, occupational health support, and executive wellness programs.',
+    audience: 'HR departments, corporate organizations, and business executives.',
+    whatIsIncluded:
+      'Employee health screenings, ergonomic assessment, wellness lectures, occupational health reports, and quarterly reviews.',
+    priceKobo: 10000000,
+    priceLabel: 'Custom Corporate Retainer • Contact Support',
+  },
+  {
+    id: 's-6',
+    title: 'Healthcare Service Coordination & Concierge',
+    slug: 'healthcare-service-coordination',
+    description:
+      'End-to-end medical concierge service: hospital appointment scheduling, specialist referrals, lab test home sample collection, and prescription delivery.',
+    audience: 'Busy professionals, international patients, and families seeking seamless healthcare navigation.',
+    whatIsIncluded:
+      'Dedicated nurse coordinator, priority specialist referrals, home sample collection, prescription delivery, and medical record management.',
+    priceKobo: 2500000,
+    priceLabel: '₦25,000 / month • Concierge Access',
+  },
+  {
+    id: 's-7',
+    title: 'Community Health Outreach & Screenings',
     slug: 'community-health-outreaches',
     description:
       'Structured community health screenings, medical outreaches, blood pressure/glucose testing, and wellness education tailored for groups.',

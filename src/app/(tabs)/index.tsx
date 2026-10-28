@@ -43,6 +43,60 @@ type LiveProduct = {
   color: string;
 };
 
+type FeaturedService = {
+  id: string;
+  title: string;
+  description: string;
+  priceLabel: string;
+  badge: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconBg: string;
+  iconColor: string;
+};
+
+const highlightedServices: FeaturedService[] = [
+  {
+    id: 's-1',
+    title: 'Elderly Care & Post-Hospital Recovery',
+    description: 'Dedicated nursing assistance, vitals tracking, mobility support & medication management at home.',
+    priceLabel: 'Custom Care Estimate',
+    badge: 'SENIOR CARE',
+    icon: 'heart-half-outline',
+    iconBg: '#FEF3C7',
+    iconColor: '#B45309',
+  },
+  {
+    id: 's-2',
+    title: 'On-Set & Production Medical Coverage',
+    description: 'Dedicated film set standby nurses, crew safety triage, emergency response & health compliance.',
+    priceLabel: 'Custom Production Quote',
+    badge: 'MEDIA & FILM',
+    icon: 'film-outline',
+    iconBg: '#EEF2FF',
+    iconColor: '#4F46E5',
+  },
+  {
+    id: 's-3',
+    title: 'Home-Service Wound Dressing & Nursing',
+    description: 'Sterile clinical wound care, suture removal, and post-procedure management at your residence.',
+    priceLabel: '₦20,000 / session',
+    badge: 'HOME CARE',
+    icon: 'medkit-outline',
+    iconBg: '#FDF2F2',
+    iconColor: '#B81C25',
+  },
+  {
+    id: 's-4',
+    title: 'Event Medical Coverage & First Aid Standby',
+    description: 'On-site registered nurses, emergency response kit, triage station setup & ambulance dispatch.',
+    priceLabel: 'Custom Event Quote',
+    badge: 'EVENTS',
+    icon: 'calendar-outline',
+    iconBg: '#ECFDF5',
+    iconColor: '#059669',
+  },
+];
+
 const defaultProducts: LiveProduct[] = [
   {
     id: '9b1deb4d-3b7d-4149-9cd1-e633d3170001',
@@ -134,6 +188,12 @@ export default function HomeScreen() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Opening Animated Logo Splash State
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+  const splashLogoScale = useRef(new Animated.Value(0.7)).current;
+  const splashOpacity = useRef(new Animated.Value(1)).current;
+  const splashTaglineOpacity = useRef(new Animated.Value(0)).current;
+
   // Live Data States
   const [allPosts, setAllPosts] = useState<LivePost[]>([]);
   const [randomPosts, setRandomPosts] = useState<LivePost[]>([]);
@@ -145,10 +205,50 @@ export default function HomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
 
+  // 1. App Launch Animated Splash Logo Sequence
+  useEffect(() => {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(splashLogoScale, {
+          toValue: 1.05,
+          friction: 6,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.timing(splashTaglineOpacity, {
+          toValue: 1,
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(splashLogoScale, {
+        toValue: 1.0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(1100),
+      Animated.parallel([
+        Animated.timing(splashOpacity, {
+          toValue: 0,
+          duration: 380,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(splashLogoScale, {
+          toValue: 1.15,
+          duration: 380,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      setIsSplashVisible(false);
+    });
+  }, [splashLogoScale, splashOpacity, splashTaglineOpacity]);
+
   const loadHomeDashboardData = async () => {
     const u = await getStoredUser();
     setUser(u);
-    const userIdKey = u?.id || 'guest';
 
     // 1. Read real active orders from NestJS backend API
     try {
@@ -191,7 +291,6 @@ export default function HomeScreen() {
         setRandomPosts(shuffleArray(mappedPosts).slice(0, 2));
       }
     } catch {}
-
 
     // 4. Load real products from NestJS backend & pick 4 RANDOM products on reload
     try {
@@ -265,6 +364,32 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/* Animated Opening Splash Logo Overlay */}
+      {isSplashVisible && (
+        <Animated.View
+          style={[styles.splashOverlayContainer, { opacity: splashOpacity }]}
+          pointerEvents="none"
+        >
+          <Animated.View
+            style={[
+              styles.splashLogoWrapper,
+              { transform: [{ scale: splashLogoScale }] },
+            ]}
+          >
+            <Image
+              source={require('../../../assets/gileo-logo.png')}
+              style={styles.splashLogoImage}
+              resizeMode="contain"
+            />
+          </Animated.View>
+          <Animated.Text
+            style={[styles.splashTaglineText, { opacity: splashTaglineOpacity }]}
+          >
+            Portable Intelligent Health Identity
+          </Animated.Text>
+        </Animated.View>
+      )}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -289,7 +414,9 @@ export default function HomeScreen() {
           <View style={styles.topHeaderRow}>
             <View style={styles.greetingBox}>
               <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
-              <Text style={styles.greetingTitle} numberOfLines={1}>Gileo Medicals</Text>
+              <Text style={styles.greetingTitle} numberOfLines={1}>
+                Gileo Medicals
+              </Text>
             </View>
 
             <View style={styles.topRightActions}>
@@ -311,7 +438,9 @@ export default function HomeScreen() {
                   {firstName.charAt(0).toUpperCase()}
                 </Text>
                 <View style={styles.proBadgePill}>
-                  <Text style={styles.proBadgeText}>MEMBER</Text>
+                  <Text style={styles.proBadgeText} numberOfLines={1}>
+                    MEMBER
+                  </Text>
                 </View>
               </Pressable>
             </View>
@@ -323,7 +452,7 @@ export default function HomeScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search products, posts, cohorts..."
+              placeholder="Search services, products, posts, cohorts..."
               placeholderTextColor="#94A3B8"
               style={styles.searchInputField}
             />
@@ -408,7 +537,95 @@ export default function HomeScreen() {
                 ))}
               </View>
 
-              {/* Gileo Elevate Spotlight Card */}
+              {/* SECTION 1 (FIRST): HEALTHCARE SERVICES HIGHLIGHT SECTION */}
+              <View style={styles.sectionGroup}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionHeadingText}>Healthcare Services</Text>
+                  <Pressable onPress={() => router.push('/(tabs)/services')}>
+                    <Text style={styles.seeAllText}>View All Services</Text>
+                  </Pressable>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 14 }}
+                >
+                  {highlightedServices.map((srv) => (
+                    <Pressable
+                      key={srv.id}
+                      accessibilityRole="button"
+                      onPress={() => router.push('/(tabs)/services')}
+                      style={({ pressed }) => [styles.serviceHighlightCard, pressed && styles.pressed]}
+                    >
+                      <View style={styles.serviceHighlightHeader}>
+                        <View style={[styles.serviceIconSquare, { backgroundColor: srv.iconBg }]}>
+                          <Ionicons name={srv.icon} size={24} color={srv.iconColor} />
+                        </View>
+                        <View style={styles.serviceBadgePill}>
+                          <Text style={styles.serviceBadgeText}>{srv.badge}</Text>
+                        </View>
+                      </View>
+
+                      <Text style={styles.serviceHighlightTitle} numberOfLines={1}>
+                        {srv.title}
+                      </Text>
+                      <Text style={styles.serviceHighlightSub} numberOfLines={2}>
+                        {srv.description}
+                      </Text>
+
+                      <View style={styles.serviceCardFooter}>
+                        <Text style={styles.serviceHighlightPrice}>{srv.priceLabel}</Text>
+                        <View style={styles.requestServicePill}>
+                          <Text style={styles.requestServicePillText}>Request Care</Text>
+                          <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* SECTION 2 (SECOND): MEDICAL MARKETPLACE SECTION */}
+              <View style={styles.sectionGroup}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionHeadingText}>Medical Marketplace</Text>
+                  <Pressable onPress={() => router.push('/(tabs)/marketplace')}>
+                    <Text style={styles.seeAllText}>View All</Text>
+                  </Pressable>
+                </View>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 12 }}
+                >
+                  {randomProducts.map((prod) => (
+                    <Pressable
+                      key={prod.id}
+                      accessibilityRole="button"
+                      onPress={() =>
+                        router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
+                      }
+                      style={({ pressed }) => [styles.catalogCard, pressed && styles.pressed]}
+                    >
+                      <View style={[styles.catalogIconBox, { backgroundColor: prod.color + '15' }]}>
+                        <Ionicons name={prod.icon} size={28} color={prod.color} />
+                      </View>
+
+                      <Text style={styles.catalogCategory}>{prod.category}</Text>
+                      <Text style={styles.catalogTitle} numberOfLines={1}>{prod.title}</Text>
+                      <Text style={styles.catalogPrice}>{prod.price}</Text>
+
+                      <View style={styles.shopPillBtn}>
+                        <Text style={styles.shopPillText}>Shop Now</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+
+              {/* SECTION 3 (THIRD): GILEO ELEVATE SPOTLIGHT HERO CARD */}
               <View style={styles.spotlightHeroCard}>
                 <View style={styles.spotlightHeaderRow}>
                   <View style={styles.spotlightTagPill}>
@@ -439,42 +656,7 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              {/* 4 Random Products Catalog Section */}
-              <View style={[styles.sectionGroup, { marginBottom: 16 }]}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionHeadingText}>Medical Marketplace</Text>
-                  <Pressable onPress={() => router.push('/(tabs)/marketplace')}>
-                    <Text style={styles.seeAllText}>View All</Text>
-                  </Pressable>
-                </View>
-
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                  {randomProducts.map((prod) => (
-                    <Pressable
-                      key={prod.id}
-                      accessibilityRole="button"
-                      onPress={() =>
-                        router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
-                      }
-                      style={({ pressed }) => [styles.catalogCard, pressed && styles.pressed]}
-                    >
-                      <View style={[styles.catalogIconBox, { backgroundColor: prod.color + '15' }]}>
-                        <Ionicons name={prod.icon} size={28} color={prod.color} />
-                      </View>
-
-                      <Text style={styles.catalogCategory}>{prod.category}</Text>
-                      <Text style={styles.catalogTitle} numberOfLines={1}>{prod.title}</Text>
-                      <Text style={styles.catalogPrice}>{prod.price}</Text>
-
-                      <View style={styles.shopPillBtn}>
-                        <Text style={styles.shopPillText}>Shop Now</Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* 2 Random Live Community Posts Section */}
+              {/* SECTION 4 (FOURTH): COMMUNITY DISCUSSIONS SECTION */}
               {randomPosts.length > 0 && (
                 <View style={styles.sectionGroup}>
                   <View style={styles.sectionHeaderRow}>
@@ -506,7 +688,9 @@ export default function HomeScreen() {
                         </View>
                       </View>
 
-                      <Text style={styles.livePostContent} numberOfLines={2}>{post.content}</Text>
+                      <Text style={styles.livePostContent} numberOfLines={2}>
+                        {post.content}
+                      </Text>
 
                       <View style={styles.livePostFooter}>
                         <View style={styles.liveMetaItem}>
@@ -542,25 +726,7 @@ export default function HomeScreen() {
                 </Pressable>
               )}
 
-              {/* Care Request Banner */}
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push('/(tabs)/services')}
-                style={({ pressed }) => [styles.careBannerCard, pressed && styles.pressed]}
-              >
-                <View style={styles.careIconSquare}>
-                  <Ionicons name="medkit" size={24} color="#B81C25" />
-                </View>
-
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.careTitle}>Request Clinical Home Care</Text>
-                  <Text style={styles.careSub}>Wound dressing, elderly recovery, and nursing standby.</Text>
-                </View>
-
-                <Ionicons name="arrow-forward" size={18} color="#B81C25" />
-              </Pressable>
-
-              {/* Support Banner */}
+              {/* Direct Support Banner */}
               <Pressable
                 accessibilityRole="button"
                 onPress={handleCallSupport}
@@ -593,6 +759,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F6F7F9',
   },
+  splashOverlayContainer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 9999,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 16,
+  },
+  splashLogoWrapper: {
+    width: 220,
+    height: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashLogoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  splashTaglineText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -603,12 +795,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
   },
   greetingBox: {
     flex: 1,
-    minWidth: 0,
-    gap: 2,
   },
   greetingSubTitle: {
     color: '#64748B',
@@ -617,14 +806,14 @@ const styles = StyleSheet.create({
   },
   greetingTitle: {
     color: '#0F172A',
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '800',
-    letterSpacing: -0.4,
+    letterSpacing: -0.6,
   },
   topRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   circleIconBtn: {
     width: 44,
@@ -665,11 +854,14 @@ const styles = StyleSheet.create({
   },
   proBadgePill: {
     position: 'absolute',
-    bottom: -4,
+    bottom: -5,
     backgroundColor: '#111111',
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 999,
+    minWidth: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   proBadgeText: {
     color: '#FFFFFF',
@@ -693,8 +885,8 @@ const styles = StyleSheet.create({
   },
   searchInputField: {
     flex: 1,
-    fontSize: 14,
     color: '#0F172A',
+    fontSize: 14,
   },
   searchResultsContainer: {
     gap: 14,
@@ -705,10 +897,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   searchSubHeading: {
-    color: '#B81C25',
+    color: '#64748B',
     fontSize: 13,
-    fontWeight: '800',
-    marginBottom: 4,
+    fontWeight: '700',
   },
   searchItemCard: {
     flexDirection: 'row',
@@ -716,67 +907,32 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
     gap: 12,
   },
   searchItemTitle: {
     color: '#0F172A',
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   searchItemSub: {
     color: '#64748B',
     fontSize: 12,
   },
   noSearchText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
-    fontStyle: 'italic',
-    paddingVertical: 12,
-  },
-  trackerBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 20,
-    backgroundColor: '#FFF1F2',
-    borderWidth: 1,
-    borderColor: '#FECDD3',
-    gap: 12,
-  },
-  trackerIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trackerTitle: {
-    color: '#B81C25',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  trackerSub: {
-    color: '#9F1239',
-    fontSize: 11,
-    marginTop: 2,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   pillarsGridRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
+    gap: 8,
   },
   pillarCardBox: {
-    width: '48%',
+    flex: 1,
+    padding: 12,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 14,
     alignItems: 'center',
     gap: 8,
     shadowColor: '#0F172A',
@@ -786,94 +942,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   pillarIconCircleBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pillarTitleText: {
     color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     textAlign: 'center',
-    lineHeight: 16,
-  },
-  spotlightHeroCard: {
-    borderRadius: 24,
-    backgroundColor: '#B81C25',
-    padding: 18,
-    gap: 10,
-    shadowColor: '#B81C25',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 5,
-  },
-  spotlightHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  spotlightTagPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-  },
-  spotlightTagText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  spotlightTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.4,
-  },
-  spotlightSub: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    lineHeight: 19,
-    opacity: 0.9,
-  },
-  spotlightFooterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.18)',
-  },
-  timeTagBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 1,
-  },
-  timeTagText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  spotlightPillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    alignSelf: 'flex-start',
-  },
-  spotlightPillBtnText: {
-    color: '#B81C25',
-    fontSize: 12,
-    fontWeight: '800',
   },
   sectionGroup: {
     gap: 12,
@@ -892,30 +971,111 @@ const styles = StyleSheet.create({
   seeAllText: {
     color: '#B81C25',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  catalogCard: {
-    width: 150,
-    padding: 14,
-    borderRadius: 22,
+
+  /* FEATURED HEALTHCARE SERVICES CARDS */
+  serviceHighlightCard: {
+    width: 260,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
+    padding: 16,
+    gap: 10,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 2,
-    gap: 6,
+    justifyContent: 'space-between',
   },
-  catalogIconBox: {
-    width: '100%',
-    height: 100,
+  serviceHighlightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serviceIconSquare: {
+    width: 44,
+    height: 44,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+  },
+  serviceBadgePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  serviceBadgeText: {
+    color: '#64748B',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  serviceHighlightTitle: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  serviceHighlightSub: {
+    color: '#64748B',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  serviceCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    marginTop: 4,
+  },
+  serviceHighlightPrice: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  requestServicePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#B81C25',
+  },
+  requestServicePillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  /* MEDICAL MARKETPLACE CATALOG CARDS */
+  catalogCard: {
+    width: 170,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    gap: 6,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  catalogIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   catalogCategory: {
-    color: '#8A7045',
+    color: '#94A3B8',
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -943,6 +1103,81 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
+
+  /* SPOTLIGHT HERO CARD (GILEO ELEVATE) */
+  spotlightHeroCard: {
+    padding: 22,
+    borderRadius: 28,
+    backgroundColor: '#0F172A',
+    gap: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  spotlightHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  spotlightTagPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  spotlightTagText: {
+    color: '#38BDF8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  spotlightTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  spotlightSub: {
+    color: '#94A3B8',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  spotlightFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  timeTagBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeTagText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  spotlightPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+  },
+  spotlightPillBtnText: {
+    color: '#B81C25',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  /* LIVE COMMUNITY POSTS */
   livePostCard: {
     padding: 16,
     borderRadius: 22,
@@ -1004,33 +1239,34 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  careBannerCard: {
+
+  /* BANNERS & FOOTER */
+  trackerBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 22,
-    backgroundColor: '#FDF2F2',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: '#E2E8F0',
     gap: 12,
   },
-  careIconSquare: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+  trackerIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#FDF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  careTitle: {
-    color: '#B81C25',
-    fontSize: 15,
+  trackerTitle: {
+    color: '#0F172A',
+    fontSize: 14,
     fontWeight: '800',
   },
-  careSub: {
-    color: '#9F1239',
-    fontSize: 11,
-    lineHeight: 16,
+  trackerSub: {
+    color: '#64748B',
+    fontSize: 12,
   },
   supportBannerCard: {
     flexDirection: 'row',
@@ -1062,7 +1298,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
-    marginTop: 2,
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
   footerNoteText: {
     color: '#94A3B8',
@@ -1071,9 +1310,5 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: 'center',
     paddingTop: 8,
-  },
-  pressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.98 }],
   },
 });
