@@ -162,7 +162,7 @@ const pillars = [
   {
     id: 'community',
     icon: 'people' as const,
-    title: 'Gileo Nursing Community',
+    title: 'Gileo Nurses Community',
     subtitle: 'Nurses network',
     bg: '#ECFDF5',
     iconColor: '#059669',
@@ -520,7 +520,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <>
-              {/* Quick Category Pillars Row */}
+              {/* Quick Category Pillars Grid (2 Per Row) */}
               <View style={styles.pillarsGridRow}>
                 {pillars.map((item) => (
                   <Pressable
@@ -549,7 +549,7 @@ export default function HomeScreen() {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 14 }}
+                  contentContainerStyle={{ gap: 14, paddingBottom: 12, paddingTop: 4, paddingHorizontal: 2 }}
                 >
                   {highlightedServices.map((srv) => (
                     <Pressable
@@ -598,7 +598,7 @@ export default function HomeScreen() {
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12 }}
+                  contentContainerStyle={{ gap: 12, paddingBottom: 12, paddingTop: 4, paddingHorizontal: 2 }}
                 >
                   {randomProducts.map((prod) => (
                     <Pressable
@@ -650,7 +650,9 @@ export default function HomeScreen() {
                     onPress={() => router.push('/(tabs)/community?tab=elevate')}
                     style={({ pressed }) => [styles.spotlightPillBtn, pressed && styles.pressed]}
                   >
-                    <Text style={styles.spotlightPillBtnText}>Enrol in Cohort</Text>
+                    <Text style={styles.spotlightPillBtnText} numberOfLines={1}>
+                      Enrol in Cohort
+                    </Text>
                     <Ionicons name="arrow-forward" size={14} color="#B81C25" />
                   </Pressable>
                 </View>
@@ -856,7 +858,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -5,
     backgroundColor: '#111111',
-    paddingHorizontal: 7,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 999,
     minWidth: 46,
@@ -926,11 +928,13 @@ const styles = StyleSheet.create({
   },
   pillarsGridRow: {
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   pillarCardBox: {
-    flex: 1,
-    padding: 12,
+    width: '48%',
+    padding: 14,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
@@ -950,7 +954,7 @@ const styles = StyleSheet.create({
   },
   pillarTitleText: {
     color: '#0F172A',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     textAlign: 'center',
   },
@@ -1108,12 +1112,12 @@ const styles = StyleSheet.create({
   spotlightHeroCard: {
     padding: 22,
     borderRadius: 28,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#B81C25',
     gap: 12,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowColor: '#B81C25',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
     elevation: 4,
   },
   spotlightHeaderRow: {
@@ -1125,10 +1129,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   spotlightTagText: {
-    color: '#38BDF8',
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -1140,25 +1144,29 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   spotlightSub: {
-    color: '#94A3B8',
+    color: '#FDF2F2',
     fontSize: 13,
     lineHeight: 20,
+    opacity: 0.95,
   },
   spotlightFooterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   timeTagBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 1,
   },
   timeTagText: {
-    color: '#E2E8F0',
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -1170,6 +1178,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
+    flexShrink: 1,
   },
   spotlightPillBtnText: {
     color: '#B81C25',

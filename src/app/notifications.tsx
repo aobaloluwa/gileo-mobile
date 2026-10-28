@@ -67,14 +67,14 @@ export default function NotificationsScreen() {
         </View>
 
         <View style={styles.headingRow}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 4 }}>
             <Text style={styles.title}>Notifications</Text>
             <Text style={styles.subtitle}>Updates on your orders, network connections, and community.</Text>
           </View>
 
           {notifications.some((n) => !n.read) && (
-            <Pressable onPress={handleMarkAllRead} style={styles.markReadBtn}>
-              <Text style={styles.markReadText}>Mark all read</Text>
+            <Pressable onPress={handleMarkAllRead} style={styles.markReadBtn} hitSlop={6}>
+              <Text style={styles.markReadText} numberOfLines={1}>Mark all read</Text>
             </Pressable>
           )}
         </View>
@@ -163,28 +163,29 @@ const styles = StyleSheet.create({
   },
   headingRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
+    width: '100%',
   },
   title: {
     color: '#0F172A',
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.6,
   },
   subtitle: {
     color: '#64748B',
-    fontSize: 13,
-    marginTop: 4,
-    maxWidth: 280,
+    fontSize: 12,
+    marginTop: 2,
   },
   markReadBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#FDF2F2',
-    marginTop: 4,
+    flexShrink: 0,
+    alignSelf: 'center',
   },
   markReadText: {
     color: '#B81C25',
