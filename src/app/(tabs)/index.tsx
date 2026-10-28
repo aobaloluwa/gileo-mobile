@@ -502,7 +502,9 @@ export default function HomeScreen() {
                       </Text>
 
                       <View style={styles.serviceCardFooter}>
-                        <Text style={styles.serviceHighlightPrice}>{srv.priceLabel}</Text>
+                        <Text style={styles.serviceHighlightPrice} numberOfLines={1}>
+                          {srv.priceLabel}
+                        </Text>
                         <View style={styles.requestServicePill}>
                           <Text style={styles.requestServicePillText}>Request Care</Text>
                           <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
@@ -881,7 +883,7 @@ const styles = StyleSheet.create({
 
   /* FEATURED HEALTHCARE SERVICES CARDS */
   serviceHighlightCard: {
-    width: 260,
+    width: 280,
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
     padding: 16,
@@ -937,11 +939,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     marginTop: 4,
+    gap: 8,
   },
   serviceHighlightPrice: {
     color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
+    flex: 1,
+    flexShrink: 1,
   },
   requestServicePill: {
     flexDirection: 'row',
@@ -951,6 +956,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#B81C25',
+    flexShrink: 0,
   },
   requestServicePillText: {
     color: '#FFFFFF',
