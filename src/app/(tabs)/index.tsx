@@ -188,12 +188,6 @@ export default function HomeScreen() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Opening Animated Logo Splash State
-  const [isSplashVisible, setIsSplashVisible] = useState(true);
-  const splashLogoScale = useRef(new Animated.Value(0.7)).current;
-  const splashOpacity = useRef(new Animated.Value(1)).current;
-  const splashTaglineOpacity = useRef(new Animated.Value(0)).current;
-
   // Live Data States
   const [allPosts, setAllPosts] = useState<LivePost[]>([]);
   const [randomPosts, setRandomPosts] = useState<LivePost[]>([]);
@@ -204,47 +198,6 @@ export default function HomeScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
-
-  // 1. App Launch Animated Splash Logo Sequence
-  useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(splashLogoScale, {
-          toValue: 1.05,
-          friction: 6,
-          tension: 40,
-          useNativeDriver: true,
-        }),
-        Animated.timing(splashTaglineOpacity, {
-          toValue: 1,
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(splashLogoScale, {
-        toValue: 1.0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.delay(1100),
-      Animated.parallel([
-        Animated.timing(splashOpacity, {
-          toValue: 0,
-          duration: 380,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(splashLogoScale, {
-          toValue: 1.15,
-          duration: 380,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start(() => {
-      setIsSplashVisible(false);
-    });
-  }, [splashLogoScale, splashOpacity, splashTaglineOpacity]);
 
   const loadHomeDashboardData = async () => {
     const u = await getStoredUser();
@@ -364,32 +317,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Animated Opening Splash Logo Overlay */}
-      {isSplashVisible && (
-        <Animated.View
-          style={[styles.splashOverlayContainer, { opacity: splashOpacity }]}
-          pointerEvents="none"
-        >
-          <Animated.View
-            style={[
-              styles.splashLogoWrapper,
-              { transform: [{ scale: splashLogoScale }] },
-            ]}
-          >
-            <Image
-              source={require('../../../assets/gileo-logo.png')}
-              style={styles.splashLogoImage}
-              resizeMode="contain"
-            />
-          </Animated.View>
-          <Animated.Text
-            style={[styles.splashTaglineText, { opacity: splashTaglineOpacity }]}
-          >
-            Portable Intelligent Health Identity
-          </Animated.Text>
-        </Animated.View>
-      )}
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -760,32 +687,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F6F7F9',
-  },
-  splashOverlayContainer: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 9999,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    gap: 16,
-  },
-  splashLogoWrapper: {
-    width: 220,
-    height: 70,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  splashLogoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  splashTaglineText: {
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
   },
   scrollContent: {
     paddingHorizontal: 20,
