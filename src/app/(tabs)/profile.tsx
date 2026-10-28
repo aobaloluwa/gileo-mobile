@@ -152,29 +152,37 @@ export default function ProfileScreen() {
       setConnectionsCount(0);
     }
 
-    // Load My Posts from backend API
+    // Load My Posts from backend API & local user posts
     try {
-      const myPostsRes = await apiRequest<any[]>('/community/posts/mine');
-      if (Array.isArray(myPostsRes)) {
-        const mappedMyPosts: FeedPost[] = myPostsRes.map((p) => ({
-          id: p.id,
-          authorId: p.authorId || storedUser?.id,
-          authorName: p.authorName || storedUser?.displayName || 'Gileo Nurse',
-          authorRole: p.authorRole || 'Community Member',
-          createdAt: p.createdAt || Date.now(),
-          category: p.category || 'Community Share',
-          content: p.content,
-          likesCount: p.likesCount || 0,
-          commentsCount: p.commentsCount || 0,
-          repostsCount: 0,
-          commentsList: p.commentsList || [],
-        }));
-        setMyPosts(mappedMyPosts);
-      } else {
-        setMyPosts([]);
-      }
+      const [myPostsRes, localUserPostsJson] = await Promise.all([
+        apiRequest<any[]>('/community/posts/mine').catch(() => []),
+        AsyncStorage.getItem('@gileo/local_user_posts').catch(() => null),
+      ]);
+
+      const localUserPosts: FeedPost[] = localUserPostsJson ? JSON.parse(localUserPostsJson) : [];
+      const fetchedList: FeedPost[] = Array.isArray(myPostsRes)
+        ? myPostsRes.map((p) => ({
+            id: p.id,
+            authorId: p.authorId || storedUser?.id,
+            authorName: p.authorName || storedUser?.displayName || 'Gileo Nurse',
+            authorRole: p.authorRole || 'Community Member',
+            createdAt: typeof p.createdAt === 'number' ? p.createdAt : new Date(p.createdAt || Date.now()).getTime(),
+            category: p.category || 'Community Share',
+            content: p.content,
+            likesCount: p.likesCount || 0,
+            commentsCount: p.commentsCount || 0,
+            repostsCount: p.repostsCount || 0,
+            commentsList: p.commentsList || [],
+          }))
+        : [];
+
+      const postMap = new Map<string, FeedPost>();
+      [...localUserPosts, ...fetchedList].forEach((p) => postMap.set(p.id, p));
+      setMyPosts(Array.from(postMap.values()).sort((a, b) => b.createdAt - a.createdAt));
     } catch {
-      setMyPosts([]);
+      const localUserPostsJson = await AsyncStorage.getItem('@gileo/local_user_posts').catch(() => null);
+      const localUserPosts: FeedPost[] = localUserPostsJson ? JSON.parse(localUserPostsJson) : [];
+      setMyPosts(localUserPosts);
     }
 
     // Load Saved Bookmarks from backend API

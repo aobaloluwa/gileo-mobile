@@ -204,6 +204,83 @@ export function formatFullTime(timestamp: number): string {
   }) + ' • ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+const fallbackCommunityPosts: FeedPost[] = [
+  {
+    id: 'seed-post-1',
+    authorId: 'system-nurse-1',
+    authorName: 'Nurse Laila Gibson',
+    authorRole: 'Executive Nurse Consultant',
+    createdAt: Date.now() - 3600000 * 2,
+    category: 'Career Growth',
+    content:
+      'Transitioning from bedside nursing to concierge healthcare has been the most fulfilling career move. For any nurse considering executive nursing consulting, start building your portfolio today!',
+    likesCount: 12,
+    commentsCount: 1,
+    repostsCount: 2,
+    isLiked: false,
+    isSaved: false,
+    isReposted: false,
+    commentsList: [
+      {
+        id: 'c-1',
+        authorName: 'Nurse Gia Monroe',
+        text: 'So inspiring! Thank you for setting the pace for us.',
+      },
+    ],
+  },
+  {
+    id: 'seed-post-2',
+    authorId: 'system-nurse-2',
+    authorName: 'Nurse Gia Monroe',
+    authorRole: 'Clinical Practice Lead',
+    createdAt: Date.now() - 3600000 * 5,
+    category: 'Global Nursing',
+    content:
+      'Just completed the NCLEX international licensure documentation roadmap! For nurses looking into UK/US registration, make sure your credentials and transcripts are certified early.',
+    likesCount: 24,
+    commentsCount: 0,
+    repostsCount: 8,
+    isLiked: false,
+    isSaved: false,
+    isReposted: false,
+    commentsList: [],
+  },
+  {
+    id: 'seed-post-3',
+    authorId: 'system-nurse-3',
+    authorName: 'Nurse Valerie Azer',
+    authorRole: 'Community Health Nurse',
+    createdAt: Date.now() - 3600000 * 12,
+    category: 'Community Share',
+    content:
+      'Patient advocacy and clinical quality assurance are at the heart of our community health outreaches this weekend. Proud to see Gileo nurses leading the charge in Lagos!',
+    likesCount: 18,
+    commentsCount: 0,
+    repostsCount: 4,
+    isLiked: false,
+    isSaved: false,
+    isReposted: false,
+    commentsList: [],
+  },
+  {
+    id: 'seed-post-4',
+    authorId: 'system-nurse-4',
+    authorName: 'Gileo Medicals',
+    authorRole: 'Official Platform',
+    createdAt: Date.now() - 3600000 * 24,
+    category: 'Announcement',
+    content:
+      'Welcome all registered nurses to the Gileo Nurses Community! Connect with fellow nurses, explore executive cohorts under Elevate, and access career expansion guides.',
+    likesCount: 45,
+    commentsCount: 0,
+    repostsCount: 15,
+    isLiked: false,
+    isSaved: false,
+    isReposted: false,
+    commentsList: [],
+  },
+];
+
 // Personalized Recommendation Score Ranking Algorithm
 export function rankPostsForUser(
   allPosts: FeedPost[],
@@ -214,8 +291,11 @@ export function rankPostsForUser(
     let scoreA = 0;
     let scoreB = 0;
 
-    if (connectedMemberNames.has(a.authorName)) scoreA += 50;
-    if (connectedMemberNames.has(b.authorName)) scoreB += 50;
+    const nameA = a.authorName || '';
+    const nameB = b.authorName || '';
+
+    if (connectedMemberNames.has(nameA)) scoreA += 50;
+    if (connectedMemberNames.has(nameB)) scoreB += 50;
 
     scoreA += (a.likesCount || 0) * 10 + (a.commentsList?.length || 0) * 15;
     scoreB += (b.likesCount || 0) * 10 + (b.commentsList?.length || 0) * 15;
@@ -223,12 +303,21 @@ export function rankPostsForUser(
     if (likedPostsMap[a.id]) scoreA += 20;
     if (likedPostsMap[b.id]) scoreB += 20;
 
-    const hoursA = (Date.now() - a.createdAt) / 3600000;
-    const hoursB = (Date.now() - b.createdAt) / 3600000;
+    const now = Date.now();
+    const timeA = typeof a.createdAt === 'number' && !isNaN(a.createdAt) ? a.createdAt : now;
+    const timeB = typeof b.createdAt === 'number' && !isNaN(b.createdAt) ? b.createdAt : now;
+
+    const hoursA = Math.max(0, (now - timeA) / 3600000);
+    const hoursB = Math.max(0, (now - timeB) / 3600000);
+
     scoreA += Math.max(0, 40 - hoursA * 2);
     scoreB += Math.max(0, 40 - hoursB * 2);
 
-    return scoreB - scoreA;
+    const diff = scoreB - scoreA;
+    if (isNaN(diff) || diff === 0) {
+      return timeB - timeA;
+    }
+    return diff;
   });
 }
 
@@ -319,54 +408,93 @@ export default function CommunityScreen() {
         setRegisteredMembers(mappedMembers);
       }
 
-      // 2. Load public community posts, saved posts, liked map, reposted map, and purchased ebooks
-      const [backendPosts, userSavedPosts, likedMapJson, repostedMapJson, purchasedEBooksJson] =
+      // 2. Load public community posts & saved posts directly from backend database
+      const [backendPosts, userSavedPosts, purchasedEBooksJson, localUserPostsJson] =
         await Promise.all([
           apiRequest<any[]>('/community/posts').catch(() => null),
           apiRequest<any[]>('/community/saved-posts').catch(() => []),
-          AsyncStorage.getItem('@gileo/liked_posts_map').catch(() => null),
-          AsyncStorage.getItem('@gileo/reposted_posts_map').catch(() => null),
           AsyncStorage.getItem('@gileo/purchased_ebooks').catch(() => null),
+          AsyncStorage.getItem('@gileo/local_user_posts').catch(() => null),
         ]);
 
       const savedSet = new Set((userSavedPosts || []).map((sp) => sp.id));
-      const likedMap: Record<string, boolean> = likedMapJson ? JSON.parse(likedMapJson) : {};
-      const repostedMap: Record<string, boolean> = repostedMapJson ? JSON.parse(repostedMapJson) : {};
+      const localUserPosts: FeedPost[] = localUserPostsJson ? JSON.parse(localUserPostsJson) : [];
+
       if (purchasedEBooksJson) {
         setPurchasedEBookIds(new Set(JSON.parse(purchasedEBooksJson)));
       }
 
-      if (Array.isArray(backendPosts) && backendPosts.length > 0) {
-        const mappedFeed: FeedPost[] = backendPosts.map((p) => {
-          const isLikedLocally = likedMap[p.id];
-          const isLiked = isLikedLocally !== undefined ? isLikedLocally : Boolean(p.isLiked);
-          const isReposted = Boolean(repostedMap[p.id]);
-          const baseLikes = p.likesCount || 0;
-          const likesCount = isLikedLocally === true && !p.isLiked ? baseLikes + 1 : baseLikes;
-          const baseReposts = p.repostsCount || 0;
-          const repostsCount = isReposted ? baseReposts + 1 : baseReposts;
+      const postMap = new Map<string, FeedPost>();
 
-          return {
+      if (Array.isArray(backendPosts) && backendPosts.length > 0) {
+        backendPosts.forEach((p) => {
+          const pCreatedAt =
+            typeof p.createdAt === 'number' && !isNaN(p.createdAt)
+              ? p.createdAt
+              : new Date(p.createdAt || Date.now()).getTime();
+
+          postMap.set(p.id, {
             id: p.id,
             authorId: p.authorId,
             authorName: p.authorName || 'Gileo Nurse',
             authorRole: p.authorRole || 'Community Member',
-            createdAt: p.createdAt || Date.now(),
+            createdAt: isNaN(pCreatedAt) ? Date.now() : pCreatedAt,
             category: p.category || 'Community Share',
             content: p.content,
-            likesCount,
-            commentsCount: p.commentsCount || 0,
-            repostsCount,
-            isLiked,
-            isSaved: savedSet.has(p.id),
-            isReposted,
-            commentsList: p.commentsList || [],
-          };
+            likesCount: typeof p.likesCount === 'number' ? p.likesCount : 0,
+            commentsCount: typeof p.commentsCount === 'number' ? p.commentsCount : (p.commentsList?.length || 0),
+            repostsCount: typeof p.repostsCount === 'number' ? p.repostsCount : 0,
+            isLiked: Boolean(p.isLiked),
+            isSaved: savedSet.has(p.id) || Boolean(p.isSaved),
+            isReposted: Boolean(p.isReposted),
+            commentsList: (p.commentsList || []).map((c: any) => {
+              const cCreatedAt =
+                typeof c.createdAt === 'number' && !isNaN(c.createdAt)
+                  ? c.createdAt
+                  : new Date(c.createdAt || Date.now()).getTime();
+              return {
+                id: c.id,
+                authorName: c.authorName || 'Gileo Nurse',
+                text: c.text,
+                timeAgo: formatTwitterTime(isNaN(cCreatedAt) ? Date.now() : cCreatedAt),
+              };
+            }),
+          });
         });
-        setPosts(mappedFeed);
-      } else {
-        setPosts([]);
       }
+
+      localUserPosts.forEach((p) => {
+        const pCreatedAt =
+          typeof p.createdAt === 'number' && !isNaN(p.createdAt)
+            ? p.createdAt
+            : new Date(p.createdAt || Date.now()).getTime();
+        const normalizedCreatedAt = isNaN(pCreatedAt) ? Date.now() : pCreatedAt;
+
+        const normalizedPost: FeedPost = {
+          ...p,
+          createdAt: normalizedCreatedAt,
+          authorName: p.authorName || 'Gileo Nurse',
+          authorRole: p.authorRole || 'Community Member',
+          category: p.category || 'Community Share',
+          likesCount: p.likesCount || 0,
+          commentsCount: p.commentsCount || 0,
+          repostsCount: p.repostsCount || 0,
+          commentsList: p.commentsList || [],
+        };
+
+        if (!postMap.has(p.id)) {
+          postMap.set(p.id, normalizedPost);
+        }
+      });
+
+      if (postMap.size === 0) {
+        fallbackCommunityPosts.forEach((fp) => {
+          postMap.set(fp.id, fp);
+        });
+      }
+
+      const combinedFeed = Array.from(postMap.values()).sort((a, b) => b.createdAt - a.createdAt);
+      setPosts(combinedFeed);
 
       // 3. Load cohorts, e-books, and user library from backend API
       const [fetchedCohorts, backendEbooks, myLibraryRes] = await Promise.all([
@@ -504,65 +632,62 @@ export default function CommunityScreen() {
 
   const toggleLikePost = async (postId: string) => {
     const userIdKey = user?.id || 'guest';
-    void apiRequest(`/community/posts/${postId}/like`, { method: 'POST' }).catch(() => null);
+    try {
+      const res = await apiRequest<any>(`/community/posts/${postId}/like`, { method: 'POST' });
 
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const isLiked = !p.isLiked;
-          const newLikes = isLiked ? p.likesCount + 1 : Math.max(0, p.likesCount - 1);
-          if (isLiked) {
-            void addNotification(userIdKey, {
-              title: 'Post Liked',
-              body: `You liked ${p.authorName}'s post.`,
-              icon: 'heart',
-              iconBg: '#FFF0F0',
-              iconColor: '#EF4444',
-            });
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id === postId) {
+            const isLiked = res?.isLiked ?? !p.isLiked;
+            const likesCount = typeof res?.likesCount === 'number' ? res.likesCount : (isLiked ? p.likesCount + 1 : Math.max(0, p.likesCount - 1));
+
+            if (isLiked) {
+              void addNotification(userIdKey, {
+                title: 'Post Liked',
+                body: `You liked ${p.authorName}'s post.`,
+                icon: 'heart',
+                iconBg: '#FFF0F0',
+                iconColor: '#EF4444',
+              });
+            }
+
+            const updatedPost = { ...p, isLiked, likesCount };
+            if (selectedPostDetail?.id === postId) {
+              setSelectedPostDetail(updatedPost);
+            }
+            return updatedPost;
           }
-
-          void AsyncStorage.getItem('@gileo/liked_posts_map').then((json) => {
-            const map = json ? JSON.parse(json) : {};
-            map[postId] = isLiked;
-            return AsyncStorage.setItem('@gileo/liked_posts_map', JSON.stringify(map));
-          });
-
-          const updatedPost = { ...p, isLiked, likesCount: newLikes };
-          if (selectedPostDetail?.id === postId) {
-            setSelectedPostDetail(updatedPost);
-          }
-          return updatedPost;
-        }
-        return p;
-      }),
-    );
+          return p;
+        }),
+      );
+    } catch (err) {
+      triggerToast('Could not update like status');
+    }
   };
 
   const toggleRepostPost = async (postId: string) => {
-    void apiRequest(`/community/posts/${postId}/repost`, { method: 'POST' }).catch(() => null);
+    try {
+      const res = await apiRequest<any>(`/community/posts/${postId}/repost`, { method: 'POST' });
 
-    setPosts((prev) =>
-      prev.map((p) => {
-        if (p.id === postId) {
-          const isReposted = !p.isReposted;
-          const newReposts = isReposted ? (p.repostsCount || 0) + 1 : Math.max(0, (p.repostsCount || 1) - 1);
-          triggerToast(isReposted ? 'Post reposted to your network' : 'Repost removed');
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id === postId) {
+            const isReposted = res?.isReposted ?? !p.isReposted;
+            const repostsCount = typeof res?.repostsCount === 'number' ? res.repostsCount : (isReposted ? (p.repostsCount || 0) + 1 : Math.max(0, (p.repostsCount || 1) - 1));
+            triggerToast(isReposted ? 'Post reposted to your network' : 'Repost removed');
 
-          void AsyncStorage.getItem('@gileo/reposted_posts_map').then((json) => {
-            const map = json ? JSON.parse(json) : {};
-            map[postId] = isReposted;
-            return AsyncStorage.setItem('@gileo/reposted_posts_map', JSON.stringify(map));
-          });
-
-          const updatedPost = { ...p, isReposted, repostsCount: newReposts };
-          if (selectedPostDetail?.id === postId) {
-            setSelectedPostDetail(updatedPost);
+            const updatedPost = { ...p, isReposted, repostsCount };
+            if (selectedPostDetail?.id === postId) {
+              setSelectedPostDetail(updatedPost);
+            }
+            return updatedPost;
           }
-          return updatedPost;
-        }
-        return p;
-      }),
-    );
+          return p;
+        }),
+      );
+    } catch (err) {
+      triggerToast('Could not update repost status');
+    }
   };
 
   const handleConfirmEBookPurchase = async (book: EBook) => {
@@ -726,19 +851,55 @@ export default function CommunityScreen() {
 
     setIsPosting(true);
 
+    const fallbackAuthorName =
+      user?.displayName || (user?.email ? user.email.split('@')[0] : `Nurse ${getFirstName(user)}`);
+    const tempPostId = `post-${Date.now()}`;
+
     try {
-      await apiRequest('/community/posts', {
+      const res = await apiRequest<any>('/community/posts', {
         method: 'POST',
         body: JSON.stringify({
           content: newPostText.trim(),
           category: 'Community Share',
         }),
+      }).catch((err) => {
+        console.warn('Backend post creation offline/fallback:', err);
+        return null;
       });
+
+      const finalCreatedAt =
+        typeof res?.createdAt === 'number' && !isNaN(res.createdAt) ? res.createdAt : Date.now();
+
+      const myNewPost: FeedPost = {
+        id: res?.id || tempPostId,
+        authorId: res?.authorId || user?.id || 'local-user',
+        authorName: res?.authorName || fallbackAuthorName,
+        authorRole: res?.authorRole || 'Gileo Community Member',
+        createdAt: finalCreatedAt,
+        category: 'Community Share',
+        content: newPostText.trim(),
+        likesCount: 0,
+        commentsCount: 0,
+        repostsCount: 0,
+        isLiked: false,
+        isSaved: false,
+        isReposted: false,
+        commentsList: [],
+      };
+
+      // Immediately prepend to local feed state
+      setPosts((prev) => [myNewPost, ...prev.filter((p) => p.id !== myNewPost.id)]);
+
+      // Save to local storage for profile & offline persistence
+      const existingLocal = await AsyncStorage.getItem('@gileo/local_user_posts');
+      const localList: FeedPost[] = existingLocal ? JSON.parse(existingLocal) : [];
+      const updatedLocalList = [myNewPost, ...localList.filter((p) => p.id !== myNewPost.id)];
+      await AsyncStorage.setItem('@gileo/local_user_posts', JSON.stringify(updatedLocalList));
 
       setNewPostText('');
       triggerToast('Post published successfully!');
 
-      // Re-fetch community feed directly from backend API
+      // Re-sync with backend data
       await loadCommunityData();
     } catch (error) {
       triggerToast(
@@ -752,53 +913,61 @@ export default function CommunityScreen() {
   const handleAddComment = async () => {
     if (!commentInput.trim() || !selectedPostDetail) return;
     const commentText = commentInput.trim();
-    const commenterName = user?.displayName || `Nurse ${getFirstName(user)}`;
     const userIdKey = user?.id || 'guest';
 
-    const newCommentObj: CommentItem = {
-      id: `c-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      authorName: commenterName,
-      text: commentText,
-      timeAgo: 'Just now',
-    };
-
-    void apiRequest(`/community/posts/${selectedPostDetail.id}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ text: commentText }),
-    }).catch(() => null);
-
-    setPosts((prev) => {
-      const updated = prev.map((p) => {
-        if (p.id === selectedPostDetail.id) {
-          const updatedComments = [...p.commentsList, newCommentObj];
-          const updatedPost = {
-            ...p,
-            commentsList: updatedComments,
-            commentsCount: updatedComments.length,
-          };
-          setSelectedPostDetail(updatedPost);
-          return updatedPost;
-        }
-        return p;
+    try {
+      const res = await apiRequest<any>(`/community/posts/${selectedPostDetail.id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ text: commentText }),
       });
 
-      // Save to master global feed across all accounts!
-      void AsyncStorage.setItem(GLOBAL_FEED_STORAGE_KEY, JSON.stringify(updated));
-      void AsyncStorage.setItem('@gileo/community_feed_posts', JSON.stringify(updated));
+      const updatedCommentsList: CommentItem[] = Array.isArray(res?.commentsList)
+        ? res.commentsList.map((c: any) => ({
+            id: c.id,
+            authorName: c.authorName || 'Gileo Nurse',
+            text: c.text,
+            timeAgo: formatTwitterTime(typeof c.createdAt === 'number' ? c.createdAt : Date.now()),
+          }))
+        : [
+            ...(selectedPostDetail.commentsList || []),
+            {
+              id: res?.comment?.id || `c-${Date.now()}`,
+              authorName: res?.comment?.authorName || user?.displayName || `Nurse ${getFirstName(user)}`,
+              text: commentText,
+              timeAgo: 'Just now',
+            },
+          ];
 
-      return updated;
-    });
+      const newCommentsCount = typeof res?.commentsCount === 'number' ? res.commentsCount : updatedCommentsList.length;
 
-    setCommentInput('');
-    triggerToast('Comment added');
+      setPosts((prev) => {
+        return prev.map((p) => {
+          if (p.id === selectedPostDetail.id) {
+            const updatedPost = {
+              ...p,
+              commentsList: updatedCommentsList,
+              commentsCount: newCommentsCount,
+            };
+            setSelectedPostDetail(updatedPost);
+            return updatedPost;
+          }
+          return p;
+        });
+      });
 
-    void addNotification(userIdKey, {
-      title: 'Comment Added',
-      body: `You commented on ${selectedPostDetail.authorName}'s post.`,
-      icon: 'chatbubble',
-      iconBg: '#F8F9FA',
-      iconColor: '#f90202',
-    });
+      setCommentInput('');
+      triggerToast('Comment published');
+
+      void addNotification(userIdKey, {
+        title: 'Comment Added',
+        body: `You commented on ${selectedPostDetail.authorName}'s post.`,
+        icon: 'chatbubble',
+        iconBg: '#F8F9FA',
+        iconColor: '#f90202',
+      });
+    } catch (err) {
+      triggerToast(err instanceof Error ? err.message : 'Could not add comment.');
+    }
   };
 
   const verifyCohortPaymentWithBackend = async (ref: string, cohortTitle?: string) => {
@@ -956,9 +1125,16 @@ export default function CommunityScreen() {
   const connectedMemberNames = new Set(
     connectedMembers.map((m) => m.displayName).filter(Boolean) as string[],
   );
+  const userFirstName = getFirstName(user);
   const rawPostsList =
     activeTab === 'network'
-      ? posts.filter((p) => connectedMemberNames.has(p.authorName) || p.authorId === user?.id)
+      ? posts.filter(
+          (p) =>
+            connectedMemberNames.has(p.authorName) ||
+            (user?.id && p.authorId === user.id) ||
+            (user?.displayName && p.authorName === user.displayName) ||
+            (userFirstName && p.authorName.includes(userFirstName)),
+        )
       : posts;
 
   // Liked Map for Recommendation Algorithm
