@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiRequest } from './api';
 
 export type AppNotification = {
   id: string;
@@ -14,10 +15,47 @@ export type AppNotification = {
   targetEmail?: string;
 };
 
+export function formatNotificationTime(timestamp: number): string {
+  if (!timestamp) return 'Just now';
+  const diffMs = Date.now() - timestamp;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  const d = new Date(timestamp);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export async function getStoredNotifications(
   userId: string,
   email?: string | null,
 ): Promise<AppNotification[]> {
+  // 1. Try fetching persistent real-time notifications from backend API
+  try {
+    const backendNotifs = await apiRequest<any[]>('/notifications');
+    if (Array.isArray(backendNotifs) && backendNotifs.length > 0) {
+      const mapped: AppNotification[] = backendNotifs.map((n) => ({
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        timeAgo: formatNotificationTime(n.timestamp || Date.now()),
+        timestamp: n.timestamp || Date.now(),
+        icon: n.icon || 'notifications',
+        iconBg: n.iconBg || '#FFF0F0',
+        iconColor: n.iconColor || '#f90202',
+        read: Boolean(n.read),
+      }));
+
+      // Cache in AsyncStorage
+      await AsyncStorage.setItem(`@gileo/notifications_${userId || 'guest'}`, JSON.stringify(mapped));
+      return mapped;
+    }
+  } catch {}
+
+  // 2. Fallback to AsyncStorage cache
   try {
     const normalizedUserEmail = email ? email.toLowerCase().trim() : null;
     const keys = [`@gileo/notifications_${userId || 'guest'}`];
@@ -38,22 +76,22 @@ export async function getStoredNotifications(
               let belongsToUser = false;
 
               if (item.targetEmail) {
-                // If notification specifies targetEmail, it ONLY belongs to that email!
                 belongsToUser = Boolean(
                   normalizedUserEmail &&
                     item.targetEmail.toLowerCase().trim() === normalizedUserEmail,
                 );
               } else if (item.targetId) {
-                // If notification specifies targetId, it ONLY belongs to that targetId or guest
                 belongsToUser =
                   item.targetId === userId || item.targetId === 'guest';
               } else {
-                // Broadcast notification
                 belongsToUser = true;
               }
 
               if (belongsToUser && !notifMap.has(item.id)) {
-                notifMap.set(item.id, item);
+                notifMap.set(item.id, {
+                  ...item,
+                  timeAgo: formatNotificationTime(item.timestamp),
+                });
               }
             });
           }
@@ -74,8 +112,8 @@ export async function getStoredNotifications(
       timeAgo: 'Just now',
       timestamp: Date.now(),
       icon: 'sparkles',
-      iconBg: '#FFF1F2',
-      iconColor: '#761B36',
+      iconBg: '#FFF0F0',
+      iconColor: '#f90202',
       read: false,
     },
   ];
@@ -86,6 +124,19 @@ export async function addNotification(
   notification: Omit<AppNotification, 'id' | 'timestamp' | 'read' | 'timeAgo'>,
   targetEmail?: string,
 ): Promise<void> {
+  // 1. Post notification to backend API database for persistence across devices
+  void apiRequest('/notifications', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: notification.title,
+      body: notification.body,
+      icon: notification.icon,
+      iconBg: notification.iconBg,
+      iconColor: notification.iconColor,
+    }),
+  }).catch(() => null);
+
+  // 2. Save locally in AsyncStorage
   try {
     const newNotif: AppNotification = {
       ...notification,
@@ -97,27 +148,10 @@ export async function addNotification(
       targetEmail: targetEmail ? targetEmail.toLowerCase().trim() : undefined,
     };
 
-    // Save under targetKey
     const targetStorageKey = `@gileo/notifications_${targetKey || 'guest'}`;
     const rawTarget = await AsyncStorage.getItem(targetStorageKey);
     const targetList: AppNotification[] = rawTarget ? JSON.parse(rawTarget) : [];
     await AsyncStorage.setItem(targetStorageKey, JSON.stringify([newNotif, ...targetList]));
-
-    // If targetEmail provided, save under email key as well
-    if (targetEmail) {
-      const emailStorageKey = `@gileo/notifications_${targetEmail.toLowerCase().trim()}`;
-      const rawEmail = await AsyncStorage.getItem(emailStorageKey);
-      const emailList: AppNotification[] = rawEmail ? JSON.parse(rawEmail) : [];
-      await AsyncStorage.setItem(emailStorageKey, JSON.stringify([newNotif, ...emailList]));
-    }
-
-    // Save to global shared notifications
-    const globalRaw = await AsyncStorage.getItem('@gileo/global_shared_notifications');
-    const globalList: AppNotification[] = globalRaw ? JSON.parse(globalRaw) : [];
-    await AsyncStorage.setItem(
-      '@gileo/global_shared_notifications',
-      JSON.stringify([newNotif, ...globalList]),
-    );
   } catch {}
 }
 
@@ -125,6 +159,8 @@ export async function markNotificationsAsRead(
   userId: string,
   email?: string | null,
 ): Promise<void> {
+  void apiRequest('/notifications/mark-read', { method: 'POST' }).catch(() => null);
+
   try {
     const notifs = await getStoredNotifications(userId, email);
     const updated = notifs.map((n) => ({ ...n, read: true }));

@@ -80,9 +80,9 @@ const initialProducts: Product[] = [
     rating: '4.9',
     reviewsCount: 38,
     icon: 'shirt-outline',
-    color: '#761B36',
+    color: '#f90202',
     availableColors: [
-      { name: 'Gileo Wine', hex: '#761B36' },
+      { name: 'Gileo Red', hex: '#f90202' },
       { name: 'Navy Blue', hex: '#1E3A8A' },
       { name: 'Olive Green', hex: '#365314' },
       { name: 'Midnight Black', hex: '#111111' },
@@ -103,7 +103,7 @@ const initialProducts: Product[] = [
     color: '#059669',
     availableColors: [
       { name: 'Classic Black', hex: '#111111' },
-      { name: 'Burgundy', hex: '#761B36' },
+      { name: 'Gileo Red', hex: '#f90202' },
     ],
     availableSizes: ['Standard'],
   },
@@ -136,7 +136,7 @@ const initialProducts: Product[] = [
     color: '#B45309',
     availableColors: [
       { name: 'Dark Navy', hex: '#1E293B' },
-      { name: 'Gileo Wine', hex: '#761B36' },
+      { name: 'Gileo Red', hex: '#f90202' },
     ],
     availableSizes: ['One Size'],
   },
@@ -244,12 +244,15 @@ export default function MarketplaceScreen() {
   }, [pageFadeAnim, pageSlideAnim]);
 
   const params = useLocalSearchParams<{ productId?: string }>();
+  const handledProductParamRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (params.productId && productsList.length > 0) {
+    if (params.productId && productsList.length > 0 && handledProductParamRef.current !== params.productId) {
       const target = productsList.find((p) => p.id === params.productId);
       if (target) {
+        handledProductParamRef.current = params.productId;
         openProductDetail(target);
+        router.setParams({ productId: undefined });
       }
     }
   }, [params.productId, productsList]);
@@ -279,9 +282,9 @@ export default function MarketplaceScreen() {
           rating: '4.9',
           reviewsCount: 15,
           icon: 'bag-handle-outline',
-          color: '#761B36',
+          color: '#f90202',
           availableColors: [
-            { name: 'Gileo Wine', hex: '#761B36' },
+            { name: 'Gileo Red', hex: '#f90202' },
             { name: 'Navy Blue', hex: '#1E3A8A' },
           ],
           availableSizes: ['S', 'M', 'L', 'XL'],
@@ -550,7 +553,7 @@ export default function MarketplaceScreen() {
         title: 'Sign In Required',
         message: 'Please sign in to your Gileo account to complete your Paystack checkout.',
         icon: 'lock-closed-outline',
-        iconColor: '#761B36',
+        iconColor: '#f90202',
         primaryBtnText: 'Sign In',
         onPrimaryPress: () => {
           hideAlertModal();
@@ -676,8 +679,8 @@ export default function MarketplaceScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#761B36"
-            colors={['#761B36']}
+            tintColor="#f90202"
+            colors={['#f90202']}
           />
         }
       >
@@ -811,7 +814,7 @@ export default function MarketplaceScreen() {
                       <View style={styles.cardPriceRow}>
                         <Text style={styles.cardPrice}>{product.price}</Text>
                         <View style={styles.addPillBtn}>
-                          <Ionicons name="add" size={16} color="#761B36" />
+                          <Ionicons name="add" size={16} color="#f90202" />
                         </View>
                       </View>
                     </View>
@@ -999,7 +1002,7 @@ export default function MarketplaceScreen() {
                     {cart.map((item) => (
                       <View key={item.id} style={styles.cartItemCard}>
                         <View style={styles.cartIconBox}>
-                          <Ionicons name={item.icon} size={28} color="#761B36" />
+                          <Ionicons name={item.icon} size={28} color="#f90202" />
                         </View>
 
                         <View style={{ flex: 1, gap: 4 }}>
@@ -1060,7 +1063,7 @@ export default function MarketplaceScreen() {
 
               <ScrollView contentContainerStyle={styles.checkoutContent}>
                 <View style={styles.paystackNoticeBox}>
-                  <Ionicons name="shield-checkmark" size={22} color="#761B36" />
+                  <Ionicons name="shield-checkmark" size={22} color="#f90202" />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.paystackNoticeTitle}>Secure Paystack Payment</Text>
                     <Text style={styles.paystackNoticeSub}>Pay securely via Debit/Credit card or Transfer.</Text>
@@ -1168,7 +1171,7 @@ export default function MarketplaceScreen() {
           >
             <View style={styles.verifyingModalOverlay}>
               <View style={styles.verifyingCard}>
-                <ActivityIndicator size="large" color="#761B36" />
+                <ActivityIndicator size="large" color="#f90202" />
                 <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
                 <Text style={styles.verifyingSub}>Confirming transaction with Gileo server</Text>
               </View>
@@ -1229,12 +1232,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
-    shadowColor: '#761B36',
+    shadowColor: '#f90202',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1287,7 +1290,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -1332,7 +1335,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   categoryPillActive: {
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
   },
   categoryText: {
     fontSize: 13,
@@ -1404,7 +1407,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   cardPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1526,7 +1529,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   detailPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 22,
     fontWeight: '800',
   },
@@ -1629,7 +1632,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 54,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1696,7 +1699,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   cartItemPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -1745,7 +1748,7 @@ const styles = StyleSheet.create({
   checkoutBtn: {
     height: 54,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1771,7 +1774,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECDD3',
   },
   paystackNoticeTitle: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -1801,7 +1804,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1811,14 +1814,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   successRef: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
   },
   paystackLaunchBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1874,7 +1877,7 @@ const styles = StyleSheet.create({
   customAlertPrimaryBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1953,7 +1956,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   orderRefValue: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
@@ -1971,7 +1974,7 @@ const styles = StyleSheet.create({
   primarySuccessBtn: {
     height: 50,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },

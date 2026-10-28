@@ -10,7 +10,7 @@ const destinations = [
     title: 'Healthcare Services',
     description: 'Tell us what care you need, and our team can guide you through the next steps.',
     color: '#F7E8EB',
-    iconColor: '#761B36',
+    iconColor: '#f90202',
     action: 'View health tools',
     onPress: () => router.push('/(tabs)/services'),
   },

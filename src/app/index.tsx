@@ -33,16 +33,12 @@ export default function IndexRoute() {
     let active = true;
 
     async function chooseDestination() {
-      // Pause to let logo show cleanly
-      const delayPromise = new Promise((resolve) => setTimeout(resolve, 1100));
-
       try {
         const [onboardingCompleted, legacyOnboardingCompleted, token] = await Promise.all([
           AsyncStorage.getItem(ONBOARDING_KEY),
           AsyncStorage.getItem(LEGACY_ONBOARDING_KEY),
           getStoredAccessToken(),
         ]);
-        await delayPromise;
 
         if (!active) return;
 
@@ -76,7 +72,7 @@ export default function IndexRoute() {
           source={require('../../assets/gileo-logo.png')}
           style={styles.splashLogo}
           resizeMode="contain"
-          accessibilityLabel="Gileo Logo"
+          accessibilityLabel="Gileo Medicals Logo"
         />
       </Animated.View>
     </View>
@@ -86,7 +82,7 @@ export default function IndexRoute() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F7F9',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },

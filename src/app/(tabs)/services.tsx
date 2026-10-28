@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
+import { getFirstName } from './profile';
 import { colors, spacing } from '../../theme';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -343,6 +344,8 @@ export default function ServicesScreen() {
     void Linking.openURL('tel:+2348165335594');
   };
 
+  const firstName = getFirstName(user);
+
   const handleOpenBookingForm = (service: ServiceItem) => {
     setSelectedService(service);
     setShowRequestModal(true);
@@ -431,7 +434,7 @@ export default function ServicesScreen() {
         title: 'Sign In Required',
         message: 'Please sign in to submit a healthcare care request.',
         icon: 'lock-closed-outline',
-        iconColor: '#761B36',
+        iconColor: '#f90202',
       });
       router.push('/login');
       return;
@@ -585,8 +588,8 @@ export default function ServicesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#761B36"
-            colors={['#761B36']}
+            tintColor="#f90202"
+            colors={['#f90202']}
           />
         }
       >
@@ -597,8 +600,25 @@ export default function ServicesScreen() {
             transform: [{ translateY: slideAnim }],
           }}
         >
-          {/* Header */}
-          <Text style={styles.title}>Services & Clinical Care</Text>
+          {/* Top Bar Header with Hello First Name */}
+          <View style={styles.topHeaderRow}>
+            <View style={styles.greetingBox}>
+              <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
+              <Text style={styles.greetingTitle} numberOfLines={1}>Services & Clinical Care</Text>
+            </View>
+
+            <View style={styles.topRightActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/notifications')}
+                style={({ pressed }) => [styles.circleIconBtn, pressed && styles.pressed]}
+              >
+                <Ionicons name="notifications-outline" size={20} color="#0F172A" />
+                <View style={styles.notifBadgeDot} />
+              </Pressable>
+            </View>
+          </View>
+
           <Text style={styles.subtitle}>
             Request home-care nursing, elderly support, event medical standby, production coverage, and clinical service coordination.
           </Text>
@@ -648,7 +668,7 @@ export default function ServicesScreen() {
                 <View key={item.id} style={styles.card}>
                   <View style={styles.cardHeader}>
                     <View style={styles.iconCircle}>
-                      <Ionicons name="medical-outline" size={22} color="#761B36" />
+                      <Ionicons name="medical-outline" size={22} color="#f90202" />
                     </View>
 
                     <View style={styles.headerInfo}>
@@ -791,7 +811,7 @@ export default function ServicesScreen() {
                           style={styles.callSupportOutlineBtn}
                           onPress={handleCallSupport}
                         >
-                          <Ionicons name="call-outline" size={14} color="#761B36" />
+                          <Ionicons name="call-outline" size={14} color="#f90202" />
                           <Text style={styles.callSupportOutlineText}>Call Support</Text>
                         </Pressable>
                       </View>
@@ -830,7 +850,7 @@ export default function ServicesScreen() {
               <>
                 <View style={styles.modalHeader}>
                   <View style={styles.modalIconBox}>
-                    <Ionicons name="medkit-outline" size={24} color="#761B36" />
+                    <Ionicons name="medkit-outline" size={24} color="#f90202" />
                   </View>
                   <Pressable onPress={() => setSelectedService(null)} hitSlop={10}>
                     <Ionicons name="close" size={22} color="#64748B" />
@@ -872,7 +892,7 @@ export default function ServicesScreen() {
                   </Pressable>
 
                   <Pressable style={styles.supportBtnOutline} onPress={handleCallSupport}>
-                    <Ionicons name="call-outline" size={16} color="#761B36" />
+                    <Ionicons name="call-outline" size={16} color="#f90202" />
                     <Text style={styles.supportBtnOutlineText}>
                       Call Support (+234 816 533 5594)
                     </Text>
@@ -902,7 +922,7 @@ export default function ServicesScreen() {
           <ScrollView contentContainerStyle={styles.formContent}>
             {selectedService && (
               <View style={styles.selectedServiceBanner}>
-                <Ionicons name="medkit" size={20} color="#761B36" />
+                <Ionicons name="medkit" size={20} color="#f90202" />
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.selectedServiceTitle}>{selectedService.title}</Text>
                   <Text style={styles.selectedServicePrice}>
@@ -944,7 +964,7 @@ export default function ServicesScreen() {
                     <Ionicons
                       name="calendar-outline"
                       size={14}
-                      color={preferredDate === chip.val ? '#FFFFFF' : '#761B36'}
+                      color={preferredDate === chip.val ? '#FFFFFF' : '#f90202'}
                     />
                     <Text
                       style={[
@@ -1054,7 +1074,7 @@ export default function ServicesScreen() {
 
           <ScrollView contentContainerStyle={styles.formContent}>
             <View style={styles.noticeBoxLight}>
-              <Ionicons name="lock-closed" size={20} color="#761B36" />
+              <Ionicons name="lock-closed" size={20} color="#f90202" />
               <Text style={styles.noticeBoxLightText}>
                 Confidential clinical onboarding. Patient and emergency details are restricted strictly to assigned GILEO registered nurses.
               </Text>
@@ -1126,7 +1146,7 @@ export default function ServicesScreen() {
               <Ionicons
                 name={consentGiven ? 'checkbox' : 'square-outline'}
                 size={22}
-                color={consentGiven ? '#761B36' : '#94A3B8'}
+                color={consentGiven ? '#f90202' : '#94A3B8'}
               />
               <Text style={styles.consentText}>
                 I confirm that I authorize GILEO Medicals to process this care information to assign a qualified registered nurse.
@@ -1163,7 +1183,7 @@ export default function ServicesScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.verifyingCard}>
-            <ActivityIndicator size="large" color="#761B36" />
+            <ActivityIndicator size="large" color="#f90202" />
             <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
             <Text style={styles.verifyingSub}>Confirming Paystack transaction with Gileo server</Text>
           </View>
@@ -1210,6 +1230,60 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
     gap: 16,
   },
+  topHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  greetingBox: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  greetingSubTitle: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  greetingTitle: {
+    color: '#0F172A',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  circleIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    position: 'relative',
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
+  },
+  notifBadgeDot: {
+    position: 'absolute',
+    top: 11,
+    right: 11,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
   title: {
     color: '#0F172A',
     fontSize: 28,
@@ -1238,7 +1312,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tabBtnActive: {
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
   },
   tabText: {
     color: '#64748B',
@@ -1311,7 +1385,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   cardPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -1322,7 +1396,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
   },
   requestPillBtnPressed: {
     opacity: 0.85,
@@ -1370,7 +1444,7 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 20,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1402,7 +1476,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   refVal: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -1452,7 +1526,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1483,21 +1557,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#761B36',
+    borderColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   callSupportOutlineText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 13,
     fontWeight: '700',
   },
   supportBannerCard: {
     padding: 18,
     borderRadius: 22,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -1566,7 +1640,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   modalPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -1599,7 +1673,7 @@ const styles = StyleSheet.create({
   primaryBookingBtn: {
     height: 50,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1664,7 +1738,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF1F2',
   },
   selectedServiceTitle: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1698,11 +1772,11 @@ const styles = StyleSheet.create({
     borderColor: '#FECDD3',
   },
   dateChipActive: {
-    backgroundColor: '#761B36',
-    borderColor: '#761B36',
+    backgroundColor: '#f90202',
+    borderColor: '#f90202',
   },
   dateChipText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1722,7 +1796,7 @@ const styles = StyleSheet.create({
   submitFormBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1799,7 +1873,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   refBadgeValue: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 16,
     fontWeight: '800',
     marginTop: 2,
@@ -1807,7 +1881,7 @@ const styles = StyleSheet.create({
   primarySuccessBtn: {
     height: 50,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
@@ -1842,7 +1916,7 @@ const styles = StyleSheet.create({
     height: 48,
     width: '100%',
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,

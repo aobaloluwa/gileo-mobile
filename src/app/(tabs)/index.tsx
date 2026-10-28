@@ -52,7 +52,7 @@ const defaultProducts: LiveProduct[] = [
     priceKobo: 2850000,
     rating: '4.9',
     icon: 'shirt-outline',
-    color: '#761B36',
+    color: '#f90202',
   },
   {
     id: '9b1deb4d-3b7d-4149-9cd1-e633d3170002',
@@ -90,16 +90,16 @@ const pillars = [
   {
     id: 'services',
     icon: 'heart' as const,
-    title: 'Healthcare',
+    title: 'Healthcare Services',
     subtitle: 'Home care & nursing',
-    bg: '#FFF1F2',
-    iconColor: '#761B36',
+    bg: '#FFF0F0',
+    iconColor: '#f90202',
     targetRoute: '/(tabs)/services',
   },
   {
     id: 'marketplace',
     icon: 'bag-handle' as const,
-    title: 'Marketplace',
+    title: 'Gileo Marketplace',
     subtitle: 'Scrubs & supplies',
     bg: '#FEF3C7',
     iconColor: '#B45309',
@@ -108,7 +108,7 @@ const pillars = [
   {
     id: 'community',
     icon: 'people' as const,
-    title: 'Community',
+    title: 'Gileo Nursing Community',
     subtitle: 'Nurses network',
     bg: '#ECFDF5',
     iconColor: '#059669',
@@ -117,7 +117,7 @@ const pillars = [
   {
     id: 'learning',
     icon: 'school' as const,
-    title: 'Elevate',
+    title: 'Gileo Elevate',
     subtitle: 'Learning hub',
     bg: '#EEF2FF',
     iconColor: '#4F46E5',
@@ -205,7 +205,7 @@ export default function HomeScreen() {
           priceKobo: p.priceKobo,
           rating: '4.9',
           icon: 'bag-handle-outline',
-          color: '#761B36',
+          color: '#f90202',
         }));
         setAllProducts(mapped);
         setRandomProducts(shuffleArray(mapped).slice(0, 4));
@@ -273,8 +273,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#761B36"
-            colors={['#761B36']}
+            tintColor="#f90202"
+            colors={['#f90202']}
           />
         }
       >
@@ -289,7 +289,7 @@ export default function HomeScreen() {
           <View style={styles.topHeaderRow}>
             <View style={styles.greetingBox}>
               <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
-              <Text style={styles.greetingTitle}>Welcome to Gileo</Text>
+              <Text style={styles.greetingTitle} numberOfLines={1}>Gileo Medicals</Text>
             </View>
 
             <View style={styles.topRightActions}>
@@ -351,7 +351,7 @@ export default function HomeScreen() {
                         router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
                       }
                     >
-                      <Ionicons name="bag-handle" size={20} color="#761B36" />
+                      <Ionicons name="bag-handle" size={20} color="#f90202" />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.searchItemTitle}>{prod.title}</Text>
                         <Text style={styles.searchItemSub}>{prod.category} • {prod.price}</Text>
@@ -434,13 +434,13 @@ export default function HomeScreen() {
                     style={({ pressed }) => [styles.spotlightPillBtn, pressed && styles.pressed]}
                   >
                     <Text style={styles.spotlightPillBtnText}>Enrol in Cohort</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#761B36" />
+                    <Ionicons name="arrow-forward" size={14} color="#f90202" />
                   </Pressable>
                 </View>
               </View>
 
               {/* 4 Random Products Catalog Section */}
-              <View style={styles.sectionGroup}>
+              <View style={[styles.sectionGroup, { marginBottom: 16 }]}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionHeadingText}>Medical Marketplace</Text>
                   <Pressable onPress={() => router.push('/(tabs)/marketplace')}>
@@ -530,7 +530,7 @@ export default function HomeScreen() {
                   onPress={() => router.push('/(tabs)/profile')}
                 >
                   <View style={styles.trackerIconBox}>
-                    <Ionicons name="receipt-outline" size={20} color="#761B36" />
+                    <Ionicons name="receipt-outline" size={20} color="#f90202" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.trackerTitle}>Order {activeOrder.reference}</Text>
@@ -538,7 +538,7 @@ export default function HomeScreen() {
                       Status: {activeOrder.status} • Total: ₦{(activeOrder.totalKobo / 100).toLocaleString()}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#761B36" />
+                  <Ionicons name="chevron-forward" size={18} color="#f90202" />
                 </Pressable>
               )}
 
@@ -549,7 +549,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.careBannerCard, pressed && styles.pressed]}
               >
                 <View style={styles.careIconSquare}>
-                  <Ionicons name="medkit" size={24} color="#761B36" />
+                  <Ionicons name="medkit" size={24} color="#f90202" />
                 </View>
 
                 <View style={{ flex: 1, gap: 2 }}>
@@ -557,7 +557,7 @@ export default function HomeScreen() {
                   <Text style={styles.careSub}>Wound dressing, elderly recovery, and nursing standby.</Text>
                 </View>
 
-                <Ionicons name="arrow-forward" size={18} color="#761B36" />
+                <Ionicons name="arrow-forward" size={18} color="#f90202" />
               </Pressable>
 
               {/* Support Banner */}
@@ -603,20 +603,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
   },
   greetingBox: {
+    flex: 1,
+    minWidth: 0,
     gap: 2,
   },
   greetingSubTitle: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
   greetingTitle: {
     color: '#0F172A',
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
-    letterSpacing: -0.6,
+    letterSpacing: -0.4,
   },
   topRightActions: {
     flexDirection: 'row',
@@ -650,7 +653,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -702,7 +705,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   searchSubHeading: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 13,
     fontWeight: '800',
     marginBottom: 4,
@@ -754,7 +757,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   trackerTitle: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -765,14 +768,15 @@ const styles = StyleSheet.create({
   },
   pillarsGridRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 10,
   },
   pillarCardBox: {
-    flex: 1,
+    width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 22,
-    padding: 12,
+    padding: 14,
     alignItems: 'center',
     gap: 8,
     shadowColor: '#0F172A',
@@ -793,13 +797,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
+    lineHeight: 16,
   },
   spotlightHeroCard: {
     borderRadius: 26,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     padding: 22,
     gap: 12,
-    shadowColor: '#761B36',
+    shadowColor: '#f90202',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -862,7 +867,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   spotlightPillBtnText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -881,7 +886,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   seeAllText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -917,20 +922,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   catalogPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 13,
     fontWeight: '800',
   },
   shopPillBtn: {
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
   shopPillText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -954,12 +959,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   liveAvatarInitial: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1000,7 +1005,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderRadius: 22,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     borderWidth: 1,
     borderColor: '#FECDD3',
     gap: 12,
@@ -1014,7 +1019,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   careTitle: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1028,7 +1033,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     gap: 14,
   },
   supportIconSquare: {

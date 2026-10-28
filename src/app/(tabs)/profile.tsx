@@ -90,9 +90,10 @@ export default function ProfileScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [myPosts, setMyPosts] = useState<FeedPost[]>([]);
   const [bookmarkedPosts, setBookmarkedPosts] = useState<FeedPost[]>([]);
+  const [libraryEBooks, setLibraryEBooks] = useState<any[]>([]);
   const [connectionsCount, setConnectionsCount] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [activeTab, setActiveTab] = useState<'posts' | 'orders' | 'bookmarks' | 'settings'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'orders' | 'library' | 'bookmarks' | 'settings'>('posts');
   const [refreshing, setRefreshing] = useState(false);
 
   // Edit Profile State
@@ -200,6 +201,44 @@ export default function ProfileScreen() {
       }
     } catch {
       setBookmarkedPosts([]);
+    }
+
+    // Load User Library E-Books from backend API & local fallback
+    try {
+      const libRes = await apiRequest<any>('/learning/library');
+      if (libRes?.ebooks && Array.isArray(libRes.ebooks) && libRes.ebooks.length > 0) {
+        setLibraryEBooks(libRes.ebooks);
+      } else {
+        const localPurchased = await AsyncStorage.getItem('@gileo/purchased_ebooks');
+        if (localPurchased) {
+          const ids: string[] = JSON.parse(localPurchased);
+          setLibraryEBooks(
+            ids.map((id) => ({
+              id,
+              title: id.replace(/^ebook-/, 'HOW TO ').replace(/[-_]/g, ' ').toUpperCase(),
+              author: 'Gileo Medicals Global Limited',
+              description: 'Unlocked digital handbook guide in your personal Gileo library.',
+            })),
+          );
+        } else {
+          setLibraryEBooks([]);
+        }
+      }
+    } catch {
+      const localPurchased = await AsyncStorage.getItem('@gileo/purchased_ebooks').catch(() => null);
+      if (localPurchased) {
+        const ids: string[] = JSON.parse(localPurchased);
+        setLibraryEBooks(
+          ids.map((id) => ({
+            id,
+            title: id.replace(/^ebook-/, 'HOW TO ').replace(/[-_]/g, ' ').toUpperCase(),
+            author: 'Gileo Medicals Global Limited',
+            description: 'Unlocked digital handbook guide in your personal Gileo library.',
+          })),
+        );
+      } else {
+        setLibraryEBooks([]);
+      }
     }
 
   };
@@ -360,8 +399,8 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#761B36"
-            colors={['#761B36']}
+            tintColor="#f90202"
+            colors={['#f90202']}
           />
         }
       >
@@ -408,25 +447,25 @@ export default function ProfileScreen() {
                   <Text style={styles.roleText}>Verified Member</Text>
                 </View>
                 <View style={styles.connectionsPillTag}>
-                  <Ionicons name="people" size={12} color="#761B36" />
+                  <Ionicons name="people" size={12} color="#f90202" />
                   <Text style={styles.connectionsPillText}>{connectionsCount} Connections</Text>
                 </View>
               </View>
             </View>
 
             <Pressable style={styles.editProfileBtn} onPress={() => setShowEditModal(true)}>
-              <Ionicons name="create-outline" size={18} color="#761B36" />
+              <Ionicons name="create-outline" size={18} color="#f90202" />
             </Pressable>
           </View>
 
-          {/* 4 Tab Selector Bar */}
+          {/* Tab Selector Bar */}
           <View style={styles.tabBar}>
             <Pressable
               onPress={() => setActiveTab('posts')}
               style={[styles.tabItem, activeTab === 'posts' && styles.tabItemActive]}
             >
               <Text style={[styles.tabLabel, activeTab === 'posts' && styles.tabLabelActive]}>
-                My Posts ({myPosts.length})
+                Posts ({myPosts.length})
               </Text>
             </Pressable>
 
@@ -436,6 +475,15 @@ export default function ProfileScreen() {
             >
               <Text style={[styles.tabLabel, activeTab === 'orders' && styles.tabLabelActive]}>
                 Orders ({orders.length})
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setActiveTab('library')}
+              style={[styles.tabItem, activeTab === 'library' && styles.tabItemActive]}
+            >
+              <Text style={[styles.tabLabel, activeTab === 'library' && styles.tabLabelActive]}>
+                Library ({libraryEBooks.length})
               </Text>
             </Pressable>
 
@@ -540,7 +588,7 @@ export default function ProfileScreen() {
                     >
                       <View style={styles.orderCardHeader}>
                         <View style={styles.orderRefBox}>
-                          <Ionicons name="receipt-outline" size={18} color="#761B36" />
+                          <Ionicons name="receipt-outline" size={18} color="#f90202" />
                           <Text style={styles.orderRefText}>{order.reference}</Text>
                         </View>
 
@@ -569,12 +617,61 @@ export default function ProfileScreen() {
                         <Text style={styles.orderTotalText}>{totalFormatted}</Text>
                         <View style={styles.viewReceiptLink}>
                           <Text style={styles.viewReceiptText}>View Details & Receipt</Text>
-                          <Ionicons name="chevron-forward" size={14} color="#761B36" />
+                          <Ionicons name="chevron-forward" size={14} color="#f90202" />
                         </View>
                       </View>
                     </Pressable>
                   );
                 })
+              )}
+            </View>
+          )}
+
+          {/* Tab 3: My Library (E-Books) */}
+          {activeTab === 'library' && (
+            <View style={styles.ordersSection}>
+              {libraryEBooks.length === 0 ? (
+                <View style={styles.emptyCard}>
+                  <Ionicons name="book-outline" size={40} color="#CBD5E1" />
+                  <Text style={styles.emptyTitle}>Your E-Book Library is Empty</Text>
+                  <Text style={styles.emptySub}>
+                    Unlock professional nursing handbooks and career expansion guides under the Elevate tab.
+                  </Text>
+                  <Pressable
+                    style={styles.primaryActionBtn}
+                    onPress={() => router.push('/(tabs)/community?tab=elevate')}
+                  >
+                    <Text style={styles.primaryActionBtnText}>Explore Elevate E-Books</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                libraryEBooks.map((book) => (
+                  <View key={book.id} style={styles.orderCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="book" size={22} color="#f90202" />
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={{ color: '#0F172A', fontSize: 15, fontWeight: '800' }}>{book.title}</Text>
+                        <Text style={{ color: '#64748B', fontSize: 12 }}>{book.author || 'Gileo Medicals Learning Hub'}</Text>
+                      </View>
+                    </View>
+
+                    {book.description ? (
+                      <Text style={{ color: '#334155', fontSize: 13, lineHeight: 18 }} numberOfLines={2}>
+                        {book.description}
+                      </Text>
+                    ) : null}
+
+                    <Pressable
+                      style={styles.primaryActionBtn}
+                      onPress={() => triggerToast(`Opening "${book.title}" handbook...`)}
+                    >
+                      <Ionicons name="eye-outline" size={16} color="#FFFFFF" />
+                      <Text style={styles.primaryActionBtnText}>Read E-Book</Text>
+                    </Pressable>
+                  </View>
+                ))
               )}
             </View>
           )}
@@ -637,7 +734,7 @@ export default function ProfileScreen() {
               <View style={styles.settingsGroup}>
                 <Pressable style={styles.settingsRow} onPress={() => setShowEditModal(true)}>
                   <View style={styles.settingsIconCircle}>
-                    <Ionicons name="person-outline" size={20} color="#761B36" />
+                    <Ionicons name="person-outline" size={20} color="#f90202" />
                   </View>
                   <View style={styles.settingsTextGroup}>
                     <Text style={styles.settingsTitle}>Personal Details</Text>
@@ -701,7 +798,7 @@ export default function ProfileScreen() {
                 <>
                   <View style={styles.modalHeader}>
                     <View style={styles.modalIconBox}>
-                      <Ionicons name="receipt" size={24} color="#761B36" />
+                      <Ionicons name="receipt" size={24} color="#f90202" />
                     </View>
                     <Pressable onPress={() => setSelectedOrder(null)} hitSlop={10}>
                       <Ionicons name="close" size={22} color="#64748B" />
@@ -776,7 +873,7 @@ export default function ProfileScreen() {
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalIconBox}>
-                  <Ionicons name="person" size={24} color="#761B36" />
+                  <Ionicons name="person" size={24} color="#f90202" />
                 </View>
                 <Pressable onPress={() => setShowEditModal(false)} hitSlop={10}>
                   <Ionicons name="close" size={22} color="#64748B" />
@@ -881,12 +978,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
-    shadowColor: '#761B36',
+    shadowColor: '#f90202',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -941,7 +1038,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -990,7 +1087,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF1F2',
   },
   connectionsPillText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1021,7 +1118,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabItemActive: {
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
   },
   tabLabel: {
     color: '#64748B',
@@ -1029,7 +1126,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabLabelActive: {
-    color: '#761B36',
+    color: '#f90202',
     fontWeight: '800',
   },
   postsSection: {
@@ -1055,7 +1152,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1130,7 +1227,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     marginTop: 4,
   },
   primaryActionBtnText: {
@@ -1187,7 +1284,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
   },
   orderTotalText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1197,7 +1294,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   viewReceiptText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1248,7 +1345,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     gap: 14,
   },
   supportIconCircle: {
@@ -1417,7 +1514,7 @@ const styles = StyleSheet.create({
   modalPrimaryBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

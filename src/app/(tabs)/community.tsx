@@ -50,9 +50,67 @@ type FeedPost = {
   repostsCount: number;
   isLiked?: boolean;
   isSaved?: boolean;
+  isReposted?: boolean;
   commentsList: CommentItem[];
   category?: string;
 };
+
+type EBook = {
+  id: string;
+  title: string;
+  author: string;
+  description: string;
+  priceKobo: number;
+  coverBg: string;
+};
+
+const initialEBooks: EBook[] = [
+  {
+    id: 'ebook-1',
+    title: 'How to Become a Nurse Concierge',
+    author: 'Gileo Medicals Learning Hub',
+    description:
+      'A comprehensive step-by-step roadmap to building an independent concierge nursing practice and high-value clinical consulting.',
+    priceKobo: 1500000,
+    coverBg: '#f90202',
+  },
+  {
+    id: 'ebook-2',
+    title: 'How to Build a Professional Nursing Portfolio',
+    author: 'Gileo Medicals Learning Hub',
+    description:
+      'Master executive portfolio design, credential presentation, and international leadership documentation.',
+    priceKobo: 1250000,
+    coverBg: '#1E3A8A',
+  },
+  {
+    id: 'ebook-3',
+    title: 'How to Present Yourself Professionally as a Nursing Leader',
+    author: 'Gileo Medicals Learning Hub',
+    description:
+      'Executive communication, clinical influence, and strategic presence for modern healthcare leaders.',
+    priceKobo: 1500000,
+    coverBg: '#059669',
+  },
+  {
+    id: 'ebook-4',
+    title: 'How to Build a Career in Nursing Leadership',
+    author: 'Gileo Medicals Learning Hub',
+    description:
+      'Strategic career mapping from bedside nursing to healthcare management and global executive roles.',
+    priceKobo: 1800000,
+    coverBg: '#4F46E5',
+  },
+  {
+    id: 'ebook-5',
+    title: 'Global Nursing Careers & Opportunities',
+    author: 'Gileo Medicals Learning Hub',
+    description:
+      'Complete guide to international licensure, visa sponsorship, relocation, and working overseas as a registered nurse.',
+    priceKobo: 2000000,
+    coverBg: '#B45309',
+  },
+];
 
 type RegisteredMember = {
   id: string;
@@ -204,6 +262,17 @@ export default function CommunityScreen() {
   // Selected Cohort Modal State
   const [selectedCohort, setSelectedCohort] = useState<Cohort | null>(null);
 
+  // E-Books State
+  const [eBooks, setEBooks] = useState<EBook[]>(initialEBooks);
+  const [selectedEBook, setSelectedEBook] = useState<EBook | null>(null);
+  const [purchasedEBookIds, setPurchasedEBookIds] = useState<Set<string>>(new Set());
+
+  // Connection Options Modal State
+  const [connectionOptionsMember, setConnectionOptionsMember] = useState<RegisteredMember | null>(null);
+
+  // Ref to prevent re-opening post modal on reload
+  const handledPostParamRef = useRef<string | null>(null);
+
   // Enrolment Paystack State
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [paystackUrl, setPaystackUrl] = useState<string | null>(null);
@@ -250,39 +319,81 @@ export default function CommunityScreen() {
         setRegisteredMembers(mappedMembers);
       }
 
-      // 2. Load public community posts & user saved posts from backend
-      const [backendPosts, userSavedPosts] = await Promise.all([
-        apiRequest<any[]>('/community/posts').catch(() => null),
-        apiRequest<any[]>('/community/saved-posts').catch(() => []),
-      ]);
+      // 2. Load public community posts, saved posts, liked map, reposted map, and purchased ebooks
+      const [backendPosts, userSavedPosts, likedMapJson, repostedMapJson, purchasedEBooksJson] =
+        await Promise.all([
+          apiRequest<any[]>('/community/posts').catch(() => null),
+          apiRequest<any[]>('/community/saved-posts').catch(() => []),
+          AsyncStorage.getItem('@gileo/liked_posts_map').catch(() => null),
+          AsyncStorage.getItem('@gileo/reposted_posts_map').catch(() => null),
+          AsyncStorage.getItem('@gileo/purchased_ebooks').catch(() => null),
+        ]);
 
       const savedSet = new Set((userSavedPosts || []).map((sp) => sp.id));
+      const likedMap: Record<string, boolean> = likedMapJson ? JSON.parse(likedMapJson) : {};
+      const repostedMap: Record<string, boolean> = repostedMapJson ? JSON.parse(repostedMapJson) : {};
+      if (purchasedEBooksJson) {
+        setPurchasedEBookIds(new Set(JSON.parse(purchasedEBooksJson)));
+      }
 
       if (Array.isArray(backendPosts) && backendPosts.length > 0) {
-        const mappedFeed: FeedPost[] = backendPosts.map((p) => ({
-          id: p.id,
-          authorId: p.authorId,
-          authorName: p.authorName || 'Gileo Nurse',
-          authorRole: p.authorRole || 'Community Member',
-          createdAt: p.createdAt || Date.now(),
-          category: p.category || 'Community Share',
-          content: p.content,
-          likesCount: p.likesCount || 0,
-          commentsCount: p.commentsCount || 0,
-          repostsCount: 0,
-          isLiked: Boolean(p.isLiked),
-          isSaved: savedSet.has(p.id),
-          commentsList: p.commentsList || [],
-        }));
+        const mappedFeed: FeedPost[] = backendPosts.map((p) => {
+          const isLikedLocally = likedMap[p.id];
+          const isLiked = isLikedLocally !== undefined ? isLikedLocally : Boolean(p.isLiked);
+          const isReposted = Boolean(repostedMap[p.id]);
+          const baseLikes = p.likesCount || 0;
+          const likesCount = isLikedLocally === true && !p.isLiked ? baseLikes + 1 : baseLikes;
+          const baseReposts = p.repostsCount || 0;
+          const repostsCount = isReposted ? baseReposts + 1 : baseReposts;
+
+          return {
+            id: p.id,
+            authorId: p.authorId,
+            authorName: p.authorName || 'Gileo Nurse',
+            authorRole: p.authorRole || 'Community Member',
+            createdAt: p.createdAt || Date.now(),
+            category: p.category || 'Community Share',
+            content: p.content,
+            likesCount,
+            commentsCount: p.commentsCount || 0,
+            repostsCount,
+            isLiked,
+            isSaved: savedSet.has(p.id),
+            isReposted,
+            commentsList: p.commentsList || [],
+          };
+        });
         setPosts(mappedFeed);
       } else {
         setPosts([]);
       }
 
-      // 3. Load cohorts
-      const fetchedCohorts = await apiRequest<Cohort[]>('/learning/cohorts').catch(() => null);
+      // 3. Load cohorts, e-books, and user library from backend API
+      const [fetchedCohorts, backendEbooks, myLibraryRes] = await Promise.all([
+        apiRequest<Cohort[]>('/learning/cohorts').catch(() => null),
+        apiRequest<any[]>('/learning/ebooks').catch(() => null),
+        apiRequest<any>('/learning/library').catch(() => null),
+      ]);
+
       if (Array.isArray(fetchedCohorts) && fetchedCohorts.length > 0) {
         setCohorts(fetchedCohorts);
+      }
+
+      if (Array.isArray(backendEbooks) && backendEbooks.length > 0) {
+        const mappedEBooks: EBook[] = backendEbooks.map((b, idx) => ({
+          id: b.id,
+          title: b.title,
+          author: b.author || 'Gileo Medicals Global Limited',
+          description: b.description,
+          priceKobo: b.priceKobo,
+          coverBg: ['#f90202', '#1E3A8A', '#059669', '#4F46E5', '#B45309'][idx % 5],
+        }));
+        setEBooks(mappedEBooks);
+      }
+
+      if (myLibraryRes?.ebooks && Array.isArray(myLibraryRes.ebooks)) {
+        const unlockedIds = myLibraryRes.ebooks.map((e: any) => e.id);
+        setPurchasedEBookIds((prev) => new Set([...Array.from(prev), ...unlockedIds]));
       }
     } catch {
       // Keep fallback
@@ -348,10 +459,12 @@ export default function CommunityScreen() {
     if (params.tab === 'elevate') {
       setActiveTab('elevate');
     }
-    if (params.postId && posts.length > 0) {
+    if (params.postId && posts.length > 0 && handledPostParamRef.current !== params.postId) {
       const target = posts.find((p) => p.id === params.postId);
       if (target) {
+        handledPostParamRef.current = params.postId;
         setSelectedPostDetail(target);
+        router.setParams({ postId: undefined });
       }
     }
   }, [params.postId, params.tab, posts]);
@@ -374,8 +487,8 @@ export default function CommunityScreen() {
           title: 'Connection Added',
           body: `You connected with ${member.displayName}.`,
           icon: 'paper-plane',
-          iconBg: '#FFF1F2',
-          iconColor: '#761B36',
+          iconBg: '#FFF0F0',
+          iconColor: '#f90202',
         });
       } else {
         triggerToast(`Disconnected from ${member.displayName}`);
@@ -403,10 +516,17 @@ export default function CommunityScreen() {
               title: 'Post Liked',
               body: `You liked ${p.authorName}'s post.`,
               icon: 'heart',
-              iconBg: '#FFF1F2',
+              iconBg: '#FFF0F0',
               iconColor: '#EF4444',
             });
           }
+
+          void AsyncStorage.getItem('@gileo/liked_posts_map').then((json) => {
+            const map = json ? JSON.parse(json) : {};
+            map[postId] = isLiked;
+            return AsyncStorage.setItem('@gileo/liked_posts_map', JSON.stringify(map));
+          });
+
           const updatedPost = { ...p, isLiked, likesCount: newLikes };
           if (selectedPostDetail?.id === postId) {
             setSelectedPostDetail(updatedPost);
@@ -416,6 +536,142 @@ export default function CommunityScreen() {
         return p;
       }),
     );
+  };
+
+  const toggleRepostPost = async (postId: string) => {
+    void apiRequest(`/community/posts/${postId}/repost`, { method: 'POST' }).catch(() => null);
+
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          const isReposted = !p.isReposted;
+          const newReposts = isReposted ? (p.repostsCount || 0) + 1 : Math.max(0, (p.repostsCount || 1) - 1);
+          triggerToast(isReposted ? 'Post reposted to your network' : 'Repost removed');
+
+          void AsyncStorage.getItem('@gileo/reposted_posts_map').then((json) => {
+            const map = json ? JSON.parse(json) : {};
+            map[postId] = isReposted;
+            return AsyncStorage.setItem('@gileo/reposted_posts_map', JSON.stringify(map));
+          });
+
+          const updatedPost = { ...p, isReposted, repostsCount: newReposts };
+          if (selectedPostDetail?.id === postId) {
+            setSelectedPostDetail(updatedPost);
+          }
+          return updatedPost;
+        }
+        return p;
+      }),
+    );
+  };
+
+  const handleConfirmEBookPurchase = async (book: EBook) => {
+    const updatedSet = new Set(purchasedEBookIds);
+    updatedSet.add(book.id);
+    setPurchasedEBookIds(updatedSet);
+    await AsyncStorage.setItem('@gileo/purchased_ebooks', JSON.stringify(Array.from(updatedSet)));
+
+    void addNotification(user?.id || 'guest', {
+      title: 'E-Book Unlocked',
+      body: `You unlocked access to "${book.title}". Available in your library.`,
+      icon: 'book',
+      iconBg: '#FFF0F0',
+      iconColor: '#f90202',
+    });
+
+    triggerToast(`Unlocked "${book.title}"!`);
+    setSelectedEBook(null);
+  };
+
+  const handlePaystackEBookPurchase = async (book: EBook) => {
+    const token = await getStoredAccessToken();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    setIsEnrolling(true);
+
+    try {
+      const initRes = await apiRequest<any>('/payments/initialize', {
+        method: 'POST',
+        body: JSON.stringify({
+          purchaseType: 'EBOOK',
+          targetId: book.id,
+        }),
+      });
+
+      const authUrl = initRes?.authorizationUrl;
+      const ref = initRes?.reference;
+
+      if (!authUrl || !ref) {
+        throw new Error('Paystack authorization URL missing.');
+      }
+
+      setPaystackUrl(authUrl);
+      setEnrolmentRef(ref);
+
+      const callbackUrl = LinkingExpo.createURL('payment-callback');
+      const browserResult = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        callbackUrl,
+        { showInRecents: true },
+      );
+
+      try {
+        WebBrowser.dismissBrowser();
+        WebBrowser.dismissAuthSession();
+      } catch (_) {}
+
+      let returnedRef = ref;
+      if (browserResult && browserResult.type === 'success' && browserResult.url) {
+        const parsed = LinkingExpo.parse(browserResult.url);
+        if (parsed.queryParams?.reference || parsed.queryParams?.trxref) {
+          returnedRef = String(parsed.queryParams.reference || parsed.queryParams.trxref);
+        }
+      }
+
+      await verifyEBookPaymentWithBackend(returnedRef, book);
+    } catch (error) {
+      triggerToast(
+        error instanceof Error ? error.message : 'Could not complete Paystack payment for E-Book.',
+      );
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  const verifyEBookPaymentWithBackend = async (ref: string, book: EBook) => {
+    setIsVerifyingPayment(true);
+    try {
+      const res = await apiRequest<any>(`/payments/verify/${encodeURIComponent(ref)}`, {
+        method: 'POST',
+      });
+
+      if (res?.status === 'success' || res?.status === 'VERIFIED') {
+        const updatedSet = new Set(purchasedEBookIds);
+        updatedSet.add(book.id);
+        setPurchasedEBookIds(updatedSet);
+        await AsyncStorage.setItem('@gileo/purchased_ebooks', JSON.stringify(Array.from(updatedSet)));
+
+        void addNotification(user?.id || 'guest', {
+          title: 'E-Book Unlocked',
+          body: `You unlocked access to "${book.title}". Available in your library.`,
+          icon: 'book',
+          iconBg: '#FFF0F0',
+          iconColor: '#f90202',
+        });
+
+        triggerToast(`Payment verified! "${book.title}" is in your library.`);
+        setSelectedEBook(null);
+      } else {
+        triggerToast('Payment verification pending. Check back shortly.');
+      }
+    } catch (error) {
+      triggerToast(error instanceof Error ? error.message : 'Could not verify payment.');
+    } finally {
+      setIsVerifyingPayment(false);
+    }
   };
 
   const toggleSavePost = async (postId: string) => {
@@ -541,7 +797,7 @@ export default function CommunityScreen() {
       body: `You commented on ${selectedPostDetail.authorName}'s post.`,
       icon: 'chatbubble',
       iconBg: '#F8F9FA',
-      iconColor: '#761B36',
+      iconColor: '#f90202',
     });
   };
 
@@ -744,8 +1000,8 @@ export default function CommunityScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#761B36"
-            colors={['#761B36']}
+            tintColor="#f90202"
+            colors={['#f90202']}
           />
         }
       >
@@ -764,7 +1020,7 @@ export default function CommunityScreen() {
                 onPress={() => setShowAddFriendsModal(true)}
                 style={({ pressed }) => [styles.circleIconBtn, pressed && styles.pressed]}
               >
-                <Ionicons name="person-add-outline" size={20} color="#761B36" />
+                <Ionicons name="person-add-outline" size={20} color="#f90202" />
               </Pressable>
 
               <Pressable
@@ -791,7 +1047,7 @@ export default function CommunityScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesRow}>
               {connectedMembers.length === 0 ? (
                 <Pressable style={styles.emptyStoryCard} onPress={() => setShowAddFriendsModal(true)}>
-                  <Ionicons name="person-add-outline" size={20} color="#761B36" />
+                  <Ionicons name="person-add-outline" size={20} color="#f90202" />
                   <Text style={styles.emptyStoryText}>Connect with Nurses</Text>
                 </Pressable>
               ) : (
@@ -799,7 +1055,7 @@ export default function CommunityScreen() {
                   <Pressable
                     key={member.id}
                     style={styles.storyItem}
-                    onPress={() => setSelectedMemberProfile(member)}
+                    onPress={() => setConnectionOptionsMember(member)}
                   >
                     <View style={styles.storyAvatarRingActive}>
                       <View style={styles.storyAvatarCircle}>
@@ -910,68 +1166,63 @@ export default function CommunityScreen() {
                   </View>
                 ) : (
                   filteredPosts.map((post) => (
-                    <Pressable
-                      key={post.id}
-                      style={styles.feedPostCard}
-                      onPress={() => setSelectedPostDetail(post)}
-                    >
-                      {/* Author Header */}
-                      <View style={styles.postHeaderRow}>
-                        <Pressable
-                          style={styles.authorAvatarCircle}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            const memberObj = registeredMembers.find(
-                              (m) => m.displayName === post.authorName,
-                            ) || {
-                              id: post.authorId || 'm-1',
-                              displayName: post.authorName,
-                              email: 'nurse@gileo.com',
-                              role: post.authorRole,
-                              isConnected: connectedMemberNames.has(post.authorName),
-                            };
-                            setSelectedMemberProfile(memberObj);
-                          }}
-                        >
-                          <Text style={styles.authorAvatarInitial}>
-                            {post.authorName.charAt(0).toUpperCase()}
-                          </Text>
-                        </Pressable>
+                    <View key={post.id} style={styles.feedPostCard}>
+                      <Pressable onPress={() => setSelectedPostDetail(post)}>
+                        {/* Author Header */}
+                        <View style={styles.postHeaderRow}>
+                          <Pressable
+                            style={styles.authorAvatarCircle}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              const memberObj = registeredMembers.find(
+                                (m) => m.displayName === post.authorName,
+                              ) || {
+                                id: post.authorId || 'm-1',
+                                displayName: post.authorName,
+                                email: 'nurse@gileo.com',
+                                role: post.authorRole,
+                                isConnected: connectedMemberNames.has(post.authorName),
+                              };
+                              setSelectedMemberProfile(memberObj);
+                            }}
+                          >
+                            <Text style={styles.authorAvatarInitial}>
+                              {post.authorName.charAt(0).toUpperCase()}
+                            </Text>
+                          </Pressable>
 
-                        <Pressable
-                          style={{ flex: 1 }}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            const memberObj = registeredMembers.find(
-                              (m) => m.displayName === post.authorName,
-                            ) || {
-                              id: post.authorId || 'm-1',
-                              displayName: post.authorName,
-                              email: 'nurse@gileo.com',
-                              role: post.authorRole,
-                              isConnected: connectedMemberNames.has(post.authorName),
-                            };
-                            setSelectedMemberProfile(memberObj);
-                          }}
-                        >
-                          <Text style={styles.authorNameText}>{post.authorName}</Text>
-                          <Text style={styles.authorRoleText}>
-                            {post.authorRole} • {formatTwitterTime(post.createdAt)}
-                          </Text>
-                        </Pressable>
-                      </View>
+                          <Pressable
+                            style={{ flex: 1 }}
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              const memberObj = registeredMembers.find(
+                                (m) => m.displayName === post.authorName,
+                              ) || {
+                                id: post.authorId || 'm-1',
+                                displayName: post.authorName,
+                                email: 'nurse@gileo.com',
+                                role: post.authorRole,
+                                isConnected: connectedMemberNames.has(post.authorName),
+                              };
+                              setSelectedMemberProfile(memberObj);
+                            }}
+                          >
+                            <Text style={styles.authorNameText}>{post.authorName}</Text>
+                            <Text style={styles.authorRoleText}>
+                              {post.authorRole} • {formatTwitterTime(post.createdAt)}
+                            </Text>
+                          </Pressable>
+                        </View>
 
-                      {/* Content Body */}
-                      <Text style={styles.postContentText}>{post.content}</Text>
+                        {/* Content Body */}
+                        <Text style={styles.postContentText}>{post.content}</Text>
+                      </Pressable>
 
                       {/* Interactive Action Bar */}
                       <View style={styles.socialActionBar}>
                         <Pressable
                           style={styles.actionItem}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            toggleLikePost(post.id);
-                          }}
+                          onPress={() => toggleLikePost(post.id)}
                           hitSlop={8}
                         >
                           <Ionicons
@@ -986,10 +1237,7 @@ export default function CommunityScreen() {
 
                         <Pressable
                           style={styles.actionItem}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            setSelectedPostDetail(post);
-                          }}
+                          onPress={() => setSelectedPostDetail(post)}
                           hitSlop={8}
                         >
                           <Ionicons name="chatbubble-outline" size={18} color="#64748B" />
@@ -998,10 +1246,22 @@ export default function CommunityScreen() {
 
                         <Pressable
                           style={styles.actionItem}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            void handleSharePost(post);
-                          }}
+                          onPress={() => toggleRepostPost(post.id)}
+                          hitSlop={8}
+                        >
+                          <Ionicons
+                            name={post.isReposted ? 'repeat' : 'repeat-outline'}
+                            size={20}
+                            color={post.isReposted ? '#059669' : '#64748B'}
+                          />
+                          <Text style={[styles.actionCountText, post.isReposted && { color: '#059669' }]}>
+                            {post.repostsCount || 0}
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          style={styles.actionItem}
+                          onPress={() => void handleSharePost(post)}
                           hitSlop={8}
                         >
                           <Ionicons name="share-outline" size={20} color="#64748B" />
@@ -1010,36 +1270,34 @@ export default function CommunityScreen() {
 
                         <Pressable
                           style={[styles.actionItem, { marginLeft: 'auto' }]}
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            toggleSavePost(post.id);
-                          }}
+                          onPress={() => toggleSavePost(post.id)}
                           hitSlop={8}
                         >
                           <Ionicons
                             name={post.isSaved ? 'bookmark' : 'bookmark-outline'}
                             size={19}
-                            color={post.isSaved ? '#761B36' : '#64748B'}
+                            color={post.isSaved ? '#f90202' : '#64748B'}
                           />
                         </Pressable>
                       </View>
-                    </Pressable>
+                    </View>
                   ))
                 )}
               </View>
             </>
           ) : (
-            /* Tab Content 3: Gileo Elevate Paid Cohorts */
-            <View style={styles.elevateSection}>
-              <View style={styles.elevateHeaderBox}>
-                <Ionicons name="school" size={24} color="#761B36" />
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.elevateHeaderTitle}>Gileo Elevate Cohorts</Text>
-                  <Text style={styles.elevateHeaderSub}>
-                    Structured paid professional development programmes for nurses seeking executive leadership and global practice.
-                  </Text>
+            /* Tab Content 3: Gileo Elevate Paid Cohorts & E-Books */
+            <View style={{ gap: 20 }}>
+              <View style={styles.elevateSection}>
+                <View style={styles.elevateHeaderBox}>
+                  <Ionicons name="school" size={24} color="#f90202" />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.elevateHeaderTitle}>Gileo Elevate Cohorts</Text>
+                    <Text style={styles.elevateHeaderSub}>
+                      Structured paid professional development programmes for nurses seeking executive leadership and global practice.
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
               <View style={styles.cohortList}>
                 {cohorts.map((cohort) => {
@@ -1048,7 +1306,7 @@ export default function CommunityScreen() {
                     <View key={cohort.id} style={styles.cohortCard}>
                       <View style={styles.cohortCardHeader}>
                         <View style={styles.enrolmentPill}>
-                          <Ionicons name="time-outline" size={12} color="#761B36" />
+                          <Ionicons name="time-outline" size={12} color="#f90202" />
                           <Text style={styles.enrolmentPillText}>ENROLMENT OPEN</Text>
                         </View>
                         <Text style={styles.cohortPrice}>{priceFormatted}</Text>
@@ -1061,7 +1319,7 @@ export default function CommunityScreen() {
                         <Text style={styles.outcomesBoxTitle}>Key Learning Outcomes:</Text>
                         {cohort.learningOutcomes.map((outcome, idx) => (
                           <View key={idx} style={styles.outcomeRow}>
-                            <Ionicons name="checkmark-circle" size={14} color="#761B36" />
+                            <Ionicons name="checkmark-circle" size={14} color="#f90202" />
                             <Text style={styles.outcomeText}>{outcome}</Text>
                           </View>
                         ))}
@@ -1079,7 +1337,69 @@ export default function CommunityScreen() {
                 })}
               </View>
             </View>
-          )}
+
+            {/* Gileo Learning Hub & E-Books Section */}
+            <View style={styles.elevateSection}>
+              <View style={styles.elevateHeaderBox}>
+                <Ionicons name="book" size={24} color="#f90202" />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.elevateHeaderTitle}>Gileo Learning Hub & E-Books</Text>
+                  <Text style={styles.elevateHeaderSub}>
+                    Essential digital handbooks, leadership guides, and career expansion e-books for modern nurses.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.ebooksList}>
+                {eBooks.map((book) => {
+                  const isUnlocked = purchasedEBookIds.has(book.id);
+                  return (
+                    <View key={book.id} style={styles.ebookCard}>
+                      <View style={[styles.ebookCoverBox, { backgroundColor: book.coverBg }]}>
+                        <Ionicons name="book" size={28} color="#FFFFFF" />
+                        <Text style={styles.ebookCoverTag}>HANDBOOK</Text>
+                      </View>
+
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text style={styles.ebookTitle}>{book.title}</Text>
+                        <Text style={styles.ebookAuthor}>{book.author}</Text>
+                        <Text style={styles.ebookDesc} numberOfLines={2}>{book.description}</Text>
+                        <Text style={styles.ebookPrice}>
+                          {isUnlocked ? 'UNLOCKED IN LIBRARY' : `₦${(book.priceKobo / 100).toLocaleString()}`}
+                        </Text>
+
+                        <Pressable
+                          style={[styles.purchaseEBookBtn, isUnlocked && styles.purchaseEBookBtnUnlocked]}
+                          onPress={() => {
+                            if (isUnlocked) {
+                              triggerToast(`"${book.title}" is in your library!`);
+                            } else {
+                              setSelectedEBook(book);
+                            }
+                          }}
+                        >
+                          <Ionicons
+                            name={isUnlocked ? 'checkmark-circle' : 'cart-outline'}
+                            size={14}
+                            color={isUnlocked ? '#059669' : '#FFFFFF'}
+                          />
+                          <Text
+                            style={[
+                              styles.purchaseEBookBtnText,
+                              isUnlocked && styles.purchaseEBookBtnTextUnlocked,
+                            ]}
+                          >
+                            {isUnlocked ? 'In Library' : 'Purchase E-Book'}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        )}
 
           {/* Twitter / X-Style Full Post Detail Screen Modal */}
           <Modal
@@ -1184,7 +1504,7 @@ export default function CommunityScreen() {
                         <Ionicons
                           name={selectedPostDetail.isSaved ? 'bookmark' : 'bookmark-outline'}
                           size={20}
-                          color={selectedPostDetail.isSaved ? '#761B36' : '#64748B'}
+                          color={selectedPostDetail.isSaved ? '#f90202' : '#64748B'}
                         />
                       </Pressable>
                     </View>
@@ -1216,7 +1536,7 @@ export default function CommunityScreen() {
                                 setSelectedMemberProfile(memberObj);
                               }}
                             >
-                              <Ionicons name="person-circle-outline" size={26} color="#761B36" />
+                              <Ionicons name="person-circle-outline" size={26} color="#f90202" />
                             </Pressable>
                             <View style={{ flex: 1 }}>
                               <Pressable
@@ -1297,14 +1617,13 @@ export default function CommunityScreen() {
                         </View>
 
                         <View style={styles.connectionsCountPill}>
-                          <Ionicons name="people" size={12} color="#761B36" />
+                          <Ionicons name="people" size={12} color="#f90202" />
                           <Text style={styles.connectionsCountText}>
-                            {memberConnectionsCount[selectedMemberProfile.id] !== undefined
-                              ? memberConnectionsCount[selectedMemberProfile.id]
-                              : selectedMemberProfile.isConnected
-                              ? 1
-                              : 0}{' '}
-                            Connection
+                            {selectedMemberProfile.id === user?.id || selectedMemberProfile.email === user?.email
+                              ? connectedMembers.length
+                              : (memberConnectionsCount[selectedMemberProfile.id] ??
+                                 (selectedMemberProfile.isConnected ? connectedMembers.length : 8))}{' '}
+                            Connection{connectedMembers.length === 1 ? '' : 's'}
                           </Text>
                         </View>
                       </View>
@@ -1322,7 +1641,7 @@ export default function CommunityScreen() {
                             <Ionicons
                               name={selectedMemberProfile.isConnected ? 'checkmark' : 'person-add'}
                               size={16}
-                              color={selectedMemberProfile.isConnected ? '#761B36' : '#FFFFFF'}
+                              color={selectedMemberProfile.isConnected ? '#f90202' : '#FFFFFF'}
                             />
                             <Text
                               style={[
@@ -1490,7 +1809,7 @@ export default function CommunityScreen() {
                           style={styles.connectPillBtnActive}
                           onPress={() => toggleConnectMember(member)}
                         >
-                          <Ionicons name="checkmark" size={14} color="#761B36" />
+                          <Ionicons name="checkmark" size={14} color="#f90202" />
                           <Text style={styles.connectPillTextActive}>Connected</Text>
                         </Pressable>
                       </View>
@@ -1581,7 +1900,7 @@ export default function CommunityScreen() {
                     </View>
 
                     <View style={styles.paystackNoticeBox}>
-                      <Ionicons name="shield-checkmark" size={22} color="#761B36" />
+                      <Ionicons name="shield-checkmark" size={22} color="#f90202" />
                       <View style={{ flex: 1, gap: 2 }}>
                         <Text style={styles.paystackNoticeTitle}>Paystack Cohort Verification</Text>
                         <Text style={styles.paystackNoticeSub}>
@@ -1599,7 +1918,7 @@ export default function CommunityScreen() {
                         <Text style={styles.modalSectionHeaderTitle}>Curriculum & Learning Outcomes</Text>
                         {selectedCohort.learningOutcomes.map((outcome, idx) => (
                           <View key={idx} style={styles.modalOutcomeRow}>
-                            <Ionicons name="checkmark-circle" size={16} color="#761B36" />
+                            <Ionicons name="checkmark-circle" size={16} color="#f90202" />
                             <Text style={styles.outcomeDetailText}>{outcome}</Text>
                           </View>
                         ))}
@@ -1669,7 +1988,7 @@ export default function CommunityScreen() {
           >
             <View style={styles.verifyingModalOverlay}>
               <View style={styles.verifyingCard}>
-                <ActivityIndicator size="large" color="#761B36" />
+                <ActivityIndicator size="large" color="#f90202" />
                 <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
                 <Text style={styles.verifyingSub}>Confirming enrolment with Gileo server</Text>
               </View>
@@ -1694,6 +2013,149 @@ export default function CommunityScreen() {
           </Pressable>
 
           <Text style={styles.footerNote}>GILEO MEDICALS GLOBAL LIMITED • 2026</Text>
+
+          {/* Connection Options Modal (Requirement #10) */}
+          <Modal
+            visible={Boolean(connectionOptionsMember)}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setConnectionOptionsMember(null)}
+          >
+            <View style={styles.modalOverlayDark}>
+              <View style={styles.connectionOptionsCard}>
+                <View style={styles.optionsAvatarCircle}>
+                  <Text style={styles.optionsAvatarText}>
+                    {(connectionOptionsMember?.displayName || 'N').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+
+                <Text style={styles.optionsMemberName}>
+                  {connectionOptionsMember?.displayName}
+                </Text>
+                <Text style={styles.optionsMemberRole}>
+                  {connectionOptionsMember?.email || 'Registered Nurse'}
+                </Text>
+
+                <View style={{ width: '100%', gap: 10, marginTop: 12 }}>
+                  <Pressable
+                    style={styles.optionsPrimaryBtn}
+                    onPress={() => {
+                      const m = connectionOptionsMember;
+                      setConnectionOptionsMember(null);
+                      if (m) setSelectedMemberProfile(m);
+                    }}
+                  >
+                    <Ionicons name="person" size={18} color="#FFFFFF" />
+                    <Text style={styles.optionsPrimaryBtnText}>View Full Profile</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.optionsSecondaryBtn}
+                    onPress={() => {
+                      const m = connectionOptionsMember;
+                      setConnectionOptionsMember(null);
+                      if (m) void toggleConnectMember(m);
+                    }}
+                  >
+                    <Ionicons
+                      name={connectionOptionsMember?.isConnected ? 'person-remove' : 'person-add'}
+                      size={18}
+                      color="#f90202"
+                    />
+                    <Text style={styles.optionsSecondaryBtnText}>
+                      {connectionOptionsMember?.isConnected
+                        ? 'Disconnect / Remove Connection'
+                        : 'Connect / Add Friend'}
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.optionsCancelBtn}
+                    onPress={() => setConnectionOptionsMember(null)}
+                  >
+                    <Text style={styles.optionsCancelBtnText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          {/* E-Book Purchase Modal (Requirement #4) */}
+          <Modal
+            visible={Boolean(selectedEBook)}
+            animationType="slide"
+            onRequestClose={() => setSelectedEBook(null)}
+          >
+            <SafeAreaView style={styles.modalSafeArea}>
+              {selectedEBook && (
+                <>
+                  <View style={styles.modalHeader}>
+                    <Pressable onPress={() => setSelectedEBook(null)} style={styles.circleBtn}>
+                      <Ionicons name="close" size={20} color="#0F172A" />
+                    </Pressable>
+                    <Text style={styles.modalHeaderTitle}>Purchase E-Book</Text>
+                    <View style={{ width: 40 }} />
+                  </View>
+
+                  <ScrollView contentContainerStyle={styles.enrolContent}>
+                    <View style={[styles.ebookModalHeaderCard, { backgroundColor: selectedEBook.coverBg }]}>
+                      <Ionicons name="book" size={40} color="#FFFFFF" />
+                      <Text style={styles.ebookModalTitle}>{selectedEBook.title}</Text>
+                      <Text style={styles.ebookModalAuthor}>{selectedEBook.author}</Text>
+                      <View style={styles.ebookModalPricePill}>
+                        <Text style={styles.ebookModalPriceText}>
+                          ₦{(selectedEBook.priceKobo / 100).toLocaleString()}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.sectionGroup}>
+                      <Text style={styles.modalSectionHeaderTitle}>Book Overview</Text>
+                      <Text style={styles.detailOverviewText}>{selectedEBook.description}</Text>
+                    </View>
+
+                    <View style={styles.bankDetailCard}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <Ionicons name="business" size={20} color="#f90202" />
+                        <Text style={styles.bankDetailTitle}>Direct Transfer Details</Text>
+                      </View>
+
+                      <View style={styles.bankRow}>
+                        <Text style={styles.bankLabel}>Bank Name:</Text>
+                        <Text style={styles.bankVal}>United Bank for Africa (UBA)</Text>
+                      </View>
+                      <View style={styles.bankRow}>
+                        <Text style={styles.bankLabel}>Account Name:</Text>
+                        <Text style={styles.bankVal}>Gileo Medicals</Text>
+                      </View>
+                      <View style={styles.bankRow}>
+                        <Text style={styles.bankLabel}>Account Number:</Text>
+                        <Text style={styles.bankValHighlight}>2179111147</Text>
+                      </View>
+                    </View>
+
+                    <Pressable
+                      style={[styles.paystackLaunchBtn, isEnrolling && { opacity: 0.6 }]}
+                      disabled={isEnrolling}
+                      onPress={() => void handlePaystackEBookPurchase(selectedEBook)}
+                    >
+                      <Ionicons name="card-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.paystackLaunchBtnText}>
+                        {isEnrolling ? 'Initializing Paystack...' : 'Proceed to Paystack Payment'}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={styles.doneBtn}
+                      onPress={() => void handleConfirmEBookPurchase(selectedEBook)}
+                    >
+                      <Text style={styles.doneBtnText}>Confirm Bank Transfer Access</Text>
+                    </Pressable>
+                  </ScrollView>
+                </>
+              )}
+            </SafeAreaView>
+          </Modal>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -1726,12 +2188,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
-    shadowColor: '#761B36',
+    shadowColor: '#f90202',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1801,7 +2263,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   addMoreLink: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1821,7 +2283,7 @@ const styles = StyleSheet.create({
     borderColor: '#EAECEF',
   },
   emptyStoryText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -1835,21 +2297,21 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
     borderWidth: 2,
-    borderColor: '#761B36',
+    borderColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 2,
   },
   storyAvatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFF1F2',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFF0F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   storyAvatarInitial: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -1878,7 +2340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentedItemActive: {
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
   },
   segmentedLabel: {
     color: '#64748B',
@@ -1909,7 +2371,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1938,7 +2400,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
   },
   publishPillBtnText: {
     color: '#FFFFFF',
@@ -1975,7 +2437,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     marginTop: 4,
   },
   connectNowText: {
@@ -2003,12 +2465,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   authorAvatarInitial: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -2058,7 +2520,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2169,7 +2631,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -2215,10 +2677,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
   },
   connectionsCountText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -2229,11 +2691,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     marginTop: 8,
   },
   memberConnectBtnActive: {
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     borderWidth: 1,
     borderColor: '#FECDD3',
   },
@@ -2243,7 +2705,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   memberConnectTextActive: {
-    color: '#761B36',
+    color: '#f90202',
   },
   memberPostsSection: {
     gap: 12,
@@ -2267,13 +2729,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     borderWidth: 1,
     borderColor: '#FECDD3',
     gap: 12,
   },
   elevateHeaderTitle: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -2308,15 +2770,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
   },
   enrolmentPillText: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 10,
     fontWeight: '800',
   },
   cohortPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 18,
     fontWeight: '800',
   },
@@ -2355,7 +2817,7 @@ const styles = StyleSheet.create({
   enrolBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2372,7 +2834,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     gap: 14,
   },
   supportIconCircle: {
@@ -2486,12 +2948,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   registeredAvatarInitial: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -2511,7 +2973,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
   },
   connectPillBtnActive: {
     height: 36,
@@ -2520,7 +2982,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     borderRadius: 999,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     borderWidth: 1,
     borderColor: '#FECDD3',
   },
@@ -2530,7 +2992,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   connectPillTextActive: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -2558,7 +3020,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2576,7 +3038,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cohortDetailPrice: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 22,
     fontWeight: '800',
   },
@@ -2586,12 +3048,12 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderRadius: 20,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#FFF0F0',
     borderWidth: 1,
     borderColor: '#FECDD3',
   },
   paystackNoticeTitle: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -2625,7 +3087,7 @@ const styles = StyleSheet.create({
   paystackEnrolBtn: {
     height: 54,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2648,7 +3110,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2658,7 +3120,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   successRef: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -2671,7 +3133,7 @@ const styles = StyleSheet.create({
   paystackLaunchBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2752,7 +3214,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   orderRefValue: {
-    color: '#761B36',
+    color: '#f90202',
     fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
@@ -2765,7 +3227,7 @@ const styles = StyleSheet.create({
   primarySuccessBtn: {
     height: 50,
     borderRadius: 999,
-    backgroundColor: '#761B36',
+    backgroundColor: '#f90202',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2808,5 +3270,221 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: 'center',
     paddingTop: 8,
+  },
+  ebooksList: {
+    gap: 12,
+  },
+  ebookCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
+    gap: 12,
+  },
+  ebookCoverBox: {
+    width: 64,
+    height: 84,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+    gap: 4,
+  },
+  ebookCoverTag: {
+    color: '#FFFFFF',
+    fontSize: 7,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  ebookTitle: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  ebookAuthor: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  ebookDesc: {
+    color: '#334155',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  ebookPrice: {
+    color: '#f90202',
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  purchaseEBookBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#f90202',
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  purchaseEBookBtnUnlocked: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  purchaseEBookBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  purchaseEBookBtnTextUnlocked: {
+    color: '#059669',
+  },
+  modalOverlayDark: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  connectionOptionsCard: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+  optionsAvatarCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFF0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  optionsAvatarText: {
+    color: '#f90202',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  optionsMemberName: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  optionsMemberRole: {
+    color: '#64748B',
+    fontSize: 12,
+  },
+  optionsPrimaryBtn: {
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: '#f90202',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  optionsPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  optionsSecondaryBtn: {
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  optionsSecondaryBtnText: {
+    color: '#f90202',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  optionsCancelBtn: {
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionsCancelBtnText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  ebookModalHeaderCard: {
+    padding: 20,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  ebookModalTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  ebookModalAuthor: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 12,
+  },
+  ebookModalPricePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    marginTop: 4,
+  },
+  ebookModalPriceText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  bankDetailCard: {
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    gap: 10,
+  },
+  bankDetailTitle: {
+    color: '#f90202',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  bankRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bankLabel: {
+    color: '#64748B',
+    fontSize: 12,
+  },
+  bankVal: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  bankValHighlight: {
+    color: '#f90202',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
