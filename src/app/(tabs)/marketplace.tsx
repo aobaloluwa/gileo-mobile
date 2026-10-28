@@ -27,7 +27,7 @@ import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
 import { addNotification } from '../../services/notificationsStorage';
 import { getFirstName } from './profile';
-import { colors, spacing } from '../../theme';
+import { colors, formatKobo, spacing } from '../../theme/colors';
 
 type Product = {
   id: string;
@@ -276,7 +276,7 @@ export default function MarketplaceScreen() {
           id: p.id,
           title: p.title,
           category: p.category?.name || 'Gileo Collection',
-          price: `₦${(p.priceKobo / 100).toLocaleString()}`,
+          price: formatKobo(p.priceKobo),
           priceKobo: p.priceKobo,
           description: p.description,
           rating: '4.9',
@@ -443,7 +443,7 @@ export default function MarketplaceScreen() {
   };
 
   const cartTotalKobo = cart.reduce((sum, item) => sum + item.priceKobo * item.quantity, 0);
-  const cartTotalFormatted = `₦${(cartTotalKobo / 100).toLocaleString()}`;
+  const cartTotalFormatted = formatKobo(cartTotalKobo);
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const verifyPaymentWithBackend = async (ref: string, totalAmountFormatted?: string) => {

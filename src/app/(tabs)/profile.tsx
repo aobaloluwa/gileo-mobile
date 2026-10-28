@@ -20,7 +20,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from '../../services/api';
 import { AuthUser, clearAuthSession, getStoredUser, storeAuthSession } from '../../services/auth';
-import { colors, spacing } from '../../theme';
+import { colors, formatKobo, spacing } from '../../theme/colors';
 
 type OrderItem = {
   titleSnapshot: string;
@@ -577,7 +577,7 @@ export default function ProfileScreen() {
                 </View>
               ) : (
                 orders.map((order) => {
-                  const totalFormatted = `₦${(order.totalKobo / 100).toLocaleString()}`;
+                  const totalFormatted = formatKobo(order.totalKobo);
                   const isPaid = order.status === 'PAID' || order.status === 'DELIVERED';
                   return (
                     <Pressable
@@ -646,30 +646,35 @@ export default function ProfileScreen() {
                 </View>
               ) : (
                 libraryEBooks.map((book) => (
-                  <View key={book.id} style={styles.orderCard}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={{ width: 44, height: 44, borderRadius: 16, backgroundColor: '#FFF0F0', alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="book" size={22} color="#f90202" />
+                  <View key={book.id} style={styles.libraryCard}>
+                    <View style={styles.libraryCardRow}>
+                      <View style={styles.libraryIconBox}>
+                        <Ionicons name="book" size={20} color="#f90202" />
                       </View>
+
                       <View style={{ flex: 1, gap: 2 }}>
-                        <Text style={{ color: '#0F172A', fontSize: 15, fontWeight: '800' }}>{book.title}</Text>
-                        <Text style={{ color: '#64748B', fontSize: 12 }}>{book.author || 'Gileo Medicals Learning Hub'}</Text>
+                        <Text style={styles.libraryBookTitle} numberOfLines={1}>
+                          {book.title}
+                        </Text>
+                        <Text style={styles.libraryBookAuthor} numberOfLines={1}>
+                          {book.author || 'Gileo Medicals Learning Hub'}
+                        </Text>
                       </View>
+
+                      <Pressable
+                        style={styles.readEBookPillBtn}
+                        onPress={() => triggerToast(`Opening "${book.title}" handbook...`)}
+                      >
+                        <Ionicons name="eye-outline" size={14} color="#FFFFFF" />
+                        <Text style={styles.readEBookPillText}>Read E-Book</Text>
+                      </Pressable>
                     </View>
 
                     {book.description ? (
-                      <Text style={{ color: '#334155', fontSize: 13, lineHeight: 18 }} numberOfLines={2}>
+                      <Text style={styles.libraryBookDesc} numberOfLines={2}>
                         {book.description}
                       </Text>
                     ) : null}
-
-                    <Pressable
-                      style={styles.primaryActionBtn}
-                      onPress={() => triggerToast(`Opening "${book.title}" handbook...`)}
-                    >
-                      <Ionicons name="eye-outline" size={16} color="#FFFFFF" />
-                      <Text style={styles.primaryActionBtnText}>Read E-Book</Text>
-                    </Pressable>
                   </View>
                 ))
               )}
@@ -839,7 +844,7 @@ export default function ProfileScreen() {
                           <Text style={styles.receiptItemQty}>Qty: {item.quantity}</Text>
                         </View>
                         <Text style={styles.receiptItemPrice}>
-                          ₦{((item.unitPriceKobo * item.quantity) / 100).toLocaleString()}
+                          {formatKobo(item.unitPriceKobo * item.quantity)}
                         </Text>
                       </View>
                     ))}
@@ -848,7 +853,7 @@ export default function ProfileScreen() {
                   <View style={styles.receiptTotalRow}>
                     <Text style={styles.receiptTotalLabel}>Total Amount Paid</Text>
                     <Text style={styles.receiptTotalValue}>
-                      ₦{(selectedOrder.totalKobo / 100).toLocaleString()}
+                      {formatKobo(selectedOrder.totalKobo)}
                     </Text>
                   </View>
 
@@ -1131,6 +1136,58 @@ const styles = StyleSheet.create({
   },
   postsSection: {
     gap: 12,
+  },
+  libraryCard: {
+    padding: 16,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    gap: 10,
+  },
+  libraryCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  libraryIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#FFF0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  libraryBookTitle: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  libraryBookAuthor: {
+    color: '#64748B',
+    fontSize: 11,
+  },
+  libraryBookDesc: {
+    color: '#334155',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  readEBookPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#f90202',
+  },
+  readEBookPillText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   postCard: {
     padding: 18,

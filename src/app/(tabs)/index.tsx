@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredUser } from '../../services/auth';
 import { getFirstName } from './profile';
-import { colors, spacing } from '../../theme';
+import { colors, formatKobo, formatNaira, spacing } from '../../theme/colors';
 
 type LivePost = {
   id: string;
@@ -201,7 +201,7 @@ export default function HomeScreen() {
           id: p.id,
           title: p.title,
           category: p.category?.name || 'Gileo Apparel',
-          price: `₦${(p.priceKobo / 100).toLocaleString()}`,
+          price: formatKobo(p.priceKobo),
           priceKobo: p.priceKobo,
           rating: '4.9',
           icon: 'bag-handle-outline',
@@ -425,7 +425,7 @@ export default function HomeScreen() {
                 <View style={styles.spotlightFooterRow}>
                   <View style={styles.timeTagBox}>
                     <Ionicons name="calendar" size={14} color="#FFFFFF" />
-                    <Text style={styles.timeTagText}>Starts Nov 2026 • ₦150,000</Text>
+                    <Text style={styles.timeTagText}>Starts Nov 2026 • {formatNaira(150000)}</Text>
                   </View>
 
                   <Pressable
@@ -535,7 +535,7 @@ export default function HomeScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.trackerTitle}>Order {activeOrder.reference}</Text>
                     <Text style={styles.trackerSub}>
-                      Status: {activeOrder.status} • Total: ₦{(activeOrder.totalKobo / 100).toLocaleString()}
+                      Status: {activeOrder.status} • Total: {formatKobo(activeOrder.totalKobo)}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="#f90202" />
@@ -800,10 +800,10 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   spotlightHeroCard: {
-    borderRadius: 26,
+    borderRadius: 24,
     backgroundColor: '#f90202',
-    padding: 22,
-    gap: 12,
+    padding: 18,
+    gap: 10,
     shadowColor: '#f90202',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
@@ -829,20 +829,22 @@ const styles = StyleSheet.create({
   },
   spotlightTitle: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.4,
   },
   spotlightSub: {
     color: '#F8FAFC',
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 19,
     opacity: 0.9,
   },
   spotlightFooterRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.18)',
@@ -851,6 +853,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 1,
   },
   timeTagText: {
     color: '#FFFFFF',
@@ -861,10 +864,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
+    alignSelf: 'flex-start',
   },
   spotlightPillBtnText: {
     color: '#f90202',

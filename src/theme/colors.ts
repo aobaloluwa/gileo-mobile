@@ -45,3 +45,12 @@ export const typography = {
   caption: 13,
   button: 16,
 } as const;
+
+export function formatNaira(amountInNaira: number): string {
+  const naira = Math.floor(amountInNaira || 0);
+  return '₦' + naira.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+export function formatKobo(priceKobo: number): string {
+  return formatNaira(Math.floor((priceKobo || 0) / 100));
+}

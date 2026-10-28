@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
 import { getFirstName } from './profile';
-import { colors, spacing } from '../../theme';
+import { colors, formatKobo, spacing } from '../../theme/colors';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -187,6 +187,7 @@ export default function ServicesScreen() {
 
   // Paystack Payment Verification State
   const [isPayingRequest, setIsPayingRequest] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
 
   // Alert Dialog State
@@ -623,6 +624,23 @@ export default function ServicesScreen() {
             Request home-care nursing, elderly support, event medical standby, production coverage, and clinical service coordination.
           </Text>
 
+          {/* Services Search Bar */}
+          <View style={styles.searchBarBox}>
+            <Ionicons name="search-outline" size={18} color="#94A3B8" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search healthcare services, home care..."
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInput}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </Pressable>
+            )}
+          </View>
+
           {/* Tab Switcher */}
           <View style={styles.tabBar}>
             <Pressable
@@ -685,7 +703,7 @@ export default function ServicesScreen() {
                       <Text style={styles.cardPrice} numberOfLines={1}>
                         {item.priceLabel ||
                           (item.priceKobo
-                            ? `₦${(item.priceKobo / 100).toLocaleString()}`
+                            ? formatKobo(item.priceKobo)
                             : 'Custom Quote')}
                       </Text>
                     </View>
@@ -862,7 +880,7 @@ export default function ServicesScreen() {
                 <Text style={styles.modalPrice}>
                   {selectedService.priceLabel ||
                     (selectedService.priceKobo
-                      ? `₦${(selectedService.priceKobo / 100).toLocaleString()}`
+                      ? formatKobo(selectedService.priceKobo)
                       : 'Custom Quote')}
                 </Text>
 
@@ -1229,6 +1247,27 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 96,
     gap: 16,
+  },
+  searchBarBox: {
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  searchInput: {
+    flex: 1,
+    color: '#0F172A',
+    fontSize: 14,
   },
   topHeaderRow: {
     flexDirection: 'row',

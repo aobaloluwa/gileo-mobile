@@ -29,7 +29,7 @@ import { addNotification } from '../../services/notificationsStorage';
 WebBrowser.maybeCompleteAuthSession();
 
 import { getFirstName } from './profile';
-import { colors, spacing } from '../../theme';
+import { colors, formatKobo, spacing } from '../../theme/colors';
 
 type CommentItem = {
   id: string;
@@ -1301,7 +1301,7 @@ export default function CommunityScreen() {
 
               <View style={styles.cohortList}>
                 {cohorts.map((cohort) => {
-                  const priceFormatted = `₦${(cohort.priceKobo / 100).toLocaleString()}`;
+                  const priceFormatted = formatKobo(cohort.priceKobo);
                   return (
                     <View key={cohort.id} style={styles.cohortCard}>
                       <View style={styles.cohortCardHeader}>
@@ -1365,7 +1365,7 @@ export default function CommunityScreen() {
                         <Text style={styles.ebookAuthor}>{book.author}</Text>
                         <Text style={styles.ebookDesc} numberOfLines={2}>{book.description}</Text>
                         <Text style={styles.ebookPrice}>
-                          {isUnlocked ? 'UNLOCKED IN LIBRARY' : `₦${(book.priceKobo / 100).toLocaleString()}`}
+                          {isUnlocked ? 'UNLOCKED IN LIBRARY' : formatKobo(book.priceKobo)}
                         </Text>
 
                         <Pressable
@@ -1895,7 +1895,7 @@ export default function CommunityScreen() {
                     <View style={styles.cohortDetailHeader}>
                       <Text style={styles.cohortDetailTitle}>{selectedCohort.title}</Text>
                       <Text style={styles.cohortDetailPrice}>
-                        ₦{(selectedCohort.priceKobo / 100).toLocaleString()}
+                        {formatKobo(selectedCohort.priceKobo)}
                       </Text>
                     </View>
 
@@ -2104,7 +2104,7 @@ export default function CommunityScreen() {
                       <Text style={styles.ebookModalAuthor}>{selectedEBook.author}</Text>
                       <View style={styles.ebookModalPricePill}>
                         <Text style={styles.ebookModalPriceText}>
-                          ₦{(selectedEBook.priceKobo / 100).toLocaleString()}
+                          {formatKobo(selectedEBook.priceKobo)}
                         </Text>
                       </View>
                     </View>
@@ -2114,23 +2114,13 @@ export default function CommunityScreen() {
                       <Text style={styles.detailOverviewText}>{selectedEBook.description}</Text>
                     </View>
 
-                    <View style={styles.bankDetailCard}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                        <Ionicons name="business" size={20} color="#f90202" />
-                        <Text style={styles.bankDetailTitle}>Direct Transfer Details</Text>
-                      </View>
-
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Bank Name:</Text>
-                        <Text style={styles.bankVal}>United Bank for Africa (UBA)</Text>
-                      </View>
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Account Name:</Text>
-                        <Text style={styles.bankVal}>Gileo Medicals</Text>
-                      </View>
-                      <View style={styles.bankRow}>
-                        <Text style={styles.bankLabel}>Account Number:</Text>
-                        <Text style={styles.bankValHighlight}>2179111147</Text>
+                    <View style={styles.paystackNoticeBox}>
+                      <Ionicons name="shield-checkmark" size={22} color="#f90202" />
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={styles.paystackNoticeTitle}>Verified Instant Access</Text>
+                        <Text style={styles.paystackNoticeSub}>
+                          E-book access is verified automatically server-side upon successful Paystack payment confirmation.
+                        </Text>
                       </View>
                     </View>
 
@@ -2143,13 +2133,6 @@ export default function CommunityScreen() {
                       <Text style={styles.paystackLaunchBtnText}>
                         {isEnrolling ? 'Initializing Paystack...' : 'Proceed to Paystack Payment'}
                       </Text>
-                    </Pressable>
-
-                    <Pressable
-                      style={styles.doneBtn}
-                      onPress={() => void handleConfirmEBookPurchase(selectedEBook)}
-                    >
-                      <Text style={styles.doneBtnText}>Confirm Bank Transfer Access</Text>
                     </Pressable>
                   </ScrollView>
                 </>
