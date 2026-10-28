@@ -177,12 +177,30 @@ const formatReadableDate = (dateStr?: string): string => {
 };
 
 
+export function sortServicesInRequiredOrder(items: ServiceItem[]): ServiceItem[] {
+  const getRank = (item: ServiceItem) => {
+    const slug = (item.slug || '').toLowerCase();
+    const title = (item.title || '').toLowerCase();
+
+    if (slug.includes('elderly') || title.includes('elderly')) return 1;
+    if (slug.includes('onset') || slug.includes('production') || title.includes('on-set') || title.includes('production')) return 2;
+    if (slug.includes('wound') || title.includes('wound')) return 3;
+    if (slug.includes('event') || title.includes('event')) return 4;
+    if (slug.includes('corporate') || title.includes('corporate') || title.includes('organisational')) return 5;
+    if (slug.includes('coordination') || slug.includes('concierge') || title.includes('coordination') || title.includes('concierge')) return 6;
+    if (slug.includes('community') || title.includes('outreach')) return 7;
+    return 99;
+  };
+
+  return [...items].sort((a, b) => getRank(a) - getRank(b));
+}
+
 export default function ServicesScreen() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [activeTab, setActiveTab] = useState<'browse' | 'my_requests'>('browse');
 
   // Services Data State
-  const [services, setServices] = useState<ServiceItem[]>(defaultServices);
+  const [services, setServices] = useState<ServiceItem[]>(() => sortServicesInRequiredOrder(defaultServices));
   const [myRequests, setMyRequests] = useState<ServiceRequestItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -240,12 +258,12 @@ export default function ServicesScreen() {
     try {
       const backendServices = await apiRequest<ServiceItem[]>('/services');
       if (Array.isArray(backendServices) && backendServices.length > 0) {
-        setServices(backendServices);
+        setServices(sortServicesInRequiredOrder(backendServices));
       } else {
-        setServices(defaultServices);
+        setServices(sortServicesInRequiredOrder(defaultServices));
       }
     } catch {
-      setServices(defaultServices);
+      setServices(sortServicesInRequiredOrder(defaultServices));
     }
 
     // 2. Fetch my service requests from backend API if signed in
