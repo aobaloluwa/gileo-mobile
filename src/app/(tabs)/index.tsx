@@ -52,7 +52,7 @@ const defaultProducts: LiveProduct[] = [
     priceKobo: 2850000,
     rating: '4.9',
     icon: 'shirt-outline',
-    color: '#f90202',
+    color: '#B81C25',
   },
   {
     id: '9b1deb4d-3b7d-4149-9cd1-e633d3170002',
@@ -92,8 +92,8 @@ const pillars = [
     icon: 'heart' as const,
     title: 'Healthcare Services',
     subtitle: 'Home care & nursing',
-    bg: '#FFF0F0',
-    iconColor: '#f90202',
+    bg: '#FDF2F2',
+    iconColor: '#B81C25',
     targetRoute: '/(tabs)/services',
   },
   {
@@ -205,7 +205,7 @@ export default function HomeScreen() {
           priceKobo: p.priceKobo,
           rating: '4.9',
           icon: 'bag-handle-outline',
-          color: '#f90202',
+          color: '#B81C25',
         }));
         setAllProducts(mapped);
         setRandomProducts(shuffleArray(mapped).slice(0, 4));
@@ -273,8 +273,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#f90202"
-            colors={['#f90202']}
+            tintColor="#B81C25"
+            colors={['#B81C25']}
           />
         }
       >
@@ -351,7 +351,7 @@ export default function HomeScreen() {
                         router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
                       }
                     >
-                      <Ionicons name="bag-handle" size={20} color="#f90202" />
+                      <Ionicons name="bag-handle" size={20} color="#B81C25" />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.searchItemTitle}>{prod.title}</Text>
                         <Text style={styles.searchItemSub}>{prod.category} • {prod.price}</Text>
@@ -434,7 +434,7 @@ export default function HomeScreen() {
                     style={({ pressed }) => [styles.spotlightPillBtn, pressed && styles.pressed]}
                   >
                     <Text style={styles.spotlightPillBtnText}>Enrol in Cohort</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#f90202" />
+                    <Ionicons name="arrow-forward" size={14} color="#B81C25" />
                   </Pressable>
                 </View>
               </View>
@@ -530,7 +530,7 @@ export default function HomeScreen() {
                   onPress={() => router.push('/(tabs)/profile')}
                 >
                   <View style={styles.trackerIconBox}>
-                    <Ionicons name="receipt-outline" size={20} color="#f90202" />
+                    <Ionicons name="receipt-outline" size={20} color="#B81C25" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.trackerTitle}>Order {activeOrder.reference}</Text>
@@ -538,7 +538,7 @@ export default function HomeScreen() {
                       Status: {activeOrder.status} • Total: {formatKobo(activeOrder.totalKobo)}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#f90202" />
+                  <Ionicons name="chevron-forward" size={18} color="#B81C25" />
                 </Pressable>
               )}
 
@@ -549,7 +549,7 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.careBannerCard, pressed && styles.pressed]}
               >
                 <View style={styles.careIconSquare}>
-                  <Ionicons name="medkit" size={24} color="#f90202" />
+                  <Ionicons name="medkit" size={24} color="#B81C25" />
                 </View>
 
                 <View style={{ flex: 1, gap: 2 }}>
@@ -557,7 +557,7 @@ export default function HomeScreen() {
                   <Text style={styles.careSub}>Wound dressing, elderly recovery, and nursing standby.</Text>
                 </View>
 
-                <Ionicons name="arrow-forward" size={18} color="#f90202" />
+                <Ionicons name="arrow-forward" size={18} color="#B81C25" />
               </Pressable>
 
               {/* Support Banner */}
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   searchSubHeading: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 13,
     fontWeight: '800',
     marginBottom: 4,
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   trackerTitle: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -801,10 +801,10 @@ const styles = StyleSheet.create({
   },
   spotlightHeroCard: {
     borderRadius: 24,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     padding: 18,
     gap: 10,
-    shadowColor: '#f90202',
+    shadowColor: '#B81C25',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   spotlightPillBtnText: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   seeAllText: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -926,20 +926,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   catalogPrice: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 13,
     fontWeight: '800',
   },
   shopPillBtn: {
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#FDF2F2',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
   },
   shopPillText: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -963,12 +963,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#FDF2F2',
     alignItems: 'center',
     justifyContent: 'center',
   },
   liveAvatarInitial: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderRadius: 22,
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#FDF2F2',
     borderWidth: 1,
     borderColor: '#FECDD3',
     gap: 12,
@@ -1023,7 +1023,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   careTitle: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     gap: 14,
   },
   supportIconSquare: {

@@ -44,8 +44,8 @@ export async function getStoredNotifications(
         timeAgo: formatNotificationTime(n.timestamp || Date.now()),
         timestamp: n.timestamp || Date.now(),
         icon: n.icon || 'notifications',
-        iconBg: n.iconBg || '#FFF0F0',
-        iconColor: n.iconColor || '#f90202',
+        iconBg: n.iconBg || '#FDF2F2',
+        iconColor: n.iconColor || '#B81C25',
         read: Boolean(n.read),
       }));
 
@@ -112,8 +112,8 @@ export async function getStoredNotifications(
       timeAgo: 'Just now',
       timestamp: Date.now(),
       icon: 'sparkles',
-      iconBg: '#FFF0F0',
-      iconColor: '#f90202',
+      iconBg: '#FDF2F2',
+      iconColor: '#B81C25',
       read: false,
     },
   ];

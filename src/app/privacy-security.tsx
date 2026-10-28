@@ -211,7 +211,7 @@ export default function PrivacySecurityScreen() {
           <View style={styles.sectionCard}>
             <View style={styles.sectionTitleRow}>
               <View style={styles.sectionIconCircle}>
-                <Ionicons name="key-outline" size={20} color="#f90202" />
+                <Ionicons name="key-outline" size={20} color="#B81C25" />
               </View>
               <Text style={styles.sectionTitle}>Change Password</Text>
             </View>
@@ -275,7 +275,7 @@ export default function PrivacySecurityScreen() {
                     setTwoFactorEnabled(val);
                     triggerToast(val ? '2FA Enabled' : '2FA Disabled');
                   }}
-                  trackColor={{ false: '#E2E8F0', true: '#f90202' }}
+                  trackColor={{ false: '#E2E8F0', true: '#B81C25' }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -293,7 +293,7 @@ export default function PrivacySecurityScreen() {
                     setEmailNotifications(val);
                     triggerToast(val ? 'Notifications enabled' : 'Notifications disabled');
                   }}
-                  trackColor={{ false: '#E2E8F0', true: '#f90202' }}
+                  trackColor={{ false: '#E2E8F0', true: '#B81C25' }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -311,7 +311,7 @@ export default function PrivacySecurityScreen() {
                     setAnalyticsConsent(val);
                     triggerToast(val ? 'Analytics consent saved' : 'Analytics opt-out saved');
                   }}
-                  trackColor={{ false: '#E2E8F0', true: '#f90202' }}
+                  trackColor={{ false: '#E2E8F0', true: '#B81C25' }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -407,12 +407,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
-    shadowColor: '#f90202',
+    shadowColor: '#B81C25',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

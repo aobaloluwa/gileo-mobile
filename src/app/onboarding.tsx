@@ -222,7 +222,7 @@ export default function OnboardingScreen() {
                       {
                         width: indicatorWidth,
                         backgroundColor:
-                          index === activeIndex ? '#f90202' : '#E2E8F0',
+                          index === activeIndex ? '#B81C25' : '#E2E8F0',
                       },
                     ]}
                   />
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   eyebrow: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 56,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',

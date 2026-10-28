@@ -51,7 +51,7 @@ export default function AppTextInput({
             textInputProps.onBlur?.(event);
           }}
           placeholderTextColor="#94A3B8"
-          selectionColor="#f90202"
+          selectionColor="#B81C25"
           style={[styles.input, style]}
           accessibilityLabel={label}
         />

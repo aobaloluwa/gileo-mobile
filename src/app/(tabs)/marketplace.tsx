@@ -80,9 +80,9 @@ const initialProducts: Product[] = [
     rating: '4.9',
     reviewsCount: 38,
     icon: 'shirt-outline',
-    color: '#f90202',
+    color: '#B81C25',
     availableColors: [
-      { name: 'Gileo Red', hex: '#f90202' },
+      { name: 'Gileo Red', hex: '#B81C25' },
       { name: 'Navy Blue', hex: '#1E3A8A' },
       { name: 'Olive Green', hex: '#365314' },
       { name: 'Midnight Black', hex: '#111111' },
@@ -103,7 +103,7 @@ const initialProducts: Product[] = [
     color: '#059669',
     availableColors: [
       { name: 'Classic Black', hex: '#111111' },
-      { name: 'Gileo Red', hex: '#f90202' },
+      { name: 'Gileo Red', hex: '#B81C25' },
     ],
     availableSizes: ['Standard'],
   },
@@ -136,7 +136,7 @@ const initialProducts: Product[] = [
     color: '#B45309',
     availableColors: [
       { name: 'Dark Navy', hex: '#1E293B' },
-      { name: 'Gileo Red', hex: '#f90202' },
+      { name: 'Gileo Red', hex: '#B81C25' },
     ],
     availableSizes: ['One Size'],
   },
@@ -282,9 +282,9 @@ export default function MarketplaceScreen() {
           rating: '4.9',
           reviewsCount: 15,
           icon: 'bag-handle-outline',
-          color: '#f90202',
+          color: '#B81C25',
           availableColors: [
-            { name: 'Gileo Red', hex: '#f90202' },
+            { name: 'Gileo Red', hex: '#B81C25' },
             { name: 'Navy Blue', hex: '#1E3A8A' },
           ],
           availableSizes: ['S', 'M', 'L', 'XL'],
@@ -553,7 +553,7 @@ export default function MarketplaceScreen() {
         title: 'Sign In Required',
         message: 'Please sign in to your Gileo account to complete your Paystack checkout.',
         icon: 'lock-closed-outline',
-        iconColor: '#f90202',
+        iconColor: '#B81C25',
         primaryBtnText: 'Sign In',
         onPrimaryPress: () => {
           hideAlertModal();
@@ -679,8 +679,8 @@ export default function MarketplaceScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#f90202"
-            colors={['#f90202']}
+            tintColor="#B81C25"
+            colors={['#B81C25']}
           />
         }
       >
@@ -814,7 +814,7 @@ export default function MarketplaceScreen() {
                       <View style={styles.cardPriceRow}>
                         <Text style={styles.cardPrice}>{product.price}</Text>
                         <View style={styles.addPillBtn}>
-                          <Ionicons name="add" size={16} color="#f90202" />
+                          <Ionicons name="add" size={16} color="#B81C25" />
                         </View>
                       </View>
                     </View>
@@ -1002,7 +1002,7 @@ export default function MarketplaceScreen() {
                     {cart.map((item) => (
                       <View key={item.id} style={styles.cartItemCard}>
                         <View style={styles.cartIconBox}>
-                          <Ionicons name={item.icon} size={28} color="#f90202" />
+                          <Ionicons name={item.icon} size={28} color="#B81C25" />
                         </View>
 
                         <View style={{ flex: 1, gap: 4 }}>
@@ -1063,7 +1063,7 @@ export default function MarketplaceScreen() {
 
               <ScrollView contentContainerStyle={styles.checkoutContent}>
                 <View style={styles.paystackNoticeBox}>
-                  <Ionicons name="shield-checkmark" size={22} color="#f90202" />
+                  <Ionicons name="shield-checkmark" size={22} color="#B81C25" />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.paystackNoticeTitle}>Secure Paystack Payment</Text>
                     <Text style={styles.paystackNoticeSub}>Pay securely via Debit/Credit card or Transfer.</Text>
@@ -1171,7 +1171,7 @@ export default function MarketplaceScreen() {
           >
             <View style={styles.verifyingModalOverlay}>
               <View style={styles.verifyingCard}>
-                <ActivityIndicator size="large" color="#f90202" />
+                <ActivityIndicator size="large" color="#B81C25" />
                 <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
                 <Text style={styles.verifyingSub}>Confirming transaction with Gileo server</Text>
               </View>
@@ -1232,12 +1232,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
-    shadowColor: '#f90202',
+    shadowColor: '#B81C25',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1290,7 +1290,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -1335,7 +1335,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   categoryPillActive: {
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
   },
   categoryText: {
     fontSize: 13,
@@ -1407,7 +1407,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   cardPrice: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1529,7 +1529,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   detailPrice: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 22,
     fontWeight: '800',
   },
@@ -1632,7 +1632,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 54,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1699,7 +1699,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   cartItemPrice: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -1748,7 +1748,7 @@ const styles = StyleSheet.create({
   checkoutBtn: {
     height: 54,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1774,7 +1774,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECDD3',
   },
   paystackNoticeTitle: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -1804,7 +1804,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1814,14 +1814,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   successRef: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 14,
     fontWeight: '800',
   },
   paystackLaunchBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1877,7 +1877,7 @@ const styles = StyleSheet.create({
   customAlertPrimaryBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1956,7 +1956,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   orderRefValue: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
@@ -1974,7 +1974,7 @@ const styles = StyleSheet.create({
   primarySuccessBtn: {
     height: 50,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -88,11 +88,11 @@ export default function NotificationsScreen() {
                 key={item.id}
                 style={[styles.notifCard, !item.read && styles.notifCardUnread]}
               >
-                <View style={[styles.iconCircle, { backgroundColor: item.iconBg || '#FFF0F0' }]}>
+                <View style={[styles.iconCircle, { backgroundColor: item.iconBg || '#FDF2F2' }]}>
                   <Ionicons
                     name={(item.icon as keyof typeof Ionicons.glyphMap) || 'notifications'}
                     size={20}
-                    color={item.iconColor || '#f90202'}
+                    color={item.iconColor || '#B81C25'}
                   />
                 </View>
 
@@ -183,11 +183,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#FFF0F0',
+    backgroundColor: '#FDF2F2',
     marginTop: 4,
   },
   markReadText: {
-    color: '#f90202',
+    color: '#B81C25',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   notifCardUnread: {
     borderLeftWidth: 4,
-    borderLeftColor: '#f90202',
+    borderLeftColor: '#B81C25',
   },
   iconCircle: {
     width: 44,
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     marginTop: 6,
   },
   connectBackPillText: {
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#f90202',
+    backgroundColor: '#B81C25',
     marginTop: 6,
   },
   footerNote: {
