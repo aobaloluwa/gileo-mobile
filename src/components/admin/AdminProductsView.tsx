@@ -124,9 +124,15 @@ export function AdminProductsView() {
 
   const handlePickPhotosFromPhone = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setToastText('Photo library permission is required.');
+      if (!ImagePicker || typeof ImagePicker.launchImageLibraryAsync !== 'function') {
+        throw new Error(
+          'Photo library is unavailable in standard Expo Go. Paste Image URL below or build a preview APK.',
+        );
+      }
+
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync().catch(() => null);
+      if (!permission || !permission.granted) {
+        setToastText('Photo library permission was denied or unavailable.');
         return;
       }
 
@@ -145,7 +151,7 @@ export function AdminProductsView() {
           return a.uri;
         });
         setImages((prev) => [...prev, ...newPicked]);
-        setToastText(`${newPicked.length} photos added from gallery!`);
+        setToastText(`${newPicked.length} ${newPicked.length === 1 ? 'photo' : 'photos'} added!`);
       }
     } catch (err: any) {
       setToastText(err?.message || 'Could not pick photos from phone.');
@@ -307,8 +313,8 @@ export function AdminProductsView() {
             <Text style={styles.fieldLabel}>Stock Units *</Text>
             <TextInput value={stock} onChangeText={setStock} placeholder="10" keyboardType="numeric" style={styles.modalInput} />
 
-            {/* Product Pictures - Direct Gallery Upload Only */}
-            <Text style={styles.fieldLabel}>Product Pictures (Upload from Gallery)</Text>
+            {/* Product Pictures - Direct Gallery Upload & URL Input */}
+            <Text style={styles.fieldLabel}>Product Pictures (Gallery Upload / Image Links)</Text>
 
             <Pressable
               accessibilityRole="button"
@@ -324,6 +330,18 @@ export function AdminProductsView() {
               </View>
               <Ionicons name="add-circle" size={22} color="#F10505" />
             </Pressable>
+
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              <TextInput
+                value={newImageUrl}
+                onChangeText={setNewImageUrl}
+                placeholder="Or paste Image URL / Cloudinary link"
+                style={[styles.modalInput, { flex: 1 }]}
+              />
+              <Pressable style={styles.addImageBtn} onPress={handleAddImage}>
+                <Ionicons name="add" size={20} color="#FFFFFF" />
+              </Pressable>
+            </View>
 
             {images.length > 0 && (
               <View style={styles.galleryThumbsContainer}>
