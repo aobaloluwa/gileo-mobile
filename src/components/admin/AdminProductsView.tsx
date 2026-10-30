@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GalleryImagePicker } from '../GalleryImagePicker';
+import * as DocumentPicker from 'expo-document-picker';
 import { apiRequest } from '../../services/api';
 import { formatKobo } from '../../theme/colors';
 
@@ -55,10 +55,8 @@ export function AdminProductsView() {
 
   // Multi-Image, Colors & Sizes States
   const [images, setImages] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState('');
   const [selectedColors, setSelectedColors] = useState<{ name: string; hex: string }[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [pickerTriggerKey, setPickerTriggerKey] = useState(0);
 
   const [isSaving, setIsSaving] = useState(false);
   const [toastText, setToastText] = useState('');
@@ -95,7 +93,6 @@ export function AdminProductsView() {
     setStock('10');
     setDescription('');
     setImages([]);
-    setNewImageUrl('');
     setSelectedColors([COLOR_PRESETS[0]]);
     setSelectedSizes(['S', 'M', 'L', 'XL']);
     setShowModal(true);
@@ -113,18 +110,28 @@ export function AdminProductsView() {
     setShowModal(true);
   };
 
-  const handleAddImage = () => {
-    if (!newImageUrl.trim()) return;
-    setImages((prev) => [...prev, newImageUrl.trim()]);
-    setNewImageUrl('');
-  };
-
   const handleRemoveImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handlePickPhotosFromPhone = () => {
-    setPickerTriggerKey((prev) => prev + 1);
+  const handlePickPhotosFromPhone = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedUris = result.assets.map((asset) => asset.uri);
+        setImages((prev) => [...prev, ...selectedUris]);
+        setToastText(
+          `${selectedUris.length} ${selectedUris.length === 1 ? 'photo' : 'photos'} added from phone gallery!`,
+        );
+      }
+    } catch (err: any) {
+      setToastText(err?.message || 'Could not open photo gallery.');
+    }
   };
 
   const toggleColorSelect = (c: { name: string; hex: string }) => {
@@ -365,14 +372,6 @@ export function AdminProductsView() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-
-      <GalleryImagePicker
-        triggerKey={pickerTriggerKey}
-        onImagesSelected={(newPicked) => {
-          setImages((prev) => [...prev, ...newPicked]);
-          setToastText(`${newPicked.length} ${newPicked.length === 1 ? 'photo' : 'photos'} added from phone gallery!`);
-        }}
-      />
     </SafeAreaView>
   );
 }
@@ -556,14 +555,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#0F172A',
     fontSize: 14,
-  },
-  addImageBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#F10505',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   thumbWrapper: {
     position: 'relative',
