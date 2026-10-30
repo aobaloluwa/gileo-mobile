@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  NativeModules,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -123,17 +124,30 @@ export function AdminProductsView() {
 
   const handlePickPhotosFromPhone = async () => {
     try {
+      const hasNativePicker = Boolean(
+        NativeModules.ExponentImagePicker || NativeModules.ExpoImagePicker,
+      );
+
+      if (!hasNativePicker) {
+        setToastText(
+          'Photo library is unavailable in standard Expo Go. Paste Image URL below or build preview APK.',
+        );
+        return;
+      }
+
       let ImagePickerModule: typeof import('expo-image-picker') | null = null;
       try {
-        ImagePickerModule = await import('expo-image-picker');
+        ImagePickerModule = require('expo-image-picker');
       } catch {
-        throw new Error(
-          'Photo library is unavailable in standard Expo Go. Paste Image URL below or build a preview APK.',
+        setToastText(
+          'Photo library is unavailable in standard Expo Go. Paste Image URL below or build preview APK.',
         );
+        return;
       }
 
       if (!ImagePickerModule || typeof ImagePickerModule.launchImageLibraryAsync !== 'function') {
-        throw new Error('Photo library is unavailable in standard Expo Go.');
+        setToastText('Photo library native module is unavailable.');
+        return;
       }
 
       const permission = await ImagePickerModule.requestMediaLibraryPermissionsAsync().catch(() => null);
@@ -150,7 +164,7 @@ export function AdminProductsView() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newPicked = result.assets.map((a) => {
+        const newPicked = result.assets.map((a: any) => {
           if (a.base64) {
             return `data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`;
           }
