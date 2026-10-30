@@ -22,7 +22,7 @@ import { apiRequest } from '../../services/api';
 import { AuthUser, getInMemoryUserSync, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
 import { getFirstName } from './profile';
 import { colors, formatKobo, formatNaira, spacing } from '../../theme/colors';
-import { AdminChartJS } from '../../components/AdminChartJS';
+import { AdminDashboardView } from '../../components/admin/AdminDashboardView';
 
 type LivePost = {
   id: string;
@@ -326,6 +326,10 @@ export default function HomeScreen() {
 
   const firstName = getFirstName(user);
 
+  if (user?.role === 'ADMIN') {
+    return <AdminDashboardView />;
+  }
+
   if (isAuthChecking && !user) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F7F9', alignItems: 'center', justifyContent: 'center' }}>
@@ -370,12 +374,8 @@ export default function HomeScreen() {
           {/* Top Bar Header with Hello First Name */}
           <View style={styles.topHeaderRow}>
             <View style={styles.greetingBox}>
-              <Text style={styles.greetingSubTitle}>
-                {user?.role === 'ADMIN' ? 'Administrator Mode' : `Hello, ${firstName} 👋`}
-              </Text>
-              <Text style={styles.greetingTitle} numberOfLines={1}>
-                {user?.role === 'ADMIN' ? 'Gileo Admin Dashboard' : 'Gileo Medicals'}
-              </Text>
+              <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
+              <Text style={styles.greetingTitle} numberOfLines={1}>Gileo Medicals</Text>
             </View>
 
             <View style={styles.topRightActions}>
@@ -397,96 +397,28 @@ export default function HomeScreen() {
                   {firstName.charAt(0).toUpperCase()}
                 </Text>
                 <View style={styles.proBadgePill}>
-                  <Text style={styles.proBadgeText} numberOfLines={1}>
-                    {user?.role === 'ADMIN' ? 'ADMIN' : 'MEMBER'}
-                  </Text>
+                  <Text style={styles.proBadgeText} numberOfLines={1}>MEMBER</Text>
                 </View>
               </Pressable>
             </View>
           </View>
 
-          {/* DEDICATED ADMIN DASHBOARD VIEW FOR ADMINISTRATORS */}
-          {user?.role === 'ADMIN' ? (
-            <View style={{ gap: 18 }}>
-              {/* Metrics Grid */}
-              <View style={styles.pillarsGridRow}>
-                <View style={styles.pillarCardBox}>
-                  <Ionicons name="cash-outline" size={24} color="#F10505" />
-                  <Text style={styles.metricValText}>{formatKobo(adminStats.totalRevenueKobo || 0)}</Text>
-                  <Text style={styles.metricLblText}>Total Revenue</Text>
-                </View>
-
-                <View style={styles.pillarCardBox}>
-                  <Ionicons name="bag-handle-outline" size={24} color="#059669" />
-                  <Text style={styles.metricValText}>{adminStats.totalOrders || 0}</Text>
-                  <Text style={styles.metricLblText}>Total Orders</Text>
-                </View>
-
-                <View style={styles.pillarCardBox}>
-                  <Ionicons name="people-outline" size={24} color="#4F46E5" />
-                  <Text style={styles.metricValText}>{adminStats.totalUsers || 0}</Text>
-                  <Text style={styles.metricLblText}>Total Users</Text>
-                </View>
-
-                <View style={styles.pillarCardBox}>
-                  <Ionicons name="medkit-outline" size={24} color="#B45309" />
-                  <Text style={styles.metricValText}>{adminStats.activeServices || 0}</Text>
-                  <Text style={styles.metricLblText}>Care Requests</Text>
-                </View>
-              </View>
-
-              {/* Chart.js Interactive Revenue Analytics Vector Chart */}
-              <View style={styles.chartCardWrapper}>
-                <View style={styles.chartHeaderRow}>
-                  <View>
-                    <Text style={styles.chartTitle}>Revenue & Sales Analytics</Text>
-                    <Text style={styles.chartSub}>Weekly Revenue Trend (Chart.js Vector Engine)</Text>
-                  </View>
-                  <View style={styles.chartBadgePill}>
-                    <Ionicons name="trending-up" size={14} color="#10B981" />
-                    <Text style={styles.chartBadgeText}>+24.8%</Text>
-                  </View>
-                </View>
-
-                <AdminChartJS
-                  type="line"
-                  labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-                  dataPoints={[45000, 68000, 92000, 58000, 120000, 84000, 105000]}
-                  chartTitle="Sales (₦)"
-                />
-              </View>
-
-              {/* Quick Action Shortcuts for Admin */}
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <Pressable style={styles.adminActionBtn} onPress={() => router.push('/(tabs)/marketplace')}>
-                  <Ionicons name="add-circle" size={18} color="#FFFFFF" />
-                  <Text style={styles.adminActionBtnText}>Manage Products</Text>
-                </Pressable>
-
-                <Pressable style={[styles.adminActionBtn, { backgroundColor: '#3F0106' }]} onPress={() => router.push('/(tabs)/community')}>
-                  <Ionicons name="bag-handle" size={18} color="#FFFFFF" />
-                  <Text style={styles.adminActionBtnText}>Manage Orders</Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <>
-              {/* Global Search Bar Container for Patients */}
-              <View style={styles.searchCardWrapper}>
-                <Ionicons name="search-outline" size={20} color="#94A3B8" />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder="Search services, products, posts, cohorts..."
-                  placeholderTextColor="#94A3B8"
-                  style={styles.searchInputField}
-                />
-                {searchQuery.length > 0 && (
-                  <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
-                  </Pressable>
-                )}
-              </View>
+          {/* Global Search Bar Container for Patients */}
+          <View style={styles.searchCardWrapper}>
+            <Ionicons name="search-outline" size={20} color="#94A3B8" />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search services, products, posts, cohorts..."
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInputField}
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color="#94A3B8" />
+              </Pressable>
+            )}
+          </View>
 
               {isSearching ? (
                 <View style={styles.searchResultsContainer}>
@@ -774,8 +706,6 @@ export default function HomeScreen() {
                   </Pressable>
                 </>
               )}
-            </>
-          )}
 
           <Text style={styles.footerNoteText}>GILEO MEDICALS GLOBAL LIMITED • 2026</Text>
         </Animated.View>
