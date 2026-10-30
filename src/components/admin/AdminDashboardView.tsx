@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdminChartJS } from '../AdminChartJS';
+import { AdminDashboardSkeleton } from './AdminDashboardSkeleton';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredUser } from '../../services/auth';
 import { formatKobo } from '../../theme/colors';
@@ -116,33 +117,41 @@ export function AdminDashboardView() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Top Responsive Header Bar */}
-      <View style={styles.topHeaderRow}>
-        <View style={{ flex: 1, minWidth: 140 }}>
-          <Text style={styles.headerSubTitle}>Overview</Text>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Gileo Operations
-          </Text>
-        </View>
-
-        <View style={styles.headerRightActions}>
-          <View style={styles.dateRangePill}>
-            <Ionicons name="calendar-outline" size={13} color="#64748B" />
-            <Text style={styles.dateRangeText} numberOfLines={1}>Live Database Metrics</Text>
+      {/* Top Header Section - Row 1: Title & Right Actions (Notifications & Profile) */}
+      <View style={styles.topHeaderContainer}>
+        <View style={styles.topHeaderMainRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerSubTitle}>Overview</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              Gileo Operations
+            </Text>
           </View>
 
-          <Pressable
-            style={styles.notifBtn}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons name="notifications-outline" size={18} color="#0F172A" />
-            <View style={styles.notifDot} />
-          </Pressable>
+          <View style={styles.headerRightActions}>
+            <Pressable
+              style={styles.notifBtn}
+              onPress={() => router.push('/notifications')}
+            >
+              <Ionicons name="notifications-outline" size={20} color="#0F172A" />
+              <View style={styles.notifDot} />
+            </Pressable>
 
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>
-              {(user?.displayName || 'O').charAt(0).toUpperCase()}
-            </Text>
+            <Pressable
+              style={styles.avatarCircle}
+              onPress={() => router.push('/(tabs)/profile')}
+            >
+              <Text style={styles.avatarText}>
+                {(user?.displayName || 'O').charAt(0).toUpperCase()}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Row 2: Date / Status Pill moved down into a separate row */}
+        <View style={styles.dateSubRow}>
+          <View style={styles.dateRangePill}>
+            <Ionicons name="calendar-outline" size={13} color="#64748B" />
+            <Text style={styles.dateRangeText}>May 12 – Jun 11, 2026</Text>
           </View>
         </View>
       </View>
@@ -153,10 +162,7 @@ export function AdminDashboardView() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F10505" />}
       >
         {loading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#F10505" />
-            <Text style={styles.loadingText}>Fetching Real-time Database Metrics...</Text>
-          </View>
+          <AdminDashboardSkeleton />
         ) : (
           <View style={{ gap: 16 }}>
             {/* TOP RESPONSIVE METRIC CARDS GRID */}
@@ -172,8 +178,8 @@ export function AdminDashboardView() {
                   {formatKobo(stats.totalRevenueKobo || 0)}
                 </Text>
                 <View style={styles.growthBadgeRow}>
-                  <Ionicons name="stats-chart" size={12} color="#059669" />
-                  <Text style={styles.growthText} numberOfLines={1}>Verified Payments</Text>
+                  <Ionicons name="checkmark-circle" size={12} color="#059669" />
+                  <Text style={styles.growthText} numberOfLines={1}>Paid Orders Only</Text>
                 </View>
               </View>
 
@@ -215,7 +221,7 @@ export function AdminDashboardView() {
                 <Text style={styles.metricValue} numberOfLines={1}>{stats.conversionRate || '0.00'}%</Text>
                 <View style={styles.growthBadgeRow}>
                   <Ionicons name="flash" size={12} color="#9333EA" />
-                  <Text style={styles.growthText} numberOfLines={1}>Order/User Ratio</Text>
+                  <Text style={styles.growthText} numberOfLines={1}>Paid / Started Orders</Text>
                 </View>
               </View>
             </View>
@@ -225,15 +231,9 @@ export function AdminDashboardView() {
               <View style={styles.chartHeaderRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardSectionTitle}>Sales Overview</Text>
-                  <View style={styles.chartSubRow}>
-                    <Text style={styles.chartMainVal} numberOfLines={1}>
-                      {formatKobo(stats.totalRevenueKobo || 0)}
-                    </Text>
-                    <View style={styles.chartPillGrowth}>
-                      <Ionicons name="analytics" size={12} color="#059669" />
-                      <Text style={styles.chartPillGrowthText} numberOfLines={1}>Database Real-time</Text>
-                    </View>
-                  </View>
+                  <Text style={styles.chartMainVal} numberOfLines={1}>
+                    {formatKobo(stats.totalRevenueKobo || 0)}
+                  </Text>
                 </View>
 
                 {/* Period Switcher */}
@@ -404,14 +404,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F6F7F9',
   },
-  topHeaderRow: {
+  topHeaderContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  topHeaderMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    flexWrap: 'wrap',
-    gap: 8,
   },
   headerSubTitle: {
     color: '#64748B',
@@ -425,13 +426,17 @@ const styles = StyleSheet.create({
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+  },
+  dateSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dateRangePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
+    gap: 6,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
@@ -440,52 +445,45 @@ const styles = StyleSheet.create({
   },
   dateRangeText: {
     color: '#64748B',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
   },
   notifBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   notifDot: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 9,
+    right: 9,
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#EF4444',
   },
   avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
   },
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 96,
-  },
-  loadingBox: {
-    paddingVertical: 60,
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    color: '#64748B',
-    fontSize: 13,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -557,30 +555,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
-  chartSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
-  },
   chartMainVal: {
     color: '#0F172A',
     fontSize: 17,
     fontWeight: '800',
-  },
-  chartPillGrowth: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: '#ECFDF5',
-  },
-  chartPillGrowthText: {
-    color: '#059669',
-    fontSize: 10,
-    fontWeight: '800',
+    marginTop: 2,
   },
   periodSwitcherPill: {
     flexDirection: 'row',
