@@ -307,37 +307,38 @@ export function AdminProductsView() {
             <Text style={styles.fieldLabel}>Stock Units *</Text>
             <TextInput value={stock} onChangeText={setStock} placeholder="10" keyboardType="numeric" style={styles.modalInput} />
 
-            {/* Multi-Image Cloudinary Upload / Phone Gallery Selector */}
-            <Text style={styles.fieldLabel}>Product Pictures (Upload from Gallery / Cloudinary)</Text>
+            {/* Product Pictures - Direct Gallery Upload Only */}
+            <Text style={styles.fieldLabel}>Product Pictures (Upload from Gallery)</Text>
 
-            <Pressable style={styles.galleryPickBtn} onPress={handlePickPhotosFromPhone}>
-              <Ionicons name="images" size={18} color="#FFFFFF" />
-              <Text style={styles.galleryPickBtnText}>Pick Photos from Phone Gallery (Android & iOS)</Text>
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.directGalleryCard, pressed && styles.pressed]}
+              onPress={handlePickPhotosFromPhone}
+            >
+              <View style={styles.galleryIconSquare}>
+                <Ionicons name="camera" size={24} color="#F10505" />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.galleryCardTitle}>Upload Photos from Phone Gallery</Text>
+                <Text style={styles.galleryCardSub}>Select multiple photos directly from Android or iOS gallery</Text>
+              </View>
+              <Ionicons name="add-circle" size={22} color="#F10505" />
             </Pressable>
 
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TextInput
-                value={newImageUrl}
-                onChangeText={setNewImageUrl}
-                placeholder="Or paste Image URL / Cloudinary link"
-                style={[styles.modalInput, { flex: 1 }]}
-              />
-              <Pressable style={styles.addImageBtn} onPress={handleAddImage}>
-                <Ionicons name="add" size={20} color="#FFFFFF" />
-              </Pressable>
-            </View>
-
             {images.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-                {images.map((img, idx) => (
-                  <View key={idx} style={styles.thumbWrapper}>
-                    <Image source={{ uri: img }} style={styles.thumbImage} resizeMode="cover" />
-                    <Pressable style={styles.thumbRemoveBtn} onPress={() => handleRemoveImage(idx)}>
-                      <Ionicons name="close-circle" size={18} color="#EF4444" />
-                    </Pressable>
-                  </View>
-                ))}
-              </ScrollView>
+              <View style={styles.galleryThumbsContainer}>
+                <Text style={styles.thumbsCountText}>Selected Pictures ({images.length})</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+                  {images.map((img, idx) => (
+                    <View key={idx} style={styles.thumbWrapper}>
+                      <Image source={{ uri: img }} style={styles.thumbImage} resizeMode="cover" />
+                      <Pressable style={styles.thumbRemoveBtn} onPress={() => handleRemoveImage(idx)}>
+                        <Ionicons name="close-circle" size={20} color="#EF4444" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
             )}
 
             {/* Colors Selector */}
@@ -527,18 +528,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  galleryPickBtn: {
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#3F0106',
+  directGalleryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: '#FDF2F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    gap: 12,
   },
-  galleryPickBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+  galleryIconSquare: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  galleryCardTitle: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  galleryCardSub: {
+    color: '#64748B',
+    fontSize: 11,
+  },
+  galleryThumbsContainer: {
+    gap: 6,
+    marginTop: 4,
+  },
+  thumbsCountText: {
+    color: '#64748B',
+    fontSize: 12,
     fontWeight: '700',
   },
   modalInput: {
@@ -639,5 +662,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     paddingVertical: 30,
+  },
+  pressed: {
+    opacity: 0.88,
   },
 });
