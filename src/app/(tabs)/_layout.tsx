@@ -1,11 +1,47 @@
-
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { apiRequest } from '../../services/api';
+import {
+  getStoredAccessToken,
+  getStoredRefreshToken,
+  getStoredUser,
+  storeAuthSession,
+} from '../../services/auth';
 import { colors } from '../../theme';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkRole() {
+      const u = await getStoredUser();
+      if (u?.role === 'ADMIN') {
+        setIsAdmin(true);
+      }
+
+      try {
+        const profile = await apiRequest<any>('/profile/me');
+        if (profile?.role === 'ADMIN') {
+          setIsAdmin(true);
+          if (u && u.role !== 'ADMIN') {
+            const updated = { ...u, role: 'ADMIN' as const };
+            const access = await getStoredAccessToken();
+            const refresh = await getStoredRefreshToken();
+            if (access && refresh) {
+              await storeAuthSession({ accessToken: access, refreshToken: refresh, user: updated });
+            }
+          }
+        } else if (profile?.role === 'CUSTOMER') {
+          setIsAdmin(false);
+        }
+      } catch {}
+    }
+
+    void checkRole();
+  }, []);
 
   return (
     <Tabs
@@ -36,10 +72,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: isAdmin ? 'Dashboard' : 'Home',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'home' : 'home-outline'}
+              name={isAdmin ? (focused ? 'grid' : 'grid-outline') : (focused ? 'home' : 'home-outline')}
               size={size}
               color={color}
             />
@@ -50,10 +86,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="services"
         options={{
-          title: 'Services',
+          title: isAdmin ? 'Care Requests' : 'Services',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'heart' : 'heart-outline'}
+              name={isAdmin ? (focused ? 'medkit' : 'medkit-outline') : (focused ? 'heart' : 'heart-outline')}
               size={size}
               color={color}
             />
@@ -64,10 +100,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="marketplace"
         options={{
-          title: 'Marketplace',
+          title: isAdmin ? 'Products' : 'Marketplace',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'bag-handle' : 'bag-handle-outline'}
+              name={isAdmin ? (focused ? 'shirt' : 'shirt-outline') : (focused ? 'bag-handle' : 'bag-handle-outline')}
               size={size}
               color={color}
             />
@@ -78,10 +114,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="community"
         options={{
-          title: 'Community',
+          title: isAdmin ? 'Orders' : 'Community',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'people' : 'people-outline'}
+              name={isAdmin ? (focused ? 'bag-handle' : 'bag-handle-outline') : (focused ? 'people' : 'people-outline')}
               size={size}
               color={color}
             />
@@ -92,10 +128,18 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: isAdmin ? 'Admin Hub' : 'Profile',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'person-circle' : 'person-circle-outline'}
+              name={
+                isAdmin
+                  ? focused
+                    ? 'shield-checkmark'
+                    : 'shield-checkmark-outline'
+                  : focused
+                    ? 'person-circle'
+                    : 'person-circle-outline'
+              }
               size={size}
               color={color}
             />

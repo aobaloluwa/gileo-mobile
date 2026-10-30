@@ -194,7 +194,7 @@ export default function HomeScreen() {
   const [allProducts, setAllProducts] = useState<LiveProduct[]>(defaultProducts);
   const [randomProducts, setRandomProducts] = useState<LiveProduct[]>(defaultProducts);
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
-  const [connectionsCount, setConnectionsCount] = useState(0);
+  const [adminStats, setAdminStats] = useState<any>({});
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(18)).current;
@@ -222,7 +222,17 @@ export default function HomeScreen() {
       }
     } catch {}
 
-    // 1. Read real active orders from NestJS backend API
+    // If Admin, load admin dashboard stats
+    if (u?.role === 'ADMIN') {
+      try {
+        const stats = await apiRequest<any>('/admin/dashboard');
+        setAdminStats(stats || {});
+      } catch {
+        setAdminStats({});
+      }
+    }
+
+    // Read real active orders from NestJS backend API
     try {
       const myOrders = await apiRequest<any[]>('/shop/orders/mine');
       if (Array.isArray(myOrders) && myOrders.length > 0) {
@@ -234,19 +244,7 @@ export default function HomeScreen() {
       setActiveOrder(null);
     }
 
-    // 2. Read real connections count from NestJS backend API
-    try {
-      const connRes = await apiRequest<string[]>('/community/connections');
-      if (Array.isArray(connRes)) {
-        setConnectionsCount(connRes.length);
-      } else {
-        setConnectionsCount(0);
-      }
-    } catch {
-      setConnectionsCount(0);
-    }
-
-    // 3. Load real community posts from NestJS backend API & pick 2 RANDOM posts on reload
+    // Load real community posts from NestJS backend API & pick 2 RANDOM posts
     try {
       const backendPosts = await apiRequest<any[]>('/community/posts');
       if (Array.isArray(backendPosts) && backendPosts.length > 0) {
@@ -264,7 +262,7 @@ export default function HomeScreen() {
       }
     } catch {}
 
-    // 4. Load real products from NestJS backend & pick 4 RANDOM products on reload
+    // Load real products from NestJS backend & pick 4 RANDOM products
     try {
       const backendProds = await apiRequest<any[]>('/shop/products');
       if (Array.isArray(backendProds) && backendProds.length > 0) {
@@ -359,9 +357,11 @@ export default function HomeScreen() {
           {/* Top Bar Header with Hello First Name */}
           <View style={styles.topHeaderRow}>
             <View style={styles.greetingBox}>
-              <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
+              <Text style={styles.greetingSubTitle}>
+                {user?.role === 'ADMIN' ? 'Administrator Mode' : `Hello, ${firstName} 👋`}
+              </Text>
               <Text style={styles.greetingTitle} numberOfLines={1}>
-                Gileo Medicals
+                {user?.role === 'ADMIN' ? 'Gileo Admin Dashboard' : 'Gileo Medicals'}
               </Text>
             </View>
 
@@ -373,7 +373,7 @@ export default function HomeScreen() {
                   style={({ pressed }) => [styles.adminSwitchHeaderBtn, pressed && styles.pressed]}
                 >
                   <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-                  <Text style={styles.adminSwitchHeaderText}>Admin</Text>
+                  <Text style={styles.adminSwitchHeaderText}>Admin Hub</Text>
                 </Pressable>
               )}
 
@@ -396,315 +396,394 @@ export default function HomeScreen() {
                 </Text>
                 <View style={styles.proBadgePill}>
                   <Text style={styles.proBadgeText} numberOfLines={1}>
-                    MEMBER
+                    {user?.role === 'ADMIN' ? 'ADMIN' : 'MEMBER'}
                   </Text>
                 </View>
               </Pressable>
             </View>
           </View>
 
-          {/* Global Search Bar Container */}
-          <View style={styles.searchCardWrapper}>
-            <Ionicons name="search-outline" size={20} color="#94A3B8" />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search services, products, posts, cohorts..."
-              placeholderTextColor="#94A3B8"
-              style={styles.searchInputField}
-            />
-            {searchQuery.length > 0 && (
-              <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
-                <Ionicons name="close-circle" size={18} color="#94A3B8" />
-              </Pressable>
-            )}
-          </View>
-
-          {/* Render Deep Search Results if searching */}
-          {isSearching ? (
-            <View style={styles.searchResultsContainer}>
-              <Text style={styles.searchResultHeading}>Search Results for "{searchQuery}"</Text>
-
-              {/* Matching Products */}
-              {searchMatchingProducts.length > 0 && (
-                <View style={styles.sectionGroup}>
-                  <Text style={styles.searchSubHeading}>Products ({searchMatchingProducts.length})</Text>
-                  {searchMatchingProducts.map((prod) => (
-                    <Pressable
-                      key={prod.id}
-                      style={styles.searchItemCard}
-                      onPress={() =>
-                        router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
-                      }
-                    >
-                      <Ionicons name="bag-handle" size={20} color="#F10505" />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.searchItemTitle}>{prod.title}</Text>
-                        <Text style={styles.searchItemSub}>{prod.category} • {prod.price}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-
-              {/* Matching Posts */}
-              {searchMatchingPosts.length > 0 && (
-                <View style={styles.sectionGroup}>
-                  <Text style={styles.searchSubHeading}>Community Posts ({searchMatchingPosts.length})</Text>
-                  {searchMatchingPosts.map((post) => (
-                    <Pressable
-                      key={post.id}
-                      style={styles.searchItemCard}
-                      onPress={() =>
-                        router.push({ pathname: '/(tabs)/community', params: { postId: post.id } })
-                      }
-                    >
-                      <Ionicons name="chatbubbles" size={20} color="#059669" />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.searchItemTitle}>{post.authorName}</Text>
-                        <Text style={styles.searchItemSub} numberOfLines={1}>{post.content}</Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-
-              {searchMatchingProducts.length === 0 && searchMatchingPosts.length === 0 && (
-                <Text style={styles.noSearchText}>No items found matching "{searchQuery}".</Text>
-              )}
-            </View>
-          ) : (
-            <>
-              {/* Quick Category Pillars Grid (2 Per Row) */}
+          {/* DEDICATED ADMIN DASHBOARD VIEW FOR ADMINISTRATORS */}
+          {user?.role === 'ADMIN' ? (
+            <View style={{ gap: 18 }}>
+              {/* Metrics Grid */}
               <View style={styles.pillarsGridRow}>
-                {pillars.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    accessibilityRole="button"
-                    onPress={() => router.push(item.targetRoute as any)}
-                    style={({ pressed }) => [styles.pillarCardBox, pressed && styles.pressed]}
-                  >
-                    <View style={[styles.pillarIconCircleBox, { backgroundColor: item.bg }]}>
-                      <Ionicons name={item.icon} size={22} color={item.iconColor} />
-                    </View>
-                    <Text style={styles.pillarTitleText}>{item.title}</Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              {/* SECTION 1 (FIRST): HEALTHCARE SERVICES HIGHLIGHT SECTION */}
-              <View style={styles.sectionGroup}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionHeadingText}>Healthcare Services</Text>
-                  <Pressable onPress={() => router.push('/(tabs)/services')}>
-                    <Text style={styles.seeAllText}>View All Services</Text>
-                  </Pressable>
+                <View style={styles.pillarCardBox}>
+                  <Ionicons name="cash-outline" size={24} color="#F10505" />
+                  <Text style={styles.metricValText}>{formatKobo(adminStats.totalRevenueKobo || 0)}</Text>
+                  <Text style={styles.metricLblText}>Total Revenue</Text>
                 </View>
 
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 14, paddingBottom: 12, paddingTop: 4, paddingHorizontal: 2 }}
-                >
-                  {highlightedServices.map((srv) => (
-                    <Pressable
-                      key={srv.id}
-                      accessibilityRole="button"
-                      onPress={() => router.push('/(tabs)/services')}
-                      style={({ pressed }) => [styles.serviceHighlightCard, pressed && styles.pressed]}
-                    >
-                      <View style={styles.serviceHighlightHeader}>
-                        <View style={[styles.serviceIconSquare, { backgroundColor: srv.iconBg }]}>
-                          <Ionicons name={srv.icon} size={24} color={srv.iconColor} />
-                        </View>
-                        <View style={styles.serviceBadgePill}>
-                          <Text style={styles.serviceBadgeText}>{srv.badge}</Text>
-                        </View>
-                      </View>
-
-                      <Text style={styles.serviceHighlightTitle} numberOfLines={1}>
-                        {srv.title}
-                      </Text>
-                      <Text style={styles.serviceHighlightSub} numberOfLines={2}>
-                        {srv.description}
-                      </Text>
-
-                      <View style={styles.serviceCardFooter}>
-                        <Text style={styles.serviceHighlightPrice} numberOfLines={1}>
-                          {srv.priceLabel}
-                        </Text>
-                        <View style={styles.requestServicePill}>
-                          <Text style={styles.requestServicePillText}>Request Care</Text>
-                          <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
-                        </View>
-                      </View>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* SECTION 2 (SECOND): MEDICAL MARKETPLACE SECTION */}
-              <View style={styles.sectionGroup}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionHeadingText}>Medical Marketplace</Text>
-                  <Pressable onPress={() => router.push('/(tabs)/marketplace')}>
-                    <Text style={styles.seeAllText}>View All</Text>
-                  </Pressable>
+                <View style={styles.pillarCardBox}>
+                  <Ionicons name="bag-handle-outline" size={24} color="#059669" />
+                  <Text style={styles.metricValText}>{adminStats.totalOrders || 0}</Text>
+                  <Text style={styles.metricLblText}>Total Orders</Text>
                 </View>
 
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 12, paddingBottom: 12, paddingTop: 4, paddingHorizontal: 2 }}
-                >
-                  {randomProducts.map((prod) => (
-                    <Pressable
-                      key={prod.id}
-                      accessibilityRole="button"
-                      onPress={() =>
-                        router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
-                      }
-                      style={({ pressed }) => [styles.catalogCard, pressed && styles.pressed]}
-                    >
-                      <View style={[styles.catalogIconBox, { backgroundColor: prod.color + '15' }]}>
-                        <Ionicons name={prod.icon} size={28} color={prod.color} />
-                      </View>
+                <View style={styles.pillarCardBox}>
+                  <Ionicons name="people-outline" size={24} color="#4F46E5" />
+                  <Text style={styles.metricValText}>{adminStats.totalUsers || 0}</Text>
+                  <Text style={styles.metricLblText}>Total Users</Text>
+                </View>
 
-                      <Text style={styles.catalogCategory}>{prod.category}</Text>
-                      <Text style={styles.catalogTitle} numberOfLines={1}>{prod.title}</Text>
-                      <Text style={styles.catalogPrice}>{prod.price}</Text>
-
-                      <View style={styles.shopPillBtn}>
-                        <Text style={styles.shopPillText}>Shop Now</Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                <View style={styles.pillarCardBox}>
+                  <Ionicons name="medkit-outline" size={24} color="#B45309" />
+                  <Text style={styles.metricValText}>{adminStats.activeServices || 0}</Text>
+                  <Text style={styles.metricLblText}>Care Requests</Text>
+                </View>
               </View>
 
-              {/* SECTION 3 (THIRD): GILEO ELEVATE SPOTLIGHT HERO CARD */}
+              {/* Vector Revenue Analytics Chart */}
               <View style={styles.spotlightHeroCard}>
                 <View style={styles.spotlightHeaderRow}>
                   <View style={styles.spotlightTagPill}>
-                    <Text style={styles.spotlightTagText}>GILEO ELEVATE</Text>
+                    <Text style={styles.spotlightTagText}>VECTOR ANALYTICS</Text>
                   </View>
-                  <Ionicons name="sparkles" size={18} color="#F59E0B" />
+                  <Ionicons name="trending-up" size={18} color="#10B981" />
                 </View>
 
-                <Text style={styles.spotlightTitle}>Executive Leadership Cohort</Text>
-                <Text style={styles.spotlightSub}>
-                  Advance your nursing practice with 6 weeks of structured mentorship, concierge consulting, and international career pathways.
-                </Text>
+                <Text style={styles.spotlightTitle}>Weekly Sales & Revenue Trend</Text>
 
-                <View style={styles.spotlightFooterRow}>
-                  <View style={styles.timeTagBox}>
-                    <Ionicons name="calendar" size={14} color="#FFFFFF" />
-                    <Text style={styles.timeTagText}>Starts Nov 2026 • {formatNaira(150000)}</Text>
-                  </View>
-
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => router.push('/(tabs)/community?tab=elevate')}
-                    style={({ pressed }) => [styles.spotlightPillBtn, pressed && styles.pressed]}
-                  >
-                    <Text style={styles.spotlightPillBtnText} numberOfLines={1}>
-                      Enrol in Cohort
-                    </Text>
-                    <Ionicons name="arrow-forward" size={14} color="#F10505" />
-                  </Pressable>
+                {/* Vector Bar Chart */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 120, paddingTop: 10 }}>
+                  {[
+                    { day: 'Mon', heightPct: '45%', val: '₦45k' },
+                    { day: 'Tue', heightPct: '65%', val: '₦68k' },
+                    { day: 'Wed', heightPct: '85%', val: '₦92k' },
+                    { day: 'Thu', heightPct: '55%', val: '₦58k' },
+                    { day: 'Fri', heightPct: '100%', val: '₦120k' },
+                    { day: 'Sat', heightPct: '75%', val: '₦84k' },
+                    { day: 'Sun', heightPct: '90%', val: '₦105k' },
+                  ].map((bar, idx) => (
+                    <View key={bar.day} style={{ flex: 1, alignItems: 'center', height: '100%', gap: 4 }}>
+                      <Text style={{ color: '#FDF2F2', fontSize: 9, fontWeight: '700' }}>{bar.val}</Text>
+                      <View style={{ flex: 1, width: 14, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'flex-end', overflow: 'hidden' }}>
+                        <View style={{ width: '100%', height: bar.heightPct as any, borderRadius: 7, backgroundColor: idx === 4 ? '#FFFFFF' : '#3F0106' }} />
+                      </View>
+                      <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>{bar.day}</Text>
+                    </View>
+                  ))}
                 </View>
               </View>
 
-              {/* SECTION 4 (FOURTH): COMMUNITY DISCUSSIONS SECTION */}
-              {randomPosts.length > 0 && (
-                <View style={styles.sectionGroup}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionHeadingText}>Community Discussions</Text>
-                    <Pressable onPress={() => router.push('/(tabs)/community')}>
-                      <Text style={styles.seeAllText}>Join Feed</Text>
-                    </Pressable>
-                  </View>
-
-                  {randomPosts.map((post) => (
-                    <Pressable
-                      key={post.id}
-                      accessibilityRole="button"
-                      onPress={() =>
-                        router.push({ pathname: '/(tabs)/community', params: { postId: post.id } })
-                      }
-                      style={({ pressed }) => [styles.livePostCard, pressed && styles.pressed]}
-                    >
-                      <View style={styles.livePostHeader}>
-                        <View style={styles.liveAvatarCircle}>
-                          <Text style={styles.liveAvatarInitial}>
-                            {post.authorName.charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.liveAuthorName}>{post.authorName}</Text>
-                          <Text style={styles.liveAuthorRole}>{post.authorRole}</Text>
-                        </View>
-                      </View>
-
-                      <Text style={styles.livePostContent} numberOfLines={2}>
-                        {post.content}
-                      </Text>
-
-                      <View style={styles.livePostFooter}>
-                        <View style={styles.liveMetaItem}>
-                          <Ionicons name="heart-outline" size={14} color="#64748B" />
-                          <Text style={styles.liveMetaText}>{post.likesCount || 0}</Text>
-                        </View>
-                        <View style={styles.liveMetaItem}>
-                          <Ionicons name="chatbubble-outline" size={14} color="#64748B" />
-                          <Text style={styles.liveMetaText}>{post.commentsCount || 0}</Text>
-                        </View>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-
-              {/* Relocated Active Order Banner */}
-              {activeOrder && (
-                <Pressable
-                  style={styles.trackerBanner}
-                  onPress={() => router.push('/(tabs)/profile')}
-                >
-                  <View style={styles.trackerIconBox}>
-                    <Ionicons name="receipt-outline" size={20} color="#F10505" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.trackerTitle}>Order {activeOrder.reference}</Text>
-                    <Text style={styles.trackerSub}>
-                      Status: {activeOrder.status} • Total: {formatKobo(activeOrder.totalKobo)}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color="#F10505" />
+              {/* Quick Action Shortcuts for Admin */}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <Pressable style={styles.adminActionBtn} onPress={() => router.push('/(tabs)/marketplace')}>
+                  <Ionicons name="add-circle" size={18} color="#FFFFFF" />
+                  <Text style={styles.adminActionBtnText}>Manage Products</Text>
                 </Pressable>
+
+                <Pressable style={[styles.adminActionBtn, { backgroundColor: '#3F0106' }]} onPress={() => router.push('/(tabs)/community')}>
+                  <Ionicons name="bag-handle" size={18} color="#FFFFFF" />
+                  <Text style={styles.adminActionBtnText}>Manage Orders</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <>
+              {/* Global Search Bar Container for Patients */}
+              <View style={styles.searchCardWrapper}>
+                <Ionicons name="search-outline" size={20} color="#94A3B8" />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search services, products, posts, cohorts..."
+                  placeholderTextColor="#94A3B8"
+                  style={styles.searchInputField}
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                  </Pressable>
+                )}
+              </View>
+
+              {isSearching ? (
+                <View style={styles.searchResultsContainer}>
+                  <Text style={styles.searchResultHeading}>Search Results for "{searchQuery}"</Text>
+
+                  {/* Matching Products */}
+                  {searchMatchingProducts.length > 0 && (
+                    <View style={styles.sectionGroup}>
+                      <Text style={styles.searchSubHeading}>Products ({searchMatchingProducts.length})</Text>
+                      {searchMatchingProducts.map((prod) => (
+                        <Pressable
+                          key={prod.id}
+                          style={styles.searchItemCard}
+                          onPress={() =>
+                            router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
+                          }
+                        >
+                          <Ionicons name="bag-handle" size={20} color="#F10505" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.searchItemTitle}>{prod.title}</Text>
+                            <Text style={styles.searchItemSub}>{prod.category} • {prod.price}</Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Matching Posts */}
+                  {searchMatchingPosts.length > 0 && (
+                    <View style={styles.sectionGroup}>
+                      <Text style={styles.searchSubHeading}>Community Posts ({searchMatchingPosts.length})</Text>
+                      {searchMatchingPosts.map((post) => (
+                        <Pressable
+                          key={post.id}
+                          style={styles.searchItemCard}
+                          onPress={() =>
+                            router.push({ pathname: '/(tabs)/community', params: { postId: post.id } })
+                          }
+                        >
+                          <Ionicons name="chatbubbles" size={20} color="#059669" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.searchItemTitle}>{post.authorName}</Text>
+                            <Text style={styles.searchItemSub} numberOfLines={1}>{post.content}</Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+
+                  {searchMatchingProducts.length === 0 && searchMatchingPosts.length === 0 && (
+                    <Text style={styles.noSearchText}>No items found matching "{searchQuery}".</Text>
+                  )}
+                </View>
+              ) : (
+                <>
+                  {/* Quick Category Pillars Grid (2 Per Row) */}
+                  <View style={styles.pillarsGridRow}>
+                    {pillars.map((item) => (
+                      <Pressable
+                        key={item.id}
+                        accessibilityRole="button"
+                        onPress={() => router.push(item.targetRoute as any)}
+                        style={({ pressed }) => [styles.pillarCardBox, pressed && styles.pressed]}
+                      >
+                        <View style={[styles.pillarIconCircleBox, { backgroundColor: item.bg }]}>
+                          <Ionicons name={item.icon} size={22} color={item.iconColor} />
+                        </View>
+                        <Text style={styles.pillarTitleText}>{item.title}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {/* SECTION 1 (FIRST): HEALTHCARE SERVICES HIGHLIGHT SECTION */}
+                  <View style={styles.sectionGroup}>
+                    <View style={styles.sectionHeaderRow}>
+                      <Text style={styles.sectionHeadingText}>Healthcare Services</Text>
+                      <Pressable onPress={() => router.push('/(tabs)/services')}>
+                        <Text style={styles.seeAllText}>View All Services</Text>
+                      </Pressable>
+                    </View>
+
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 14, paddingBottom: 12, paddingTop: 4, paddingHorizontal: 2 }}
+                    >
+                      {highlightedServices.map((srv) => (
+                        <Pressable
+                          key={srv.id}
+                          accessibilityRole="button"
+                          onPress={() => router.push('/(tabs)/services')}
+                          style={({ pressed }) => [styles.serviceHighlightCard, pressed && styles.pressed]}
+                        >
+                          <View style={styles.serviceHighlightHeader}>
+                            <View style={[styles.serviceIconSquare, { backgroundColor: srv.iconBg }]}>
+                              <Ionicons name={srv.icon} size={24} color={srv.iconColor} />
+                            </View>
+                            <View style={styles.serviceBadgePill}>
+                              <Text style={styles.serviceBadgeText}>{srv.badge}</Text>
+                            </View>
+                          </View>
+
+                          <Text style={styles.serviceHighlightTitle} numberOfLines={1}>
+                            {srv.title}
+                          </Text>
+                          <Text style={styles.serviceHighlightSub} numberOfLines={2}>
+                            {srv.description}
+                          </Text>
+
+                          <View style={styles.serviceCardFooter}>
+                            <Text style={styles.serviceHighlightPrice} numberOfLines={1}>
+                              {srv.priceLabel}
+                            </Text>
+                            <View style={styles.requestServicePill}>
+                              <Text style={styles.requestServicePillText}>Request Care</Text>
+                              <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
+                            </View>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+
+                  {/* SECTION 2 (SECOND): MEDICAL MARKETPLACE SECTION */}
+                  <View style={styles.sectionGroup}>
+                    <View style={styles.sectionHeaderRow}>
+                      <Text style={styles.sectionHeadingText}>Medical Marketplace</Text>
+                      <Pressable onPress={() => router.push('/(tabs)/marketplace')}>
+                        <Text style={styles.seeAllText}>View All</Text>
+                      </Pressable>
+                    </View>
+
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 12, paddingBottom: 12, paddingTop: 4, paddingHorizontal: 2 }}
+                    >
+                      {randomProducts.map((prod) => (
+                        <Pressable
+                          key={prod.id}
+                          accessibilityRole="button"
+                          onPress={() =>
+                            router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
+                          }
+                          style={({ pressed }) => [styles.catalogCard, pressed && styles.pressed]}
+                        >
+                          <View style={[styles.catalogIconBox, { backgroundColor: prod.color + '15' }]}>
+                            <Ionicons name={prod.icon} size={28} color={prod.color} />
+                          </View>
+
+                          <Text style={styles.catalogCategory}>{prod.category}</Text>
+                          <Text style={styles.catalogTitle} numberOfLines={1}>{prod.title}</Text>
+                          <Text style={styles.catalogPrice}>{prod.price}</Text>
+
+                          <View style={styles.shopPillBtn}>
+                            <Text style={styles.shopPillText}>Shop Now</Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+
+                  {/* SECTION 3 (THIRD): GILEO ELEVATE SPOTLIGHT HERO CARD */}
+                  <View style={styles.spotlightHeroCard}>
+                    <View style={styles.spotlightHeaderRow}>
+                      <View style={styles.spotlightTagPill}>
+                        <Text style={styles.spotlightTagText}>GILEO ELEVATE</Text>
+                      </View>
+                      <Ionicons name="sparkles" size={18} color="#F59E0B" />
+                    </View>
+
+                    <Text style={styles.spotlightTitle}>Executive Leadership Cohort</Text>
+                    <Text style={styles.spotlightSub}>
+                      Advance your nursing practice with 6 weeks of structured mentorship, concierge consulting, and international career pathways.
+                    </Text>
+
+                    <View style={styles.spotlightFooterRow}>
+                      <View style={styles.timeTagBox}>
+                        <Ionicons name="calendar" size={14} color="#FFFFFF" />
+                        <Text style={styles.timeTagText}>Starts Nov 2026 • {formatNaira(150000)}</Text>
+                      </View>
+
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => router.push('/(tabs)/community?tab=elevate')}
+                        style={({ pressed }) => [styles.spotlightPillBtn, pressed && styles.pressed]}
+                      >
+                        <Text style={styles.spotlightPillBtnText} numberOfLines={1}>
+                          Enrol in Cohort
+                        </Text>
+                        <Ionicons name="arrow-forward" size={14} color="#F10505" />
+                      </Pressable>
+                    </View>
+                  </View>
+
+                  {/* SECTION 4 (FOURTH): COMMUNITY DISCUSSIONS SECTION */}
+                  {randomPosts.length > 0 && (
+                    <View style={styles.sectionGroup}>
+                      <View style={styles.sectionHeaderRow}>
+                        <Text style={styles.sectionHeadingText}>Community Discussions</Text>
+                        <Pressable onPress={() => router.push('/(tabs)/community')}>
+                          <Text style={styles.seeAllText}>Join Feed</Text>
+                        </Pressable>
+                      </View>
+
+                      {randomPosts.map((post) => (
+                        <Pressable
+                          key={post.id}
+                          accessibilityRole="button"
+                          onPress={() =>
+                            router.push({ pathname: '/(tabs)/community', params: { postId: post.id } })
+                          }
+                          style={({ pressed }) => [styles.livePostCard, pressed && styles.pressed]}
+                        >
+                          <View style={styles.livePostHeader}>
+                            <View style={styles.liveAvatarCircle}>
+                              <Text style={styles.liveAvatarInitial}>
+                                {post.authorName.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.liveAuthorName}>{post.authorName}</Text>
+                              <Text style={styles.liveAuthorRole}>{post.authorRole}</Text>
+                            </View>
+                          </View>
+
+                          <Text style={styles.livePostContent} numberOfLines={2}>
+                            {post.content}
+                          </Text>
+
+                          <View style={styles.livePostFooter}>
+                            <View style={styles.liveMetaItem}>
+                              <Ionicons name="heart-outline" size={14} color="#64748B" />
+                              <Text style={styles.liveMetaText}>{post.likesCount || 0}</Text>
+                            </View>
+                            <View style={styles.liveMetaItem}>
+                              <Ionicons name="chatbubble-outline" size={14} color="#64748B" />
+                              <Text style={styles.liveMetaText}>{post.commentsCount || 0}</Text>
+                            </View>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Relocated Active Order Banner */}
+                  {activeOrder && (
+                    <Pressable
+                      style={styles.trackerBanner}
+                      onPress={() => router.push('/(tabs)/profile')}
+                    >
+                      <View style={styles.trackerIconBox}>
+                        <Ionicons name="receipt-outline" size={20} color="#F10505" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.trackerTitle}>Order {activeOrder.reference}</Text>
+                        <Text style={styles.trackerSub}>
+                          Status: {activeOrder.status} • Total: {formatKobo(activeOrder.totalKobo)}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color="#F10505" />
+                    </Pressable>
+                  )}
+
+                  {/* Direct Support Banner */}
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={handleCallSupport}
+                    style={({ pressed }) => [styles.supportBannerCard, pressed && styles.pressed]}
+                  >
+                    <View style={styles.supportIconSquare}>
+                      <Ionicons name="headset" size={22} color="#FFFFFF" />
+                    </View>
+
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={styles.supportTitle}>Need Direct Support?</Text>
+                      <Text style={styles.supportSub}>Speak directly with GILEO Support Team</Text>
+                      <Text style={styles.supportPhone}>+234 816 533 5594</Text>
+                    </View>
+
+                    <Ionicons name="call" size={20} color="#FFFFFF" />
+                  </Pressable>
+                </>
               )}
-
-              {/* Direct Support Banner */}
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleCallSupport}
-                style={({ pressed }) => [styles.supportBannerCard, pressed && styles.pressed]}
-              >
-                <View style={styles.supportIconSquare}>
-                  <Ionicons name="headset" size={22} color="#FFFFFF" />
-                </View>
-
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={styles.supportTitle}>Need Direct Support?</Text>
-                  <Text style={styles.supportSub}>Speak directly with GILEO Support Team</Text>
-                  <Text style={styles.supportPhone}>+234 816 533 5594</Text>
-                </View>
-
-                <Ionicons name="call" size={20} color="#FFFFFF" />
-              </Pressable>
             </>
           )}
 
@@ -818,6 +897,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  adminActionBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: '#F10505',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  adminActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   searchCardWrapper: {
     height: 54,
     flexDirection: 'row',
@@ -904,6 +998,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     textAlign: 'center',
+  },
+  metricValText: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  metricLblText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
   },
   sectionGroup: {
     gap: 12,
