@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -23,7 +24,20 @@ type AdminProduct = {
   stock: number;
   description: string;
   status: string;
+  images?: string[];
+  colors?: { name: string; hex: string }[];
+  sizes?: string[];
 };
+
+const COLOR_PRESETS = [
+  { name: 'Gileo Red', hex: '#F10505' },
+  { name: 'Executive Wine', hex: '#3F0106' },
+  { name: 'Navy Blue', hex: '#1E3A8A' },
+  { name: 'Medical Teal', hex: '#059669' },
+  { name: 'Classic Black', hex: '#0F172A' },
+];
+
+const SIZE_PRESETS = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 
 export function AdminProductsView() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -37,6 +51,13 @@ export function AdminProductsView() {
   const [priceNaira, setPriceNaira] = useState('');
   const [stock, setStock] = useState('10');
   const [description, setDescription] = useState('');
+
+  // Multi-Image, Colors & Sizes States
+  const [images, setImages] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [selectedColors, setSelectedColors] = useState<{ name: string; hex: string }[]>([]);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [toastText, setToastText] = useState('');
 
@@ -71,6 +92,10 @@ export function AdminProductsView() {
     setPriceNaira('');
     setStock('10');
     setDescription('');
+    setImages([]);
+    setNewImageUrl('');
+    setSelectedColors([COLOR_PRESETS[0]]);
+    setSelectedSizes(['S', 'M', 'L', 'XL']);
     setShowModal(true);
   };
 
@@ -80,7 +105,36 @@ export function AdminProductsView() {
     setPriceNaira(String(Math.floor((p.priceKobo || 0) / 100)));
     setStock(String(p.stock || 0));
     setDescription(p.description || '');
+    setImages(p.images || []);
+    setSelectedColors(p.colors || [COLOR_PRESETS[0]]);
+    setSelectedSizes(p.sizes || ['S', 'M', 'L', 'XL']);
     setShowModal(true);
+  };
+
+  const handleAddImage = () => {
+    if (!newImageUrl.trim()) return;
+    setImages((prev) => [...prev, newImageUrl.trim()]);
+    setNewImageUrl('');
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleColorSelect = (c: { name: string; hex: string }) => {
+    if (selectedColors.some((sc) => sc.hex === c.hex)) {
+      setSelectedColors((prev) => prev.filter((sc) => sc.hex !== c.hex));
+    } else {
+      setSelectedColors((prev) => [...prev, c]);
+    }
+  };
+
+  const toggleSizeSelect = (sz: string) => {
+    if (selectedSizes.includes(sz)) {
+      setSelectedSizes((prev) => prev.filter((s) => s !== sz));
+    } else {
+      setSelectedSizes((prev) => [...prev, sz]);
+    }
   };
 
   const handleSaveSubmit = async () => {
@@ -98,6 +152,9 @@ export function AdminProductsView() {
             priceKobo,
             stock: stockVal,
             description: description.trim(),
+            images,
+            colors: selectedColors,
+            sizes: selectedSizes,
           }),
         });
         setToastText('Product updated!');
@@ -111,9 +168,12 @@ export function AdminProductsView() {
             stock: stockVal,
             description: description.trim() || 'Premium Gileo product',
             status: 'PUBLISHED',
+            images,
+            colors: selectedColors,
+            sizes: selectedSizes,
           }),
         });
-        setToastText('Product created!');
+        setToastText('Product created with images, colors & sizes!');
       }
       setShowModal(false);
       await loadProducts();
@@ -137,7 +197,7 @@ export function AdminProductsView() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.topHeader}>
-        <Text style={styles.headerSub}>Admin Controls</Text>
+        <Text style={styles.headerSub}>Admin Catalog Controls</Text>
         <Text style={styles.headerTitle}>Marketplace Products</Text>
       </View>
 
@@ -147,7 +207,7 @@ export function AdminProductsView() {
       >
         <Pressable style={styles.primaryAddBtn} onPress={handleOpenAdd}>
           <Ionicons name="add" size={18} color="#FFFFFF" />
-          <Text style={styles.primaryAddBtnText}>Add New Marketplace Product</Text>
+          <Text style={styles.primaryAddBtnText}>Add New Product (Photos, Colors & Sizes)</Text>
         </Pressable>
 
         {loading ? (
@@ -169,9 +229,18 @@ export function AdminProductsView() {
                 <Text style={styles.metaText}>Stock Units: {p.stock}</Text>
                 {p.description && <Text style={styles.descText} numberOfLines={2}>{p.description}</Text>}
 
+                {/* Display Color & Size Badges */}
+                <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                  {p.sizes?.map((sz) => (
+                    <View key={sz} style={styles.tagBadge}>
+                      <Text style={styles.tagText}>{sz}</Text>
+                    </View>
+                  ))}
+                </View>
+
                 <View style={styles.actionRow}>
                   <Pressable style={styles.editBtn} onPress={() => handleOpenEdit(p)}>
-                    <Text style={styles.editBtnText}>Edit Product</Text>
+                    <Text style={styles.editBtnText}>Edit Details</Text>
                   </Pressable>
 
                   <Pressable style={styles.deleteBtn} onPress={() => handleDelete(p.id)}>
@@ -186,31 +255,101 @@ export function AdminProductsView() {
 
       {/* Add/Edit Product Modal */}
       <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', padding: 20, gap: 14 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>
-            {editingProduct ? 'Edit Marketplace Product' : 'Add New Product'}
-          </Text>
-
-          <Text style={styles.fieldLabel}>Product Title *</Text>
-          <TextInput value={title} onChangeText={setTitle} placeholder="Title" style={styles.modalInput} />
-
-          <Text style={styles.fieldLabel}>Price (₦ Naira) *</Text>
-          <TextInput value={priceNaira} onChangeText={setPriceNaira} placeholder="28500" keyboardType="numeric" style={styles.modalInput} />
-
-          <Text style={styles.fieldLabel}>Stock Units *</Text>
-          <TextInput value={stock} onChangeText={setStock} placeholder="10" keyboardType="numeric" style={styles.modalInput} />
-
-          <Text style={styles.fieldLabel}>Description</Text>
-          <TextInput value={description} onChangeText={setDescription} placeholder="Details..." multiline numberOfLines={3} style={[styles.modalInput, { height: 80 }]} />
-
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 'auto' }}>
-            <Pressable style={{ flex: 1, height: 48, borderRadius: 999, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' }} onPress={() => setShowModal(false)}>
-              <Text style={{ fontWeight: '700', color: '#0F172A' }}>Cancel</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+          <View style={styles.modalHeader}>
+            <Pressable onPress={() => setShowModal(false)} style={styles.circleCloseBtn}>
+              <Ionicons name="close" size={20} color="#0F172A" />
             </Pressable>
-            <Pressable style={{ flex: 1, height: 48, borderRadius: 999, backgroundColor: '#F10505', alignItems: 'center', justifyContent: 'center' }} disabled={isSaving} onPress={handleSaveSubmit}>
-              <Text style={{ fontWeight: '700', color: '#FFFFFF' }}>{isSaving ? 'Saving...' : 'Save Product'}</Text>
-            </Pressable>
+            <Text style={styles.modalHeaderTitle}>
+              {editingProduct ? 'Edit Marketplace Product' : 'Add New Product'}
+            </Text>
+            <View style={{ width: 40 }} />
           </View>
+
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 60 }}>
+            <Text style={styles.fieldLabel}>Product Title *</Text>
+            <TextInput value={title} onChangeText={setTitle} placeholder="e.g. Gileo Executive Scrubs Set" style={styles.modalInput} />
+
+            <Text style={styles.fieldLabel}>Price (₦ Naira) *</Text>
+            <TextInput value={priceNaira} onChangeText={setPriceNaira} placeholder="28500" keyboardType="numeric" style={styles.modalInput} />
+
+            <Text style={styles.fieldLabel}>Stock Units *</Text>
+            <TextInput value={stock} onChangeText={setStock} placeholder="10" keyboardType="numeric" style={styles.modalInput} />
+
+            {/* Multi-Image Cloudinary Upload / URL List */}
+            <Text style={styles.fieldLabel}>Multiple Product Pictures (Cloudinary / Image URLs)</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                value={newImageUrl}
+                onChangeText={setNewImageUrl}
+                placeholder="Paste Image URL or Cloudinary Link"
+                style={[styles.modalInput, { flex: 1 }]}
+              />
+              <Pressable style={styles.addImageBtn} onPress={handleAddImage}>
+                <Ionicons name="add" size={20} color="#FFFFFF" />
+              </Pressable>
+            </View>
+
+            {images.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
+                {images.map((img, idx) => (
+                  <View key={idx} style={styles.thumbWrapper}>
+                    <Image source={{ uri: img }} style={styles.thumbImage} resizeMode="cover" />
+                    <Pressable style={styles.thumbRemoveBtn} onPress={() => handleRemoveImage(idx)}>
+                      <Ionicons name="close-circle" size={18} color="#EF4444" />
+                    </Pressable>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Colors Selector */}
+            <Text style={styles.fieldLabel}>Available Colors</Text>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {COLOR_PRESETS.map((c) => {
+                const isSel = selectedColors.some((sc) => sc.hex === c.hex);
+                return (
+                  <Pressable
+                    key={c.hex}
+                    onPress={() => toggleColorSelect(c)}
+                    style={[styles.colorPill, isSel && styles.colorPillActive]}
+                  >
+                    <View style={[styles.colorDot, { backgroundColor: c.hex }]} />
+                    <Text style={[styles.colorPillText, isSel && styles.colorPillTextActive]}>{c.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Sizes Selector */}
+            <Text style={styles.fieldLabel}>Available Sizes</Text>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {SIZE_PRESETS.map((sz) => {
+                const isSel = selectedSizes.includes(sz);
+                return (
+                  <Pressable
+                    key={sz}
+                    onPress={() => toggleSizeSelect(sz)}
+                    style={[styles.sizePill, isSel && styles.sizePillActive]}
+                  >
+                    <Text style={[styles.sizePillText, isSel && styles.sizePillTextActive]}>{sz}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.fieldLabel}>Description</Text>
+            <TextInput value={description} onChangeText={setDescription} placeholder="Enter product specifications, material, care guide..." multiline numberOfLines={3} style={[styles.modalInput, { height: 80 }]} />
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <Pressable style={{ flex: 1, height: 48, borderRadius: 999, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' }} onPress={() => setShowModal(false)}>
+                <Text style={{ fontWeight: '700', color: '#0F172A' }}>Cancel</Text>
+              </Pressable>
+              <Pressable style={{ flex: 1, height: 48, borderRadius: 999, backgroundColor: '#F10505', alignItems: 'center', justifyContent: 'center' }} disabled={isSaving} onPress={handleSaveSubmit}>
+                <Text style={{ fontWeight: '700', color: '#FFFFFF' }}>{isSaving ? 'Saving...' : 'Save Product'}</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -283,6 +422,17 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontSize: 12,
   },
+  tagBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: '#F1F5F9',
+  },
+  tagText: {
+    color: '#0F172A',
+    fontSize: 10,
+    fontWeight: '700',
+  },
   actionRow: {
     flexDirection: 'row',
     gap: 8,
@@ -313,6 +463,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  circleCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalHeaderTitle: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '800',
+  },
   fieldLabel: {
     color: '#0F172A',
     fontSize: 13,
@@ -327,6 +499,80 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#0F172A',
     fontSize: 14,
+  },
+  addImageBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F10505',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbWrapper: {
+    position: 'relative',
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  thumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbRemoveBtn: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+  },
+  colorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  colorPillActive: {
+    borderColor: '#F10505',
+    backgroundColor: '#FDF2F2',
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  colorPillText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  colorPillTextActive: {
+    color: '#F10505',
+    fontWeight: '800',
+  },
+  sizePill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sizePillActive: {
+    borderColor: '#F10505',
+    backgroundColor: '#F10505',
+  },
+  sizePillText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sizePillTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   loadingBox: {
     paddingVertical: 40,

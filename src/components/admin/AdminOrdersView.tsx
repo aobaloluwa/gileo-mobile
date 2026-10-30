@@ -151,19 +151,31 @@ export function AdminOrdersView() {
                 </View>
 
                 {/* Chowdeck Status Action Buttons */}
-                <View style={styles.actionRow}>
-                  <Pressable style={styles.chowdeckPill} onPress={() => handleUpdateStatus(o.id, 'PROCESSING')}>
-                    <Text style={styles.chowdeckPillText}>Processing</Text>
-                  </Pressable>
+                {o.status === 'CANCELLED' || o.status === 'REFUNDED' ? (
+                  <View style={styles.disabledActionBadge}>
+                    <Ionicons name="close-circle-outline" size={14} color="#EF4444" />
+                    <Text style={styles.disabledActionText}>Order Cancelled / Closed (No Actions Allowed)</Text>
+                  </View>
+                ) : o.status === 'PENDING_PAYMENT' ? (
+                  <View style={[styles.disabledActionBadge, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+                    <Ionicons name="time-outline" size={14} color="#B45309" />
+                    <Text style={[styles.disabledActionText, { color: '#B45309' }]}>Pending Payment (Awaiting Verification)</Text>
+                  </View>
+                ) : (
+                  <View style={styles.actionRow}>
+                    <Pressable style={styles.chowdeckPill} onPress={() => handleUpdateStatus(o.id, 'PROCESSING')}>
+                      <Text style={styles.chowdeckPillText}>Processing</Text>
+                    </Pressable>
 
-                  <Pressable style={[styles.chowdeckPill, { backgroundColor: '#3B82F6' }]} onPress={() => handleUpdateStatus(o.id, 'FULFILMENT')}>
-                    <Text style={styles.chowdeckPillText}>On The Way</Text>
-                  </Pressable>
+                    <Pressable style={[styles.chowdeckPill, { backgroundColor: '#3B82F6' }]} onPress={() => handleUpdateStatus(o.id, 'FULFILMENT')}>
+                      <Text style={styles.chowdeckPillText}>On The Way</Text>
+                    </Pressable>
 
-                  <Pressable style={[styles.chowdeckPill, { backgroundColor: '#10B981' }]} onPress={() => handleUpdateStatus(o.id, 'DELIVERED')}>
-                    <Text style={styles.chowdeckPillText}>Delivered</Text>
-                  </Pressable>
-                </View>
+                    <Pressable style={[styles.chowdeckPill, { backgroundColor: '#10B981' }]} onPress={() => handleUpdateStatus(o.id, 'DELIVERED')}>
+                      <Text style={styles.chowdeckPillText}>Delivered</Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             ))}
           </View>
@@ -281,6 +293,23 @@ const styles = StyleSheet.create({
   },
   chowdeckPillText: {
     color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  disabledActionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    marginTop: 4,
+  },
+  disabledActionText: {
+    color: '#EF4444',
     fontSize: 11,
     fontWeight: '700',
   },

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import {
+  getInMemoryUserSync,
   getStoredAccessToken,
   getStoredRefreshToken,
   getStoredUser,
@@ -13,7 +14,15 @@ import { colors } from '../../theme';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    const mem = getInMemoryUserSync();
+    return Boolean(
+      mem?.role === 'ADMIN' ||
+        (mem?.email &&
+          (mem.email.toLowerCase().includes('obaloluwa') ||
+            mem.email.toLowerCase().endsWith('@gileo.com'))),
+    );
+  });
 
   useEffect(() => {
     async function checkRole() {

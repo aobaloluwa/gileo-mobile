@@ -2,18 +2,22 @@ import { apiRequest } from './api';
 import {
   AuthUser,
   clearAuthSession,
+  getInMemoryUserSync,
   getStoredAccessToken,
   getStoredRefreshToken,
   getStoredUser,
+  setInMemoryUserSync,
   storeAuthSession,
 } from './tokenStorage';
 
 export type { AuthUser };
 export {
   clearAuthSession,
+  getInMemoryUserSync,
   getStoredAccessToken,
   getStoredRefreshToken,
   getStoredUser,
+  setInMemoryUserSync,
   storeAuthSession,
 };
 

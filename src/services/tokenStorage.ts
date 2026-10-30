@@ -37,6 +37,16 @@ async function migrateLegacySession(): Promise<void> {
   if (migration.length) await AsyncStorage.multiSet(migration);
 }
 
+let inMemoryCachedUser: AuthUser | null = null;
+
+export function getInMemoryUserSync(): AuthUser | null {
+  return inMemoryCachedUser;
+}
+
+export function setInMemoryUserSync(u: AuthUser | null): void {
+  inMemoryCachedUser = u;
+}
+
 export async function storeAuthSession(response: {
   accessToken: string;
   refreshToken: string;
@@ -49,7 +59,10 @@ export async function storeAuthSession(response: {
     [ACCESS_TOKEN_KEY, response.accessToken],
     [REFRESH_TOKEN_KEY, response.refreshToken],
   ];
-  if (response.user) entries.push([USER_KEY, JSON.stringify(response.user)]);
+  if (response.user) {
+    inMemoryCachedUser = response.user;
+    entries.push([USER_KEY, JSON.stringify(response.user)]);
+  }
   await AsyncStorage.multiSet(entries);
   await AsyncStorage.multiRemove(Object.values(LEGACY_KEYS));
 }
@@ -64,9 +77,12 @@ export async function getStoredUser(): Promise<AuthUser | null> {
   const value = await AsyncStorage.getItem(USER_KEY);
   if (!value) return null;
   try {
-    return JSON.parse(value) as AuthUser;
+    const parsed = JSON.parse(value) as AuthUser;
+    inMemoryCachedUser = parsed;
+    return parsed;
   } catch {
     await AsyncStorage.removeItem(USER_KEY);
+    inMemoryCachedUser = null;
     return null;
   }
 }

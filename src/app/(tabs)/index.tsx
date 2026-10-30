@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   Image,
@@ -18,7 +19,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
-import { AuthUser, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
+import { AuthUser, getInMemoryUserSync, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
 import { getFirstName } from './profile';
 import { colors, formatKobo, formatNaira, spacing } from '../../theme/colors';
 import { AdminChartJS } from '../../components/AdminChartJS';
@@ -186,7 +187,8 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => getInMemoryUserSync());
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(!getInMemoryUserSync());
   const [refreshing, setRefreshing] = useState(false);
 
   // Live Data States
@@ -284,6 +286,8 @@ export default function HomeScreen() {
       }
     } catch {
       setRandomProducts(shuffleArray(defaultProducts).slice(0, 4));
+    } finally {
+      setIsAuthChecking(false);
     }
   };
 
@@ -321,6 +325,14 @@ export default function HomeScreen() {
   };
 
   const firstName = getFirstName(user);
+
+  if (isAuthChecking && !user) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F7F9', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#F10505" />
+      </SafeAreaView>
+    );
+  }
 
   // Global Deep Search Filtering
   const isSearching = searchQuery.trim().length > 0;
