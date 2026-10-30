@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  Image,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -58,22 +58,82 @@ type AdminDashboardStats = {
   topProducts?: TopProduct[];
 };
 
+type DateFilterOption =
+  | 'Past 30 Days'
+  | 'This Month'
+  | 'Last Month'
+  | 'Past 3 Months'
+  | 'Past 6 Months'
+  | 'All Time';
+
+const DATE_OPTIONS: DateFilterOption[] = [
+  'Past 30 Days',
+  'This Month',
+  'Last Month',
+  'Past 3 Months',
+  'Past 6 Months',
+  'All Time',
+];
+
 export function AdminDashboardView() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [stats, setStats] = useState<AdminDashboardStats>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [timePeriod, setTimePeriod] = useState<'Daily' | 'Weekly' | 'Monthly'>('Weekly');
+  const [dateFilter, setDateFilter] = useState<DateFilterOption>('Past 30 Days');
 
-  const loadData = async () => {
+  // Modals & Network States
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [isNetworkError, setIsNetworkError] = useState(false);
+
+  const calculateDateRange = (filter: DateFilterOption) => {
+    const now = new Date();
+    let startDate: Date | null = null;
+    let endDate: Date = now;
+
+    if (filter === 'Past 30 Days') {
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (filter === 'This Month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (filter === 'Last Month') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (filter === 'Past 3 Months') {
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    } else if (filter === 'Past 6 Months') {
+      startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+    } else {
+      // All Time
+      startDate = null;
+    }
+
+    return {
+      startStr: startDate ? startDate.toISOString() : undefined,
+      endStr: endDate.toISOString(),
+      labelStr: startDate
+        ? `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+        : 'All Time Metrics',
+    };
+  };
+
+  const loadData = async (selectedPeriod = timePeriod, selectedDate = dateFilter) => {
     setLoading(true);
+    setIsNetworkError(false);
+
     try {
       const u = await getStoredUser();
       setUser(u);
 
-      const dashboardStats = await apiRequest<AdminDashboardStats>('/admin/dashboard').catch(() => ({}));
+      const dates = calculateDateRange(selectedDate);
+      let queryUrl = `/admin/dashboard?period=${selectedPeriod}`;
+      if (dates.startStr) queryUrl += `&startDate=${encodeURIComponent(dates.startStr)}`;
+      if (dates.endStr) queryUrl += `&endDate=${encodeURIComponent(dates.endStr)}`;
+
+      const dashboardStats = await apiRequest<AdminDashboardStats>(queryUrl);
       setStats(dashboardStats || {});
     } catch {
+      setIsNetworkError(true);
       setStats({});
     } finally {
       setLoading(false);
@@ -81,13 +141,24 @@ export function AdminDashboardView() {
   };
 
   useEffect(() => {
-    void loadData();
+    void loadData(timePeriod, dateFilter);
   }, []);
+
+  const handlePeriodChange = (newPeriod: 'Daily' | 'Weekly' | 'Monthly') => {
+    setTimePeriod(newPeriod);
+    void loadData(newPeriod, dateFilter);
+  };
+
+  const handleSelectDateFilter = (option: DateFilterOption) => {
+    setDateFilter(option);
+    setShowDateModal(false);
+    void loadData(timePeriod, option);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await loadData();
+      await loadData(timePeriod, dateFilter);
     } finally {
       setRefreshing(false);
     }
@@ -114,10 +185,25 @@ export function AdminDashboardView() {
   const customerSegments = stats.customerSegments || [35, 45, 20];
   const revenueLabels = stats.revenueLabels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const revenueDataPoints = stats.revenueDataPoints || [0, 0, 0, 0, 0, 0, 0];
+  const activeDateLabel = calculateDateRange(dateFilter).labelStr;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Top Header Section - Row 1: Title & Right Actions (Notifications & Profile) */}
+      {/* Network Disconnected / Error Banner */}
+      {isNetworkError && (
+        <View style={styles.networkErrorBanner}>
+          <Ionicons name="wifi-outline" size={16} color="#FFFFFF" />
+          <Text style={styles.networkErrorText} numberOfLines={1}>
+            Network Disconnected. Please check your connection.
+          </Text>
+          <Pressable style={styles.retryBtn} onPress={() => loadData(timePeriod, dateFilter)}>
+            <Ionicons name="refresh" size={12} color="#F10505" />
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Top Header Section - Row 1: Title & Right Actions */}
       <View style={styles.topHeaderContainer}>
         <View style={styles.topHeaderMainRow}>
           <View style={{ flex: 1 }}>
@@ -128,18 +214,12 @@ export function AdminDashboardView() {
           </View>
 
           <View style={styles.headerRightActions}>
-            <Pressable
-              style={styles.notifBtn}
-              onPress={() => router.push('/notifications')}
-            >
+            <Pressable style={styles.notifBtn} onPress={() => router.push('/notifications')}>
               <Ionicons name="notifications-outline" size={20} color="#0F172A" />
               <View style={styles.notifDot} />
             </Pressable>
 
-            <Pressable
-              style={styles.avatarCircle}
-              onPress={() => router.push('/(tabs)/profile')}
-            >
+            <Pressable style={styles.avatarCircle} onPress={() => router.push('/(tabs)/profile')}>
               <Text style={styles.avatarText}>
                 {(user?.displayName || 'O').charAt(0).toUpperCase()}
               </Text>
@@ -147,12 +227,13 @@ export function AdminDashboardView() {
           </View>
         </View>
 
-        {/* Row 2: Date / Status Pill moved down into a separate row */}
+        {/* Row 2: Date Selector Pill moved down into a separate row */}
         <View style={styles.dateSubRow}>
-          <View style={styles.dateRangePill}>
+          <Pressable style={styles.dateRangePill} onPress={() => setShowDateModal(true)}>
             <Ionicons name="calendar-outline" size={13} color="#64748B" />
-            <Text style={styles.dateRangeText}>May 12 – Jun 11, 2026</Text>
-          </View>
+            <Text style={styles.dateRangeText}>{activeDateLabel}</Text>
+            <Ionicons name="chevron-down" size={12} color="#64748B" />
+          </Pressable>
         </View>
       </View>
 
@@ -165,7 +246,7 @@ export function AdminDashboardView() {
           <AdminDashboardSkeleton />
         ) : (
           <View style={{ gap: 16 }}>
-            {/* TOP RESPONSIVE METRIC CARDS GRID */}
+            {/* TOP METRIC CARDS GRID */}
             <View style={styles.metricsGrid}>
               <View style={styles.metricCard}>
                 <View style={styles.metricHeaderRow}>
@@ -221,7 +302,7 @@ export function AdminDashboardView() {
                 <Text style={styles.metricValue} numberOfLines={1}>{stats.conversionRate || '0.00'}%</Text>
                 <View style={styles.growthBadgeRow}>
                   <Ionicons name="flash" size={12} color="#9333EA" />
-                  <Text style={styles.growthText} numberOfLines={1}>Paid / Started Orders</Text>
+                  <Text style={styles.growthText} numberOfLines={1}>Paid / Started Ratio</Text>
                 </View>
               </View>
             </View>
@@ -241,7 +322,7 @@ export function AdminDashboardView() {
                   {(['Daily', 'Weekly', 'Monthly'] as const).map((p) => (
                     <Pressable
                       key={p}
-                      onPress={() => setTimePeriod(p)}
+                      onPress={() => handlePeriodChange(p)}
                       style={[styles.periodBtn, timePeriod === p && styles.periodBtnActive]}
                     >
                       <Text style={[styles.periodBtnText, timePeriod === p && styles.periodBtnTextActive]}>
@@ -395,6 +476,37 @@ export function AdminDashboardView() {
           </View>
         )}
       </ScrollView>
+
+      {/* Real Date Range Filter Modal */}
+      <Modal visible={showDateModal} animationType="slide" onRequestClose={() => setShowDateModal(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', padding: 20, gap: 16 }}>
+          <View style={styles.dateModalHeader}>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>Select Date Range</Text>
+            <Pressable style={styles.circleBtn} onPress={() => setShowDateModal(false)}>
+              <Ionicons name="close" size={20} color="#0F172A" />
+            </Pressable>
+          </View>
+
+          <Text style={{ fontSize: 13, color: '#64748B' }}>Filter all analytics metrics across your selected timeframe:</Text>
+
+          <View style={{ gap: 10 }}>
+            {DATE_OPTIONS.map((opt) => {
+              const isSelected = dateFilter === opt;
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => handleSelectDateFilter(opt)}
+                  style={[styles.dateOptionCard, isSelected && styles.dateOptionCardActive]}
+                >
+                  <Ionicons name="calendar-outline" size={18} color={isSelected ? '#F10505' : '#64748B'} />
+                  <Text style={[styles.dateOptionText, isSelected && styles.dateOptionTextActive]}>{opt}</Text>
+                  {isSelected && <Ionicons name="checkmark-circle" size={18} color="#F10505" />}
+                </Pressable>
+              );
+            })}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -404,10 +516,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F6F7F9',
   },
+  networkErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#3F0106',
+    gap: 8,
+  },
+  networkErrorText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+  },
+  retryBtnText: {
+    color: '#F10505',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   topHeaderContainer: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    gap: 8,
+    gap: 10,
   },
   topHeaderMainRow: {
     flexDirection: 'row',
@@ -724,5 +864,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     paddingVertical: 16,
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  circleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  dateOptionCardActive: {
+    backgroundColor: '#FDF2F2',
+    borderColor: '#F10505',
+  },
+  dateOptionText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+  },
+  dateOptionTextActive: {
+    color: '#F10505',
+    fontWeight: '800',
   },
 });
