@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import { apiRequest } from '../../services/api';
 import { formatKobo } from '../../theme/colors';
 
@@ -119,6 +120,36 @@ export function AdminProductsView() {
 
   const handleRemoveImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePickPhotosFromPhone = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setToastText('Photo library permission is required.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newPicked = result.assets.map((a) => {
+          if (a.base64) {
+            return `data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`;
+          }
+          return a.uri;
+        });
+        setImages((prev) => [...prev, ...newPicked]);
+        setToastText(`${newPicked.length} photos added from gallery!`);
+      }
+    } catch (err: any) {
+      setToastText(err?.message || 'Could not pick photos from phone.');
+    }
   };
 
   const toggleColorSelect = (c: { name: string; hex: string }) => {
@@ -276,13 +307,19 @@ export function AdminProductsView() {
             <Text style={styles.fieldLabel}>Stock Units *</Text>
             <TextInput value={stock} onChangeText={setStock} placeholder="10" keyboardType="numeric" style={styles.modalInput} />
 
-            {/* Multi-Image Cloudinary Upload / URL List */}
-            <Text style={styles.fieldLabel}>Multiple Product Pictures (Cloudinary / Image URLs)</Text>
+            {/* Multi-Image Cloudinary Upload / Phone Gallery Selector */}
+            <Text style={styles.fieldLabel}>Product Pictures (Upload from Gallery / Cloudinary)</Text>
+
+            <Pressable style={styles.galleryPickBtn} onPress={handlePickPhotosFromPhone}>
+              <Ionicons name="images" size={18} color="#FFFFFF" />
+              <Text style={styles.galleryPickBtnText}>Pick Photos from Phone Gallery (Android & iOS)</Text>
+            </Pressable>
+
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TextInput
                 value={newImageUrl}
                 onChangeText={setNewImageUrl}
-                placeholder="Paste Image URL or Cloudinary Link"
+                placeholder="Or paste Image URL / Cloudinary link"
                 style={[styles.modalInput, { flex: 1 }]}
               />
               <Pressable style={styles.addImageBtn} onPress={handleAddImage}>
@@ -487,6 +524,20 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  galleryPickBtn: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#3F0106',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  galleryPickBtnText: {
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
   },

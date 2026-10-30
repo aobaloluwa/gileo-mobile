@@ -43,6 +43,8 @@ type Product = {
   color: string;
   availableColors: { name: string; hex: string }[];
   availableSizes: string[];
+  images?: string[];
+  stock?: number;
 };
 
 type CartItem = {
@@ -284,11 +286,13 @@ export default function MarketplaceScreen() {
           reviewsCount: 15,
           icon: 'bag-handle-outline',
           color: '#F10505',
-          availableColors: [
+          availableColors: p.colors || [
             { name: 'Gileo Red', hex: '#F10505' },
             { name: 'Navy Blue', hex: '#1E3A8A' },
           ],
-          availableSizes: ['S', 'M', 'L', 'XL'],
+          availableSizes: p.sizes || ['S', 'M', 'L', 'XL'],
+          images: p.images || [],
+          stock: p.stock ?? 10,
         }));
         setProductsList(mapped);
       }
@@ -790,7 +794,18 @@ export default function MarketplaceScreen() {
                     style={({ pressed }) => [styles.productCard, pressed && styles.pressed]}
                   >
                     <View style={styles.cardImageContainer}>
-                      <Ionicons name={product.icon} size={52} color={product.color} />
+                      {product.images && product.images.length > 0 ? (
+                        <Image source={{ uri: product.images[0] }} style={styles.productCoverImage} resizeMode="cover" />
+                      ) : (
+                        <Ionicons name={product.icon} size={52} color={product.color} />
+                      )}
+
+                      {(product.stock ?? 10) <= 0 && (
+                        <View style={styles.outOfStockBadge}>
+                          <Text style={styles.outOfStockBadgeText}>OUT OF STOCK</Text>
+                        </View>
+                      )}
+
                       <Pressable
                         onPress={(e) => {
                           e.stopPropagation();
@@ -818,9 +833,15 @@ export default function MarketplaceScreen() {
 
                       <View style={styles.cardPriceRow}>
                         <Text style={styles.cardPrice}>{product.price}</Text>
-                        <View style={styles.addPillBtn}>
-                          <Ionicons name="add" size={16} color="#F10505" />
-                        </View>
+                        {(product.stock ?? 10) <= 0 ? (
+                          <View style={styles.outOfStockPillBtn}>
+                            <Text style={styles.outOfStockPillText}>Sold Out</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.addPillBtn}>
+                            <Ionicons name="add" size={16} color="#F10505" />
+                          </View>
+                        )}
                       </View>
                     </View>
                   </Pressable>
@@ -1434,6 +1455,38 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
     paddingHorizontal: 24,
     gap: 12,
+  },
+  productCoverImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
+  },
+  outOfStockBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  outOfStockBadgeText: {
+    color: '#B45309',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  outOfStockPillBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+  },
+  outOfStockPillText: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '800',
   },
   noResultIconBox: {
     width: 72,
