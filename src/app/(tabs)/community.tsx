@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AdminOrdersView } from '../../components/admin/AdminOrdersView';
 
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
@@ -1150,6 +1151,10 @@ export default function CommunityScreen() {
       : rawPostsList;
 
   const firstName = getFirstName(user);
+
+  if (user?.role === 'ADMIN') {
+    return <AdminOrdersView />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

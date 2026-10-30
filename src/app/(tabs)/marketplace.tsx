@@ -23,6 +23,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AdminProductsView } from '../../components/admin/AdminProductsView';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
 import { addNotification } from '../../services/notificationsStorage';
@@ -654,6 +655,10 @@ export default function MarketplaceScreen() {
   });
 
   const firstName = getFirstName(user);
+
+  if (user?.role === 'ADMIN') {
+    return <AdminProductsView />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

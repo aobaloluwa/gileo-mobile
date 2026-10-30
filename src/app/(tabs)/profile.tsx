@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AdminHubView } from '../../components/admin/AdminHubView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from '../../services/api';
 import { AuthUser, clearAuthSession, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
@@ -402,6 +403,10 @@ export default function ProfileScreen() {
   };
 
   const firstName = getFirstName(user);
+
+  if (user?.role === 'ADMIN') {
+    return <AdminHubView />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

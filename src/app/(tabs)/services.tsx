@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdminCareRequestsView } from '../../components/admin/AdminCareRequestsView';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
 import { getFirstName } from './profile';
@@ -621,6 +622,10 @@ export default function ServicesScreen() {
         return { bg: '#F1F5F9', color: '#64748B', label: status };
     }
   };
+
+  if (user?.role === 'ADMIN') {
+    return <AdminCareRequestsView />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
