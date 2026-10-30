@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiRequest } from '../services/api';
 import { getStoredUser } from '../services/auth';
 import {
   AppNotification,
@@ -25,6 +26,27 @@ export default function NotificationsScreen() {
     const user = await getStoredUser();
     const uid = user?.id || 'guest';
     setUserId(uid);
+
+    try {
+      const serverNotifs = await apiRequest<any[]>('/notifications');
+      if (Array.isArray(serverNotifs) && serverNotifs.length > 0) {
+        setNotifications(
+          serverNotifs.map((n) => ({
+            id: n.id,
+            title: n.title,
+            body: n.body,
+            timeAgo: n.timeAgo || 'Just now',
+            timestamp: n.timestamp || Date.now(),
+            icon: n.icon || 'notifications',
+            iconBg: n.iconBg || '#FDF2F2',
+            iconColor: n.iconColor || '#F10505',
+            read: Boolean(n.read),
+          })),
+        );
+        return;
+      }
+    } catch {}
+
     const notifs = await getStoredNotifications(uid, user?.email);
     setNotifications(notifs);
   };
@@ -35,6 +57,9 @@ export default function NotificationsScreen() {
 
   const handleMarkAllRead = async () => {
     const user = await getStoredUser();
+    try {
+      await apiRequest('/notifications/mark-read', { method: 'POST' });
+    } catch {}
     await markNotificationsAsRead(userId, user?.email);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
