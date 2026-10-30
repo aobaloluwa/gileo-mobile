@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  NativeModules,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as DocumentPicker from 'expo-document-picker';
 import { apiRequest } from '../../services/api';
 import { formatKobo } from '../../theme/colors';
 
@@ -125,7 +125,19 @@ export function AdminProductsView() {
 
   const handlePickPhotosFromPhone = async () => {
     try {
-      let result = await DocumentPicker.getDocumentAsync({
+      const hasNativeDocPicker = Boolean(
+        NativeModules.ExpoDocumentPicker || NativeModules.ExponentDocumentPicker,
+      );
+
+      if (!hasNativeDocPicker) {
+        setToastText(
+          'Photo picker native module is not linked in this Expo Go build. Please paste photo link below or build a preview APK.',
+        );
+        return;
+      }
+
+      const DocumentPicker = require('expo-document-picker');
+      const result = await DocumentPicker.getDocumentAsync({
         type: ['image/*'],
         multiple: true,
         copyToCacheDirectory: true,
@@ -139,8 +151,8 @@ export function AdminProductsView() {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const selectedUris = result.assets
-          .filter((asset) => asset.uri)
-          .map((asset) => asset.uri);
+          .filter((asset: any) => asset.uri)
+          .map((asset: any) => asset.uri);
 
         if (selectedUris.length > 0) {
           setImages((prev) => [...prev, ...selectedUris]);
@@ -150,7 +162,7 @@ export function AdminProductsView() {
         }
       }
     } catch (err: any) {
-      setToastText(`Gallery error: ${err?.message || 'Could not open photo gallery'}`);
+      setToastText(`Gallery status: ${err?.message || 'Photo library unavailable in this build'}`);
     }
   };
 
