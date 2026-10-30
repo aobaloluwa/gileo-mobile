@@ -14,6 +14,7 @@ export type AuthUser = {
   id: string;
   email: string | null;
   displayName: string | null;
+  role?: 'CUSTOMER' | 'ADMIN';
 };
 
 async function migrateLegacySession(): Promise<void> {

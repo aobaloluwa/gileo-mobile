@@ -466,6 +466,24 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
+          {/* Admin Management Portal Banner */}
+          {user?.role === 'ADMIN' && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/admin')}
+              style={({ pressed }) => [styles.adminPortalCard, pressed && styles.pressed]}
+            >
+              <View style={styles.adminShieldBox}>
+                <Ionicons name="shield-checkmark" size={24} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.adminCardTitle}>Open Admin Management Portal</Text>
+                <Text style={styles.adminCardSub}>Manage orders, products, care requests, users & content</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+            </Pressable>
+          )}
+
           {/* Tab Selector Bar */}
           <View style={styles.tabBar}>
             <Pressable
@@ -1111,6 +1129,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF1F2',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  adminPortalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 22,
+    backgroundColor: '#3F0106',
+    gap: 12,
+  },
+  adminShieldBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#F10505',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  adminCardSub: {
+    color: '#FDF2F2',
+    fontSize: 11,
+    opacity: 0.9,
   },
   tabBar: {
     flexDirection: 'row',
