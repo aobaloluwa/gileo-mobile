@@ -282,8 +282,8 @@ export function AdminProductsView() {
             <Text style={styles.fieldLabel}>Stock Units *</Text>
             <TextInput value={stock} onChangeText={setStock} placeholder="10" keyboardType="numeric" style={styles.modalInput} />
 
-            {/* Product Pictures - Direct Gallery Upload & URL Input */}
-            <Text style={styles.fieldLabel}>Product Pictures (Gallery Upload / Image Links)</Text>
+            {/* Product Pictures - Direct Phone Gallery Upload Only */}
+            <Text style={styles.fieldLabel}>Product Pictures</Text>
 
             <Pressable
               accessibilityRole="button"
@@ -294,23 +294,11 @@ export function AdminProductsView() {
                 <Ionicons name="camera" size={24} color="#F10505" />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.galleryCardTitle}>Upload Photos from Phone Gallery</Text>
-                <Text style={styles.galleryCardSub}>Select multiple photos directly from Android or iOS gallery</Text>
+                <Text style={styles.galleryCardTitle}>Upload Photos from Gallery</Text>
+                <Text style={styles.galleryCardSub}>Select multiple photos directly from your phone gallery</Text>
               </View>
               <Ionicons name="add-circle" size={22} color="#F10505" />
             </Pressable>
-
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-              <TextInput
-                value={newImageUrl}
-                onChangeText={setNewImageUrl}
-                placeholder="Or paste Image URL / Cloudinary link"
-                style={[styles.modalInput, { flex: 1 }]}
-              />
-              <Pressable style={styles.addImageBtn} onPress={handleAddImage}>
-                <Ionicons name="add" size={20} color="#FFFFFF" />
-              </Pressable>
-            </View>
 
             {images.length > 0 && (
               <View style={styles.galleryThumbsContainer}>
