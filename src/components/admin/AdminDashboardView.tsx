@@ -117,8 +117,12 @@ export function AdminDashboardView() {
     };
   };
 
-  const loadData = async (selectedPeriod = timePeriod, selectedDate = dateFilter) => {
-    setLoading(true);
+  const loadData = async (
+    selectedPeriod = timePeriod,
+    selectedDate = dateFilter,
+    isPeriodOnly = false,
+  ) => {
+    if (!isPeriodOnly) setLoading(true);
     setIsNetworkError(false);
 
     try {
@@ -131,12 +135,14 @@ export function AdminDashboardView() {
       if (dates.endStr) queryUrl += `&endDate=${encodeURIComponent(dates.endStr)}`;
 
       const dashboardStats = await apiRequest<AdminDashboardStats>(queryUrl);
-      setStats(dashboardStats || {});
+      setStats((prev) => ({
+        ...prev,
+        ...(dashboardStats || {}),
+      }));
     } catch {
       setIsNetworkError(true);
-      setStats({});
     } finally {
-      setLoading(false);
+      if (!isPeriodOnly) setLoading(false);
     }
   };
 
@@ -146,7 +152,7 @@ export function AdminDashboardView() {
 
   const handlePeriodChange = (newPeriod: 'Daily' | 'Weekly' | 'Monthly') => {
     setTimePeriod(newPeriod);
-    void loadData(newPeriod, dateFilter);
+    void loadData(newPeriod, dateFilter, true);
   };
 
   const handleSelectDateFilter = (option: DateFilterOption) => {
