@@ -83,7 +83,7 @@ const highlightedServices: FeaturedService[] = [
     badge: 'HOME CARE',
     icon: 'medkit-outline',
     iconBg: '#FDF2F2',
-    iconColor: '#B81C25',
+    iconColor: '#F10505',
   },
   {
     id: 's-4',
@@ -106,7 +106,7 @@ const defaultProducts: LiveProduct[] = [
     priceKobo: 2850000,
     rating: '4.9',
     icon: 'shirt-outline',
-    color: '#B81C25',
+    color: '#F10505',
   },
   {
     id: '9b1deb4d-3b7d-4149-9cd1-e633d3170002',
@@ -147,7 +147,7 @@ const pillars = [
     title: 'Healthcare Services',
     subtitle: 'Home care & nursing',
     bg: '#FDF2F2',
-    iconColor: '#B81C25',
+    iconColor: '#F10505',
     targetRoute: '/(tabs)/services',
   },
   {
@@ -257,7 +257,7 @@ export default function HomeScreen() {
           priceKobo: p.priceKobo,
           rating: '4.9',
           icon: 'bag-handle-outline',
-          color: '#B81C25',
+          color: '#F10505',
         }));
         setAllProducts(mapped);
         setRandomProducts(shuffleArray(mapped).slice(0, 4));
@@ -325,8 +325,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#B81C25"
-            colors={['#B81C25']}
+            tintColor="#F10505"
+            colors={['#F10505']}
           />
         }
       >
@@ -407,7 +407,7 @@ export default function HomeScreen() {
                         router.push({ pathname: '/(tabs)/marketplace', params: { productId: prod.id } })
                       }
                     >
-                      <Ionicons name="bag-handle" size={20} color="#B81C25" />
+                      <Ionicons name="bag-handle" size={20} color="#F10505" />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.searchItemTitle}>{prod.title}</Text>
                         <Text style={styles.searchItemSub}>{prod.category} • {prod.price}</Text>
@@ -582,7 +582,7 @@ export default function HomeScreen() {
                     <Text style={styles.spotlightPillBtnText} numberOfLines={1}>
                       Enrol in Cohort
                     </Text>
-                    <Ionicons name="arrow-forward" size={14} color="#B81C25" />
+                    <Ionicons name="arrow-forward" size={14} color="#F10505" />
                   </Pressable>
                 </View>
               </View>
@@ -645,7 +645,7 @@ export default function HomeScreen() {
                   onPress={() => router.push('/(tabs)/profile')}
                 >
                   <View style={styles.trackerIconBox}>
-                    <Ionicons name="receipt-outline" size={20} color="#B81C25" />
+                    <Ionicons name="receipt-outline" size={20} color="#F10505" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.trackerTitle}>Order {activeOrder.reference}</Text>
@@ -653,7 +653,7 @@ export default function HomeScreen() {
                       Status: {activeOrder.status} • Total: {formatKobo(activeOrder.totalKobo)}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#B81C25" />
+                  <Ionicons name="chevron-forward" size={18} color="#F10505" />
                 </Pressable>
               )}
 
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   seeAllText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexShrink: 0,
   },
   requestServicePillText: {
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   catalogPrice: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -1010,7 +1010,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   shopPillText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1019,9 +1019,9 @@ const styles = StyleSheet.create({
   spotlightHeroCard: {
     padding: 22,
     borderRadius: 28,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     gap: 12,
-    shadowColor: '#B81C25',
+    shadowColor: '#F10505',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 14,
@@ -1088,7 +1088,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   spotlightPillBtnText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -1119,7 +1119,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   liveAvatarInitial: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1189,7 +1189,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     gap: 14,
   },
   supportIconSquare: {

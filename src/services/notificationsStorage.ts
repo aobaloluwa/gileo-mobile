@@ -45,7 +45,7 @@ export async function getStoredNotifications(
         timestamp: n.timestamp || Date.now(),
         icon: n.icon || 'notifications',
         iconBg: n.iconBg || '#FDF2F2',
-        iconColor: n.iconColor || '#B81C25',
+        iconColor: n.iconColor || '#F10505',
         read: Boolean(n.read),
       }));
 
@@ -113,7 +113,7 @@ export async function getStoredNotifications(
       timestamp: Date.now(),
       icon: 'sparkles',
       iconBg: '#FDF2F2',
-      iconColor: '#B81C25',
+      iconColor: '#F10505',
       read: false,
     },
   ];

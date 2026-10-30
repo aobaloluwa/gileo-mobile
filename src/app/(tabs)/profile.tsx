@@ -407,8 +407,8 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#B81C25"
-            colors={['#B81C25']}
+            tintColor="#F10505"
+            colors={['#F10505']}
           />
         }
       >
@@ -455,14 +455,14 @@ export default function ProfileScreen() {
                   <Text style={styles.roleText}>Verified Member</Text>
                 </View>
                 <View style={styles.connectionsPillTag}>
-                  <Ionicons name="people" size={12} color="#B81C25" />
+                  <Ionicons name="people" size={12} color="#F10505" />
                   <Text style={styles.connectionsPillText}>{connectionsCount} Connections</Text>
                 </View>
               </View>
             </View>
 
             <Pressable style={styles.editProfileBtn} onPress={() => setShowEditModal(true)}>
-              <Ionicons name="create-outline" size={18} color="#B81C25" />
+              <Ionicons name="create-outline" size={18} color="#F10505" />
             </Pressable>
           </View>
 
@@ -596,7 +596,7 @@ export default function ProfileScreen() {
                     >
                       <View style={styles.orderCardHeader}>
                         <View style={styles.orderRefBox}>
-                          <Ionicons name="receipt-outline" size={18} color="#B81C25" />
+                          <Ionicons name="receipt-outline" size={18} color="#F10505" />
                           <Text style={styles.orderRefText}>{order.reference}</Text>
                         </View>
 
@@ -625,7 +625,7 @@ export default function ProfileScreen() {
                         <Text style={styles.orderTotalText}>{totalFormatted}</Text>
                         <View style={styles.viewReceiptLink}>
                           <Text style={styles.viewReceiptText}>View Details & Receipt</Text>
-                          <Ionicons name="chevron-forward" size={14} color="#B81C25" />
+                          <Ionicons name="chevron-forward" size={14} color="#F10505" />
                         </View>
                       </View>
                     </Pressable>
@@ -657,7 +657,7 @@ export default function ProfileScreen() {
                   <View key={book.id} style={styles.libraryCard}>
                     <View style={styles.libraryCardRow}>
                       <View style={styles.libraryIconBox}>
-                        <Ionicons name="book" size={20} color="#B81C25" />
+                        <Ionicons name="book" size={20} color="#F10505" />
                       </View>
 
                       <View style={{ flex: 1, gap: 2 }}>
@@ -747,7 +747,7 @@ export default function ProfileScreen() {
               <View style={styles.settingsGroup}>
                 <Pressable style={styles.settingsRow} onPress={() => setShowEditModal(true)}>
                   <View style={styles.settingsIconCircle}>
-                    <Ionicons name="person-outline" size={20} color="#B81C25" />
+                    <Ionicons name="person-outline" size={20} color="#F10505" />
                   </View>
                   <View style={styles.settingsTextGroup}>
                     <Text style={styles.settingsTitle}>Personal Details</Text>
@@ -811,7 +811,7 @@ export default function ProfileScreen() {
                 <>
                   <View style={styles.modalHeader}>
                     <View style={styles.modalIconBox}>
-                      <Ionicons name="receipt" size={24} color="#B81C25" />
+                      <Ionicons name="receipt" size={24} color="#F10505" />
                     </View>
                     <Pressable onPress={() => setSelectedOrder(null)} hitSlop={10}>
                       <Ionicons name="close" size={22} color="#64748B" />
@@ -886,7 +886,7 @@ export default function ProfileScreen() {
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalIconBox}>
-                  <Ionicons name="person" size={24} color="#B81C25" />
+                  <Ionicons name="person" size={24} color="#F10505" />
                 </View>
                 <Pressable onPress={() => setShowEditModal(false)} hitSlop={10}>
                   <Ionicons name="close" size={22} color="#64748B" />
@@ -991,12 +991,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
-    shadowColor: '#B81C25',
+    shadowColor: '#F10505',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1100,7 +1100,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF1F2',
   },
   connectionsPillText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabLabelActive: {
-    color: '#B81C25',
+    color: '#F10505',
     fontWeight: '800',
   },
   postsSection: {
@@ -1190,7 +1190,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
   },
   readEBookPillText: {
     color: '#FFFFFF',
@@ -1217,7 +1217,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1292,7 +1292,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     marginTop: 4,
   },
   primaryActionBtnText: {
@@ -1349,7 +1349,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
   },
   orderTotalText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1359,7 +1359,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   viewReceiptText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1410,7 +1410,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     gap: 14,
   },
   supportIconCircle: {
@@ -1579,7 +1579,7 @@ const styles = StyleSheet.create({
   modalPrimaryBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

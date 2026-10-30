@@ -72,7 +72,7 @@ const initialEBooks: EBook[] = [
     description:
       'A comprehensive step-by-step roadmap to building an independent concierge nursing practice and high-value clinical consulting.',
     priceKobo: 1500000,
-    coverBg: '#B81C25',
+    coverBg: '#F10505',
   },
   {
     id: 'ebook-2',
@@ -514,7 +514,7 @@ export default function CommunityScreen() {
           author: b.author || 'Gileo Medicals Global Limited',
           description: b.description,
           priceKobo: b.priceKobo,
-          coverBg: ['#B81C25', '#1E3A8A', '#059669', '#4F46E5', '#B45309'][idx % 5],
+          coverBg: ['#F10505', '#1E3A8A', '#059669', '#4F46E5', '#B45309'][idx % 5],
         }));
         setEBooks(mappedEBooks);
       }
@@ -616,7 +616,7 @@ export default function CommunityScreen() {
           body: `You connected with ${member.displayName}.`,
           icon: 'paper-plane',
           iconBg: '#FDF2F2',
-          iconColor: '#B81C25',
+          iconColor: '#F10505',
         });
       } else {
         triggerToast(`Disconnected from ${member.displayName}`);
@@ -701,7 +701,7 @@ export default function CommunityScreen() {
       body: `You unlocked access to "${book.title}". Available in your library.`,
       icon: 'book',
       iconBg: '#FDF2F2',
-      iconColor: '#B81C25',
+      iconColor: '#F10505',
     });
 
     triggerToast(`Unlocked "${book.title}"!`);
@@ -784,7 +784,7 @@ export default function CommunityScreen() {
           body: `You unlocked access to "${book.title}". Available in your library.`,
           icon: 'book',
           iconBg: '#FDF2F2',
-          iconColor: '#B81C25',
+          iconColor: '#F10505',
         });
 
         triggerToast(`Payment verified! "${book.title}" is in your library.`);
@@ -963,7 +963,7 @@ export default function CommunityScreen() {
         body: `You commented on ${selectedPostDetail.authorName}'s post.`,
         icon: 'chatbubble',
         iconBg: '#F8F9FA',
-        iconColor: '#B81C25',
+        iconColor: '#F10505',
       });
     } catch (err) {
       triggerToast(err instanceof Error ? err.message : 'Could not add comment.');
@@ -1176,8 +1176,8 @@ export default function CommunityScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#B81C25"
-            colors={['#B81C25']}
+            tintColor="#F10505"
+            colors={['#F10505']}
           />
         }
       >
@@ -1196,7 +1196,7 @@ export default function CommunityScreen() {
                 onPress={() => setShowAddFriendsModal(true)}
                 style={({ pressed }) => [styles.circleIconBtn, pressed && styles.pressed]}
               >
-                <Ionicons name="person-add-outline" size={20} color="#B81C25" />
+                <Ionicons name="person-add-outline" size={20} color="#F10505" />
               </Pressable>
 
               <Pressable
@@ -1223,7 +1223,7 @@ export default function CommunityScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesRow}>
               {connectedMembers.length === 0 ? (
                 <Pressable style={styles.emptyStoryCard} onPress={() => setShowAddFriendsModal(true)}>
-                  <Ionicons name="person-add-outline" size={20} color="#B81C25" />
+                  <Ionicons name="person-add-outline" size={20} color="#F10505" />
                   <Text style={styles.emptyStoryText}>Connect with Nurses</Text>
                 </Pressable>
               ) : (
@@ -1452,7 +1452,7 @@ export default function CommunityScreen() {
                           <Ionicons
                             name={post.isSaved ? 'bookmark' : 'bookmark-outline'}
                             size={19}
-                            color={post.isSaved ? '#B81C25' : '#64748B'}
+                            color={post.isSaved ? '#F10505' : '#64748B'}
                           />
                         </Pressable>
                       </View>
@@ -1466,7 +1466,7 @@ export default function CommunityScreen() {
             <View style={{ gap: 20 }}>
               <View style={styles.elevateSection}>
                 <View style={styles.elevateHeaderBox}>
-                  <Ionicons name="school" size={24} color="#B81C25" />
+                  <Ionicons name="school" size={24} color="#F10505" />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.elevateHeaderTitle}>Gileo Elevate Cohorts</Text>
                     <Text style={styles.elevateHeaderSub}>
@@ -1482,7 +1482,7 @@ export default function CommunityScreen() {
                     <View key={cohort.id} style={styles.cohortCard}>
                       <View style={styles.cohortCardHeader}>
                         <View style={styles.enrolmentPill}>
-                          <Ionicons name="time-outline" size={12} color="#B81C25" />
+                          <Ionicons name="time-outline" size={12} color="#F10505" />
                           <Text style={styles.enrolmentPillText}>ENROLMENT OPEN</Text>
                         </View>
                         <Text style={styles.cohortPrice}>{priceFormatted}</Text>
@@ -1495,7 +1495,7 @@ export default function CommunityScreen() {
                         <Text style={styles.outcomesBoxTitle}>Key Learning Outcomes:</Text>
                         {cohort.learningOutcomes.map((outcome, idx) => (
                           <View key={idx} style={styles.outcomeRow}>
-                            <Ionicons name="checkmark-circle" size={14} color="#B81C25" />
+                            <Ionicons name="checkmark-circle" size={14} color="#F10505" />
                             <Text style={styles.outcomeText}>{outcome}</Text>
                           </View>
                         ))}
@@ -1517,7 +1517,7 @@ export default function CommunityScreen() {
             {/* Gileo Learning Hub & E-Books Section */}
             <View style={styles.elevateSection}>
               <View style={styles.elevateHeaderBox}>
-                <Ionicons name="book" size={24} color="#B81C25" />
+                <Ionicons name="book" size={24} color="#F10505" />
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={styles.elevateHeaderTitle}>Gileo Learning Hub & E-Books</Text>
                   <Text style={styles.elevateHeaderSub}>
@@ -1680,7 +1680,7 @@ export default function CommunityScreen() {
                         <Ionicons
                           name={selectedPostDetail.isSaved ? 'bookmark' : 'bookmark-outline'}
                           size={20}
-                          color={selectedPostDetail.isSaved ? '#B81C25' : '#64748B'}
+                          color={selectedPostDetail.isSaved ? '#F10505' : '#64748B'}
                         />
                       </Pressable>
                     </View>
@@ -1712,7 +1712,7 @@ export default function CommunityScreen() {
                                 setSelectedMemberProfile(memberObj);
                               }}
                             >
-                              <Ionicons name="person-circle-outline" size={26} color="#B81C25" />
+                              <Ionicons name="person-circle-outline" size={26} color="#F10505" />
                             </Pressable>
                             <View style={{ flex: 1 }}>
                               <Pressable
@@ -1793,7 +1793,7 @@ export default function CommunityScreen() {
                         </View>
 
                         <View style={styles.connectionsCountPill}>
-                          <Ionicons name="people" size={12} color="#B81C25" />
+                          <Ionicons name="people" size={12} color="#F10505" />
                           <Text style={styles.connectionsCountText}>
                             {selectedMemberProfile.id === user?.id || selectedMemberProfile.email === user?.email
                               ? connectedMembers.length
@@ -1817,7 +1817,7 @@ export default function CommunityScreen() {
                             <Ionicons
                               name={selectedMemberProfile.isConnected ? 'checkmark' : 'person-add'}
                               size={16}
-                              color={selectedMemberProfile.isConnected ? '#B81C25' : '#FFFFFF'}
+                              color={selectedMemberProfile.isConnected ? '#F10505' : '#FFFFFF'}
                             />
                             <Text
                               style={[
@@ -1985,7 +1985,7 @@ export default function CommunityScreen() {
                           style={styles.connectPillBtnActive}
                           onPress={() => toggleConnectMember(member)}
                         >
-                          <Ionicons name="checkmark" size={14} color="#B81C25" />
+                          <Ionicons name="checkmark" size={14} color="#F10505" />
                           <Text style={styles.connectPillTextActive}>Connected</Text>
                         </Pressable>
                       </View>
@@ -2076,7 +2076,7 @@ export default function CommunityScreen() {
                     </View>
 
                     <View style={styles.paystackNoticeBox}>
-                      <Ionicons name="shield-checkmark" size={22} color="#B81C25" />
+                      <Ionicons name="shield-checkmark" size={22} color="#F10505" />
                       <View style={{ flex: 1, gap: 2 }}>
                         <Text style={styles.paystackNoticeTitle}>Paystack Cohort Verification</Text>
                         <Text style={styles.paystackNoticeSub}>
@@ -2094,7 +2094,7 @@ export default function CommunityScreen() {
                         <Text style={styles.modalSectionHeaderTitle}>Curriculum & Learning Outcomes</Text>
                         {selectedCohort.learningOutcomes.map((outcome, idx) => (
                           <View key={idx} style={styles.modalOutcomeRow}>
-                            <Ionicons name="checkmark-circle" size={16} color="#B81C25" />
+                            <Ionicons name="checkmark-circle" size={16} color="#F10505" />
                             <Text style={styles.outcomeDetailText}>{outcome}</Text>
                           </View>
                         ))}
@@ -2164,7 +2164,7 @@ export default function CommunityScreen() {
           >
             <View style={styles.verifyingModalOverlay}>
               <View style={styles.verifyingCard}>
-                <ActivityIndicator size="large" color="#B81C25" />
+                <ActivityIndicator size="large" color="#F10505" />
                 <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
                 <Text style={styles.verifyingSub}>Confirming enrolment with Gileo server</Text>
               </View>
@@ -2236,7 +2236,7 @@ export default function CommunityScreen() {
                     <Ionicons
                       name={connectionOptionsMember?.isConnected ? 'person-remove' : 'person-add'}
                       size={18}
-                      color="#B81C25"
+                      color="#F10505"
                     />
                     <Text style={styles.optionsSecondaryBtnText}>
                       {connectionOptionsMember?.isConnected
@@ -2291,7 +2291,7 @@ export default function CommunityScreen() {
                     </View>
 
                     <View style={styles.paystackNoticeBox}>
-                      <Ionicons name="shield-checkmark" size={22} color="#B81C25" />
+                      <Ionicons name="shield-checkmark" size={22} color="#F10505" />
                       <View style={{ flex: 1, gap: 2 }}>
                         <Text style={styles.paystackNoticeTitle}>Verified Instant Access</Text>
                         <Text style={styles.paystackNoticeSub}>
@@ -2347,12 +2347,12 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 10,
-    shadowColor: '#B81C25',
+    shadowColor: '#F10505',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -2422,7 +2422,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   addMoreLink: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -2442,7 +2442,7 @@ const styles = StyleSheet.create({
     borderColor: '#EAECEF',
   },
   emptyStoryText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2456,7 +2456,7 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
     borderWidth: 2,
-    borderColor: '#B81C25',
+    borderColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 2,
@@ -2470,7 +2470,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   storyAvatarInitial: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -2499,7 +2499,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentedItemActive: {
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
   },
   segmentedLabel: {
     color: '#64748B',
@@ -2530,7 +2530,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2559,7 +2559,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
   },
   publishPillBtnText: {
     color: '#FFFFFF',
@@ -2596,7 +2596,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     marginTop: 4,
   },
   connectNowText: {
@@ -2629,7 +2629,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   authorAvatarInitial: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -2679,7 +2679,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2790,7 +2790,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -2839,7 +2839,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF2F2',
   },
   connectionsCountText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -2850,7 +2850,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     marginTop: 8,
   },
   memberConnectBtnActive: {
@@ -2864,7 +2864,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   memberConnectTextActive: {
-    color: '#B81C25',
+    color: '#F10505',
   },
   memberPostsSection: {
     gap: 12,
@@ -2894,7 +2894,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   elevateHeaderTitle: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -2932,12 +2932,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF2F2',
   },
   enrolmentPillText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 10,
     fontWeight: '800',
   },
   cohortPrice: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 18,
     fontWeight: '800',
   },
@@ -2976,7 +2976,7 @@ const styles = StyleSheet.create({
   enrolBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2993,7 +2993,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     gap: 14,
   },
   supportIconCircle: {
@@ -3112,7 +3112,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   registeredAvatarInitial: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -3132,7 +3132,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
   },
   connectPillBtnActive: {
     height: 36,
@@ -3151,7 +3151,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   connectPillTextActive: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -3179,7 +3179,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3197,7 +3197,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   cohortDetailPrice: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 22,
     fontWeight: '800',
   },
@@ -3212,7 +3212,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECDD3',
   },
   paystackNoticeTitle: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -3246,7 +3246,7 @@ const styles = StyleSheet.create({
   paystackEnrolBtn: {
     height: 54,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3269,7 +3269,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3279,7 +3279,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   successRef: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -3292,7 +3292,7 @@ const styles = StyleSheet.create({
   paystackLaunchBtn: {
     height: 52,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3373,7 +3373,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   orderRefValue: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 14,
     fontWeight: '800',
     marginTop: 2,
@@ -3386,7 +3386,7 @@ const styles = StyleSheet.create({
   primarySuccessBtn: {
     height: 50,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3477,7 +3477,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   ebookPrice: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 13,
     fontWeight: '800',
     marginTop: 2,
@@ -3489,7 +3489,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     alignSelf: 'flex-start',
     marginTop: 4,
   },
@@ -3532,7 +3532,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   optionsAvatarText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 22,
     fontWeight: '800',
   },
@@ -3548,7 +3548,7 @@ const styles = StyleSheet.create({
   optionsPrimaryBtn: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3571,7 +3571,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionsSecondaryBtnText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -3623,7 +3623,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   bankDetailTitle: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -3642,7 +3642,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   bankValHighlight: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 14,
     fontWeight: '800',
   },

@@ -92,7 +92,7 @@ export default function NotificationsScreen() {
                   <Ionicons
                     name={(item.icon as keyof typeof Ionicons.glyphMap) || 'notifications'}
                     size={20}
-                    color={item.iconColor || '#B81C25'}
+                    color={item.iconColor || '#F10505'}
                   />
                 </View>
 
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   markReadText: {
-    color: '#B81C25',
+    color: '#F10505',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   notifCardUnread: {
     borderLeftWidth: 4,
-    borderLeftColor: '#B81C25',
+    borderLeftColor: '#F10505',
   },
   iconCircle: {
     width: 44,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     marginTop: 6,
   },
   connectBackPillText: {
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
     marginTop: 6,
   },
   footerNote: {

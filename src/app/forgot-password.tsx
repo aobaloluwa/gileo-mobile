@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
   },
   progressDotActive: {
-    backgroundColor: '#B81C25',
+    backgroundColor: '#F10505',
   },
   heading: {
     marginBottom: spacing.lg,
