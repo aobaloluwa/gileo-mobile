@@ -48,31 +48,14 @@ type AdminDashboardStats = {
   totalRevenueKobo?: number;
   activeServices?: number;
   openTickets?: number;
+  conversionRate?: string;
   revenueLabels?: string[];
   revenueDataPoints?: number[];
   stockAlerts?: StockAlert[];
   recentOrders?: RecentOrder[];
+  customerSegments?: number[];
   topProducts?: TopProduct[];
 };
-
-const mockStockAlerts: StockAlert[] = [
-  { id: '1', title: 'Gileo Dri-FIT Premium Scrubs', stockLeft: 12, icon: 'shirt-outline', color: '#F10505' },
-  { id: '2', title: 'Clinical Dual-Head Stethoscope', stockLeft: 18, icon: 'fitness-outline', color: '#B45309' },
-  { id: '3', title: 'Digital Automatic BP Monitor', stockLeft: 25, icon: 'pulse-outline', color: '#4F46E5' },
-];
-
-const mockRecentOrders: RecentOrder[] = [
-  { id: 'o-1045', reference: '#ORD-1045', customerName: 'Emma Johnson', dateStr: 'Jun 11, 2026', totalKobo: 1299900, status: 'DELIVERED' },
-  { id: 'o-1044', reference: '#ORD-1044', customerName: 'Liam Williams', dateStr: 'Jun 11, 2026', totalKobo: 890000, status: 'PROCESSING' },
-  { id: 'o-1043', reference: '#ORD-1043', customerName: 'Sophia Brown', dateStr: 'Jun 10, 2026', totalKobo: 599900, status: 'FULFILMENT' },
-  { id: 'o-1042', reference: '#ORD-1042', customerName: 'Noah Davis', dateStr: 'Jun 10, 2026', totalKobo: 1990000, status: 'DELIVERED' },
-];
-
-const mockTopProducts: TopProduct[] = [
-  { id: 'p-1', title: 'Dri-FIT Scrubs Set', sold: '1,245 sold', revenue: '₦28,420,000', icon: 'shirt-outline', color: '#F10505' },
-  { id: 'p-2', title: 'Dual-Head Stethoscope', sold: '982 sold', revenue: '₦19,640,000', icon: 'fitness-outline', color: '#059669' },
-  { id: 'p-3', title: 'Automatic BP Monitor', sold: '876 sold', revenue: '₦17,520,000', icon: 'pulse-outline', color: '#4F46E5' },
-];
 
 export function AdminDashboardView() {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -124,11 +107,12 @@ export function AdminDashboardView() {
     }
   };
 
-  const stockAlerts = stats.stockAlerts && stats.stockAlerts.length > 0 ? stats.stockAlerts : mockStockAlerts;
-  const recentOrders = stats.recentOrders && stats.recentOrders.length > 0 ? stats.recentOrders : mockRecentOrders;
-  const topProducts = stats.topProducts && stats.topProducts.length > 0 ? stats.topProducts : mockTopProducts;
+  const stockAlerts = stats.stockAlerts || [];
+  const recentOrders = stats.recentOrders || [];
+  const topProducts = stats.topProducts || [];
+  const customerSegments = stats.customerSegments || [35, 45, 20];
   const revenueLabels = stats.revenueLabels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const revenueDataPoints = stats.revenueDataPoints || [45000, 68000, 92000, 58000, 120000, 84000, 105000];
+  const revenueDataPoints = stats.revenueDataPoints || [0, 0, 0, 0, 0, 0, 0];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -144,7 +128,7 @@ export function AdminDashboardView() {
         <View style={styles.headerRightActions}>
           <View style={styles.dateRangePill}>
             <Ionicons name="calendar-outline" size={13} color="#64748B" />
-            <Text style={styles.dateRangeText} numberOfLines={1}>May 12 – Jun 11</Text>
+            <Text style={styles.dateRangeText} numberOfLines={1}>Live Database Metrics</Text>
           </View>
 
           <Pressable
@@ -171,7 +155,7 @@ export function AdminDashboardView() {
         {loading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color="#F10505" />
-            <Text style={styles.loadingText}>Loading Gileo Analytics Dashboard...</Text>
+            <Text style={styles.loadingText}>Fetching Real-time Database Metrics...</Text>
           </View>
         ) : (
           <View style={{ gap: 16 }}>
@@ -185,11 +169,11 @@ export function AdminDashboardView() {
                   </View>
                 </View>
                 <Text style={styles.metricValue} numberOfLines={1}>
-                  {formatKobo(stats.totalRevenueKobo || 12843000)}
+                  {formatKobo(stats.totalRevenueKobo || 0)}
                 </Text>
                 <View style={styles.growthBadgeRow}>
-                  <Ionicons name="arrow-up" size={12} color="#059669" />
-                  <Text style={styles.growthText} numberOfLines={1}>+18.6% vs last month</Text>
+                  <Ionicons name="stats-chart" size={12} color="#059669" />
+                  <Text style={styles.growthText} numberOfLines={1}>Verified Payments</Text>
                 </View>
               </View>
 
@@ -200,10 +184,10 @@ export function AdminDashboardView() {
                     <Ionicons name="bag-handle-outline" size={16} color="#3B82F6" />
                   </View>
                 </View>
-                <Text style={styles.metricValue} numberOfLines={1}>{stats.totalOrders || 1245}</Text>
+                <Text style={styles.metricValue} numberOfLines={1}>{stats.totalOrders ?? 0}</Text>
                 <View style={styles.growthBadgeRow}>
-                  <Ionicons name="arrow-up" size={12} color="#059669" />
-                  <Text style={styles.growthText} numberOfLines={1}>+12.4% vs last month</Text>
+                  <Ionicons name="checkmark-circle" size={12} color="#3B82F6" />
+                  <Text style={styles.growthText} numberOfLines={1}>Store Orders</Text>
                 </View>
               </View>
 
@@ -214,10 +198,10 @@ export function AdminDashboardView() {
                     <Ionicons name="people-outline" size={16} color="#059669" />
                   </View>
                 </View>
-                <Text style={styles.metricValue} numberOfLines={1}>{stats.totalUsers || 8426}</Text>
+                <Text style={styles.metricValue} numberOfLines={1}>{stats.totalUsers ?? 0}</Text>
                 <View style={styles.growthBadgeRow}>
-                  <Ionicons name="arrow-up" size={12} color="#059669" />
-                  <Text style={styles.growthText} numberOfLines={1}>+9.2% new users</Text>
+                  <Ionicons name="person-add" size={12} color="#059669" />
+                  <Text style={styles.growthText} numberOfLines={1}>Registered Users</Text>
                 </View>
               </View>
 
@@ -228,10 +212,10 @@ export function AdminDashboardView() {
                     <Ionicons name="stats-chart-outline" size={16} color="#9333EA" />
                   </View>
                 </View>
-                <Text style={styles.metricValue} numberOfLines={1}>3.42%</Text>
+                <Text style={styles.metricValue} numberOfLines={1}>{stats.conversionRate || '0.00'}%</Text>
                 <View style={styles.growthBadgeRow}>
-                  <Ionicons name="arrow-up" size={12} color="#059669" />
-                  <Text style={styles.growthText} numberOfLines={1}>+6.7% efficiency</Text>
+                  <Ionicons name="flash" size={12} color="#9333EA" />
+                  <Text style={styles.growthText} numberOfLines={1}>Order/User Ratio</Text>
                 </View>
               </View>
             </View>
@@ -243,11 +227,11 @@ export function AdminDashboardView() {
                   <Text style={styles.cardSectionTitle}>Sales Overview</Text>
                   <View style={styles.chartSubRow}>
                     <Text style={styles.chartMainVal} numberOfLines={1}>
-                      {formatKobo(stats.totalRevenueKobo || 12843000)}
+                      {formatKobo(stats.totalRevenueKobo || 0)}
                     </Text>
                     <View style={styles.chartPillGrowth}>
-                      <Ionicons name="arrow-up" size={12} color="#059669" />
-                      <Text style={styles.chartPillGrowthText} numberOfLines={1}>+18.6%</Text>
+                      <Ionicons name="analytics" size={12} color="#059669" />
+                      <Text style={styles.chartPillGrowthText} numberOfLines={1}>Database Real-time</Text>
                     </View>
                   </View>
                 </View>
@@ -287,24 +271,28 @@ export function AdminDashboardView() {
                 </Pressable>
               </View>
 
-              <View style={{ gap: 10 }}>
-                {stockAlerts.map((item) => (
-                  <View key={item.id} style={styles.alertItemRow}>
-                    <View style={[styles.alertIconSquare, { backgroundColor: item.color + '15' }]}>
-                      <Ionicons name={item.icon} size={20} color={item.color} />
-                    </View>
+              {stockAlerts.length === 0 ? (
+                <Text style={styles.emptyText}>All products are well stocked in database.</Text>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {stockAlerts.map((item) => (
+                    <View key={item.id} style={styles.alertItemRow}>
+                      <View style={[styles.alertIconSquare, { backgroundColor: item.color + '15' }]}>
+                        <Ionicons name={item.icon} size={20} color={item.color} />
+                      </View>
 
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={styles.alertTitle} numberOfLines={1}>{item.title}</Text>
-                      <Text style={styles.alertSub}>Stock running low</Text>
-                    </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={styles.alertTitle} numberOfLines={1}>{item.title}</Text>
+                        <Text style={styles.alertSub}>Stock running low</Text>
+                      </View>
 
-                    <View style={styles.alertBadgePill}>
-                      <Text style={styles.alertBadgeText}>{item.stockLeft} left</Text>
+                      <View style={styles.alertBadgePill}>
+                        <Text style={styles.alertBadgeText}>{item.stockLeft} left</Text>
+                      </View>
                     </View>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* RECENT ORDERS TABLE CARD */}
@@ -316,27 +304,31 @@ export function AdminDashboardView() {
                 </Pressable>
               </View>
 
-              <View style={{ gap: 10 }}>
-                {recentOrders.map((ord) => {
-                  const b = getStatusBadgeStyle(ord.status);
-                  return (
-                    <View key={ord.id} style={styles.orderItemRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.orderRefText}>{ord.reference}</Text>
-                        <Text style={styles.orderCustomerText} numberOfLines={1}>
-                          {ord.customerName} • {ord.dateStr}
-                        </Text>
-                      </View>
+              {recentOrders.length === 0 ? (
+                <Text style={styles.emptyText}>No recent orders recorded in database yet.</Text>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  {recentOrders.map((ord) => {
+                    const b = getStatusBadgeStyle(ord.status);
+                    return (
+                      <View key={ord.id} style={styles.orderItemRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.orderRefText}>{ord.reference}</Text>
+                          <Text style={styles.orderCustomerText} numberOfLines={1}>
+                            {ord.customerName} • {ord.dateStr}
+                          </Text>
+                        </View>
 
-                      <Text style={styles.orderAmountText}>{formatKobo(ord.totalKobo)}</Text>
+                        <Text style={styles.orderAmountText}>{formatKobo(ord.totalKobo)}</Text>
 
-                      <View style={[styles.orderStatusPill, { backgroundColor: b.bg }]}>
-                        <Text style={[styles.orderStatusText, { color: b.text }]}>{b.label}</Text>
+                        <View style={[styles.orderStatusPill, { backgroundColor: b.bg }]}>
+                          <Text style={[styles.orderStatusText, { color: b.text }]}>{b.label}</Text>
+                        </View>
                       </View>
-                    </View>
-                  );
-                })}
-              </View>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
             {/* CUSTOMER SEGMENTS DONUT CHART */}
@@ -347,10 +339,10 @@ export function AdminDashboardView() {
                 <View style={{ flex: 1, minWidth: 140 }}>
                   <AdminChartJS
                     type="doughnut"
-                    labels={['New Customers', 'Returning Members', 'Loyal Nurses']}
-                    dataPoints={[35, 45, 20]}
+                    labels={['New Customers', 'Returning Members', 'Loyal Members']}
+                    dataPoints={customerSegments}
                     colorsList={['#F10505', '#3F0106', '#059669']}
-                    centerLabel={String(stats.totalUsers || 8426)}
+                    centerLabel={String(stats.totalUsers ?? 0)}
                     height={180}
                   />
                 </View>
@@ -358,17 +350,17 @@ export function AdminDashboardView() {
                 <View style={{ flex: 1, gap: 10, justifyContent: 'center' }}>
                   <View style={styles.segmentLegendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#F10505' }]} />
-                    <Text style={styles.legendLabel} numberOfLines={1}>New (35%)</Text>
+                    <Text style={styles.legendLabel} numberOfLines={1}>New ({customerSegments[0] || 0}%)</Text>
                   </View>
 
                   <View style={styles.segmentLegendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#3F0106' }]} />
-                    <Text style={styles.legendLabel} numberOfLines={1}>Returning (45%)</Text>
+                    <Text style={styles.legendLabel} numberOfLines={1}>Returning ({customerSegments[1] || 0}%)</Text>
                   </View>
 
                   <View style={styles.segmentLegendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#059669' }]} />
-                    <Text style={styles.legendLabel} numberOfLines={1}>Loyal (20%)</Text>
+                    <Text style={styles.legendLabel} numberOfLines={1}>Loyal ({customerSegments[2] || 0}%)</Text>
                   </View>
                 </View>
               </View>
@@ -383,18 +375,22 @@ export function AdminDashboardView() {
                 </Pressable>
               </View>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                {topProducts.map((p) => (
-                  <View key={p.id} style={styles.topProdCard}>
-                    <View style={[styles.topProdIconBox, { backgroundColor: p.color + '15' }]}>
-                      <Ionicons name={p.icon} size={28} color={p.color} />
+              {topProducts.length === 0 ? (
+                <Text style={styles.emptyText}>No products added to database yet.</Text>
+              ) : (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+                  {topProducts.map((p) => (
+                    <View key={p.id} style={styles.topProdCard}>
+                      <View style={[styles.topProdIconBox, { backgroundColor: p.color + '15' }]}>
+                        <Ionicons name={p.icon} size={28} color={p.color} />
+                      </View>
+                      <Text style={styles.topProdTitle} numberOfLines={1}>{p.title}</Text>
+                      <Text style={styles.topProdSold}>{p.sold}</Text>
+                      <Text style={styles.topProdRevenue}>{p.revenue}</Text>
                     </View>
-                    <Text style={styles.topProdTitle} numberOfLines={1}>{p.title}</Text>
-                    <Text style={styles.topProdSold}>{p.sold}</Text>
-                    <Text style={styles.topProdRevenue}>{p.revenue}</Text>
-                  </View>
-                ))}
-              </ScrollView>
+                  ))}
+                </ScrollView>
+              )}
             </View>
           </View>
         )}
@@ -743,5 +739,11 @@ const styles = StyleSheet.create({
     color: '#F10505',
     fontSize: 11,
     fontWeight: '800',
+  },
+  emptyText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });
