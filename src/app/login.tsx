@@ -122,6 +122,7 @@ export default function LoginScreen() {
         throw new Error('The server returned an unexpected login response.');
       }
 
+      const userRole = (response.user as any)?.role;
       await storeAuthSession({
         accessToken: response.accessToken,
         refreshToken: response.refreshToken,
@@ -130,10 +131,16 @@ export default function LoginScreen() {
               id: response.user.id ?? '',
               email: response.user.email ?? cleanEmail,
               displayName: (response.user as any).displayName ?? null,
+              role: userRole as any,
             }
           : null,
       });
-      router.replace('/(tabs)');
+
+      if (userRole === 'ADMIN') {
+        router.replace('/admin');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -161,9 +168,13 @@ export default function LoginScreen() {
 
       if (!idToken) return;
 
-      await signInWithGoogleIdToken(idToken);
+      const authRes = await signInWithGoogleIdToken(idToken);
 
-      router.replace('/(tabs)');
+      if ((authRes?.user as any)?.role === 'ADMIN') {
+        router.replace('/admin');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error

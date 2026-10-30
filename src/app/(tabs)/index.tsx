@@ -347,6 +347,17 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.topRightActions}>
+              {user?.role === 'ADMIN' && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push('/admin')}
+                  style={({ pressed }) => [styles.adminSwitchHeaderBtn, pressed && styles.pressed]}
+                >
+                  <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+                  <Text style={styles.adminSwitchHeaderText}>Admin</Text>
+                </Pressable>
+              )}
+
               <Pressable
                 accessibilityRole="button"
                 onPress={() => router.push('/notifications')}
@@ -773,6 +784,20 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  adminSwitchHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#3F0106',
+  },
+  adminSwitchHeaderText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
   searchCardWrapper: {
     height: 54,

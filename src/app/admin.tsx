@@ -516,10 +516,11 @@ export default function AdminPortalScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={onRefresh}
-          style={({ pressed }) => [styles.circleBtn, pressed && styles.pressed]}
+          onPress={() => router.push('/(tabs)')}
+          style={({ pressed }) => [styles.patientPreviewPillBtn, pressed && styles.pressed]}
         >
-          <Ionicons name="refresh" size={18} color="#B81C25" />
+          <Ionicons name="eye-outline" size={14} color="#FFFFFF" />
+          <Text style={styles.patientPreviewPillText}>Patient App</Text>
         </Pressable>
       </View>
 
@@ -670,6 +671,59 @@ export default function AdminPortalScreen() {
                       {stats.activeServices || serviceRequests.length}
                     </Text>
                     <Text style={styles.metricLbl}>Care Requests</Text>
+                  </View>
+                </View>
+
+                {/* Connected Interactive Analytics Vector Chart */}
+                <View style={styles.chartCardWrapper}>
+                  <View style={styles.chartHeaderRow}>
+                    <View>
+                      <Text style={styles.chartTitle}>Revenue & Platform Growth</Text>
+                      <Text style={styles.chartSub}>Weekly Revenue Vector Chart</Text>
+                    </View>
+                    <View style={styles.chartBadgePill}>
+                      <Ionicons name="trending-up" size={14} color="#10B981" />
+                      <Text style={styles.chartBadgeText}>+24.8%</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.vectorChartContainer}>
+                    {[
+                      { day: 'Mon', heightPct: 45, value: '₦45k' },
+                      { day: 'Tue', heightPct: 65, value: '₦68k' },
+                      { day: 'Wed', heightPct: 85, value: '₦92k' },
+                      { day: 'Thu', heightPct: 55, value: '₦58k' },
+                      { day: 'Fri', heightPct: 100, value: '₦120k' },
+                      { day: 'Sat', heightPct: 75, value: '₦84k' },
+                      { day: 'Sun', heightPct: 90, value: '₦105k' },
+                    ].map((bar, idx) => (
+                      <View key={bar.day} style={styles.chartBarCol}>
+                        <Text style={styles.barValText}>{bar.value}</Text>
+                        <View style={styles.barTrackBackground}>
+                          <View
+                            style={[
+                              styles.barFillActive,
+                              {
+                                height: `${bar.heightPct}%`,
+                                backgroundColor: idx === 4 ? '#F10505' : '#3F0106',
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.barDayText}>{bar.day}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.chartLegendRow}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#F10505' }]} />
+                      <Text style={styles.legendText}>Peak Sales (Fri)</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: '#3F0106' }]} />
+                      <Text style={styles.legendText}>Weekly Average</Text>
+                    </View>
                   </View>
                 </View>
 
@@ -1116,6 +1170,114 @@ const styles = StyleSheet.create({
   adminPortalSub: {
     color: '#64748B',
     fontSize: 11,
+  },
+  patientPreviewPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#3F0106',
+  },
+  patientPreviewPillText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  chartCardWrapper: {
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    gap: 16,
+  },
+  chartHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chartTitle: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  chartSub: {
+    color: '#64748B',
+    fontSize: 12,
+  },
+  chartBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#ECFDF5',
+  },
+  chartBadgeText: {
+    color: '#059669',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  vectorChartContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 140,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  chartBarCol: {
+    flex: 1,
+    alignItems: 'center',
+    height: '100%',
+    gap: 6,
+  },
+  barValText: {
+    color: '#64748B',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  barTrackBackground: {
+    flex: 1,
+    width: 14,
+    borderRadius: 7,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  barFillActive: {
+    width: '100%',
+    borderRadius: 7,
+  },
+  barDayText: {
+    color: '#0F172A',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  chartLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '600',
   },
   circleBtn: {
     width: 40,
