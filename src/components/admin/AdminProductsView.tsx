@@ -55,6 +55,7 @@ export function AdminProductsView() {
 
   // Multi-Image, Colors & Sizes States
   const [images, setImages] = useState<string[]>([]);
+  const [newImageUrl, setNewImageUrl] = useState('');
   const [selectedColors, setSelectedColors] = useState<{ name: string; hex: string }[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
 
@@ -93,6 +94,7 @@ export function AdminProductsView() {
     setStock('10');
     setDescription('');
     setImages([]);
+    setNewImageUrl('');
     setSelectedColors([COLOR_PRESETS[0]]);
     setSelectedSizes(['S', 'M', 'L', 'XL']);
     setShowModal(true);
@@ -110,27 +112,45 @@ export function AdminProductsView() {
     setShowModal(true);
   };
 
+  const handleAddImage = () => {
+    if (!newImageUrl.trim()) return;
+    setImages((prev) => [...prev, newImageUrl.trim()]);
+    setNewImageUrl('');
+    setToastText('Photo link added');
+  };
+
   const handleRemoveImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handlePickPhotosFromPhone = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
+      let result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*'],
         multiple: true,
         copyToCacheDirectory: true,
+      }).catch(async () => {
+        return await DocumentPicker.getDocumentAsync({
+          type: '*/*',
+          multiple: true,
+          copyToCacheDirectory: true,
+        });
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const selectedUris = result.assets.map((asset) => asset.uri);
-        setImages((prev) => [...prev, ...selectedUris]);
-        setToastText(
-          `${selectedUris.length} ${selectedUris.length === 1 ? 'photo' : 'photos'} added from phone gallery!`,
-        );
+        const selectedUris = result.assets
+          .filter((asset) => asset.uri)
+          .map((asset) => asset.uri);
+
+        if (selectedUris.length > 0) {
+          setImages((prev) => [...prev, ...selectedUris]);
+          setToastText(
+            `${selectedUris.length} ${selectedUris.length === 1 ? 'photo' : 'photos'} added from phone gallery!`,
+          );
+        }
       }
     } catch (err: any) {
-      setToastText(err?.message || 'Could not open photo gallery.');
+      setToastText(`Gallery error: ${err?.message || 'Could not open photo gallery'}`);
     }
   };
 
@@ -209,6 +229,16 @@ export function AdminProductsView() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {toastText.length > 0 && (
+        <View style={styles.toastBanner}>
+          <Ionicons name="information-circle" size={16} color="#FFFFFF" />
+          <Text style={styles.toastBannerText} numberOfLines={1}>{toastText}</Text>
+          <Pressable onPress={() => setToastText('')} hitSlop={8}>
+            <Ionicons name="close" size={16} color="#FFFFFF" />
+          </Pressable>
+        </View>
+      )}
+
       <View style={styles.topHeader}>
         <Text style={styles.headerSub}>Admin Catalog Controls</Text>
         <Text style={styles.headerTitle}>Marketplace Products</Text>
@@ -289,7 +319,7 @@ export function AdminProductsView() {
             <Text style={styles.fieldLabel}>Stock Units *</Text>
             <TextInput value={stock} onChangeText={setStock} placeholder="10" keyboardType="numeric" style={styles.modalInput} />
 
-            {/* Product Pictures - Direct Phone Gallery Upload Only */}
+            {/* Product Pictures - Phone Gallery & Link Fallback */}
             <Text style={styles.fieldLabel}>Product Pictures</Text>
 
             <Pressable
@@ -306,6 +336,18 @@ export function AdminProductsView() {
               </View>
               <Ionicons name="add-circle" size={22} color="#F10505" />
             </Pressable>
+
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              <TextInput
+                value={newImageUrl}
+                onChangeText={setNewImageUrl}
+                placeholder="Or paste photo link / Cloudinary URL"
+                style={[styles.modalInput, { flex: 1 }]}
+              />
+              <Pressable style={styles.addImageBtn} onPress={handleAddImage}>
+                <Ionicons name="add" size={20} color="#FFFFFF" />
+              </Pressable>
+            </View>
 
             {images.length > 0 && (
               <View style={styles.galleryThumbsContainer}>
@@ -380,6 +422,20 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F6F7F9',
+  },
+  toastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#3F0106',
+    gap: 8,
+  },
+  toastBannerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
   },
   topHeader: {
     paddingHorizontal: 20,
@@ -555,6 +611,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#0F172A',
     fontSize: 14,
+  },
+  addImageBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F10505',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   thumbWrapper: {
     position: 'relative',
