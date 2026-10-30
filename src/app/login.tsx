@@ -136,11 +136,7 @@ export default function LoginScreen() {
           : null,
       });
 
-      if (userRole === 'ADMIN') {
-        router.replace('/admin');
-      } else {
-        router.replace('/(tabs)');
-      }
+      router.replace('/(tabs)');
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -168,13 +164,9 @@ export default function LoginScreen() {
 
       if (!idToken) return;
 
-      const authRes = await signInWithGoogleIdToken(idToken);
+      await signInWithGoogleIdToken(idToken);
 
-      if ((authRes?.user as any)?.role === 'ADMIN') {
-        router.replace('/admin');
-      } else {
-        router.replace('/(tabs)');
-      }
+      router.replace('/(tabs)');
     } catch (error) {
       setErrorMessage(
         error instanceof Error

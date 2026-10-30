@@ -21,6 +21,7 @@ import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
 import { getFirstName } from './profile';
 import { colors, formatKobo, formatNaira, spacing } from '../../theme/colors';
+import { AdminChartJS } from '../../components/AdminChartJS';
 
 type LivePost = {
   id: string;
@@ -366,17 +367,6 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.topRightActions}>
-              {user?.role === 'ADMIN' && (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => router.push('/admin')}
-                  style={({ pressed }) => [styles.adminSwitchHeaderBtn, pressed && styles.pressed]}
-                >
-                  <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-                  <Text style={styles.adminSwitchHeaderText}>Admin Hub</Text>
-                </Pressable>
-              )}
-
               <Pressable
                 accessibilityRole="button"
                 onPress={() => router.push('/notifications')}
@@ -433,37 +423,25 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              {/* Vector Revenue Analytics Chart */}
-              <View style={styles.spotlightHeroCard}>
-                <View style={styles.spotlightHeaderRow}>
-                  <View style={styles.spotlightTagPill}>
-                    <Text style={styles.spotlightTagText}>VECTOR ANALYTICS</Text>
+              {/* Chart.js Interactive Revenue Analytics Vector Chart */}
+              <View style={styles.chartCardWrapper}>
+                <View style={styles.chartHeaderRow}>
+                  <View>
+                    <Text style={styles.chartTitle}>Revenue & Sales Analytics</Text>
+                    <Text style={styles.chartSub}>Weekly Revenue Trend (Chart.js Vector Engine)</Text>
                   </View>
-                  <Ionicons name="trending-up" size={18} color="#10B981" />
+                  <View style={styles.chartBadgePill}>
+                    <Ionicons name="trending-up" size={14} color="#10B981" />
+                    <Text style={styles.chartBadgeText}>+24.8%</Text>
+                  </View>
                 </View>
 
-                <Text style={styles.spotlightTitle}>Weekly Sales & Revenue Trend</Text>
-
-                {/* Vector Bar Chart */}
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 120, paddingTop: 10 }}>
-                  {[
-                    { day: 'Mon', heightPct: '45%', val: '₦45k' },
-                    { day: 'Tue', heightPct: '65%', val: '₦68k' },
-                    { day: 'Wed', heightPct: '85%', val: '₦92k' },
-                    { day: 'Thu', heightPct: '55%', val: '₦58k' },
-                    { day: 'Fri', heightPct: '100%', val: '₦120k' },
-                    { day: 'Sat', heightPct: '75%', val: '₦84k' },
-                    { day: 'Sun', heightPct: '90%', val: '₦105k' },
-                  ].map((bar, idx) => (
-                    <View key={bar.day} style={{ flex: 1, alignItems: 'center', height: '100%', gap: 4 }}>
-                      <Text style={{ color: '#FDF2F2', fontSize: 9, fontWeight: '700' }}>{bar.val}</Text>
-                      <View style={{ flex: 1, width: 14, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'flex-end', overflow: 'hidden' }}>
-                        <View style={{ width: '100%', height: bar.heightPct as any, borderRadius: 7, backgroundColor: idx === 4 ? '#FFFFFF' : '#3F0106' }} />
-                      </View>
-                      <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>{bar.day}</Text>
-                    </View>
-                  ))}
-                </View>
+                <AdminChartJS
+                  type="line"
+                  labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
+                  dataPoints={[45000, 68000, 92000, 58000, 120000, 84000, 105000]}
+                  chartTitle="Sales (₦)"
+                />
               </View>
 
               {/* Quick Action Shortcuts for Admin */}
@@ -883,20 +861,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  adminSwitchHeaderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#3F0106',
-  },
-  adminSwitchHeaderText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
   adminActionBtn: {
     flex: 1,
     height: 48,
@@ -911,6 +875,45 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  chartCardWrapper: {
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    gap: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  chartHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chartTitle: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  chartSub: {
+    color: '#64748B',
+    fontSize: 12,
+  },
+  chartBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#ECFDF5',
+  },
+  chartBadgeText: {
+    color: '#059669',
+    fontSize: 12,
+    fontWeight: '800',
   },
   searchCardWrapper: {
     height: 54,

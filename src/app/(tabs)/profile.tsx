@@ -486,24 +486,6 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Admin Management Portal Banner */}
-          {user?.role === 'ADMIN' && (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/admin')}
-              style={({ pressed }) => [styles.adminPortalCard, pressed && styles.pressed]}
-            >
-              <View style={styles.adminShieldBox}>
-                <Ionicons name="shield-checkmark" size={24} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={styles.adminCardTitle}>Open Admin Management Portal</Text>
-                <Text style={styles.adminCardSub}>Manage orders, products, care requests, users & content</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
-            </Pressable>
-          )}
-
           {/* Tab Selector Bar */}
           <View style={styles.tabBar}>
             <Pressable
