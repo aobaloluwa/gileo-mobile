@@ -13,7 +13,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import { apiRequest } from '../../services/api';
 import { formatKobo } from '../../theme/colors';
 
@@ -124,19 +123,26 @@ export function AdminProductsView() {
 
   const handlePickPhotosFromPhone = async () => {
     try {
-      if (!ImagePicker || typeof ImagePicker.launchImageLibraryAsync !== 'function') {
+      let ImagePickerModule: typeof import('expo-image-picker') | null = null;
+      try {
+        ImagePickerModule = await import('expo-image-picker');
+      } catch {
         throw new Error(
           'Photo library is unavailable in standard Expo Go. Paste Image URL below or build a preview APK.',
         );
       }
 
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync().catch(() => null);
+      if (!ImagePickerModule || typeof ImagePickerModule.launchImageLibraryAsync !== 'function') {
+        throw new Error('Photo library is unavailable in standard Expo Go.');
+      }
+
+      const permission = await ImagePickerModule.requestMediaLibraryPermissionsAsync().catch(() => null);
       if (!permission || !permission.granted) {
         setToastText('Photo library permission was denied or unavailable.');
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
+      const result = await ImagePickerModule.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
         quality: 0.8,
