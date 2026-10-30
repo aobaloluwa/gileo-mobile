@@ -19,7 +19,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from '../../services/api';
-import { AuthUser, clearAuthSession, getStoredUser, storeAuthSession } from '../../services/auth';
+import { AuthUser, clearAuthSession, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
 import { colors, formatKobo, spacing } from '../../theme/colors';
 
 type OrderItem = {
@@ -123,8 +123,28 @@ export default function ProfileScreen() {
   const toastAnim = useRef(new Animated.Value(-150)).current;
 
   const loadProfileData = async () => {
-    const storedUser = await getStoredUser();
+    let storedUser = await getStoredUser();
     setUser(storedUser);
+
+    // Sync latest profile role from NestJS backend API
+    try {
+      const profile = await apiRequest<any>('/profile/me');
+      if (profile?.role) {
+        storedUser = {
+          id: profile.id || storedUser?.id || '',
+          email: profile.email || storedUser?.email || '',
+          displayName: profile.displayName || storedUser?.displayName || null,
+          role: profile.role,
+        };
+        setUser(storedUser);
+        const access = await getStoredAccessToken();
+        const refresh = await getStoredRefreshToken();
+        if (access && refresh) {
+          await storeAuthSession({ accessToken: access, refreshToken: refresh, user: storedUser });
+        }
+      }
+    } catch {}
+
     const userIdKey = storedUser?.id || 'guest';
 
     if (storedUser) {

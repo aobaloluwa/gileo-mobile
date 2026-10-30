@@ -18,7 +18,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
-import { AuthUser, getStoredUser } from '../../services/auth';
+import { AuthUser, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
 import { getFirstName } from './profile';
 import { colors, formatKobo, formatNaira, spacing } from '../../theme/colors';
 
@@ -200,8 +200,27 @@ export default function HomeScreen() {
   const slideAnim = useRef(new Animated.Value(18)).current;
 
   const loadHomeDashboardData = async () => {
-    const u = await getStoredUser();
+    let u = await getStoredUser();
     setUser(u);
+
+    // Sync latest user role from NestJS backend API
+    try {
+      const profile = await apiRequest<any>('/profile/me');
+      if (profile?.role) {
+        u = {
+          id: profile.id || u?.id || '',
+          email: profile.email || u?.email || '',
+          displayName: profile.displayName || u?.displayName || null,
+          role: profile.role,
+        };
+        setUser(u);
+        const access = await getStoredAccessToken();
+        const refresh = await getStoredRefreshToken();
+        if (access && refresh) {
+          await storeAuthSession({ accessToken: access, refreshToken: refresh, user: u });
+        }
+      }
+    } catch {}
 
     // 1. Read real active orders from NestJS backend API
     try {
