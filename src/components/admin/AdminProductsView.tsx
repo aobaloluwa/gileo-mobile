@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  NativeModules,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GalleryImagePicker } from '../GalleryImagePicker';
 import { apiRequest } from '../../services/api';
 import { formatKobo } from '../../theme/colors';
 
@@ -58,6 +58,7 @@ export function AdminProductsView() {
   const [newImageUrl, setNewImageUrl] = useState('');
   const [selectedColors, setSelectedColors] = useState<{ name: string; hex: string }[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [pickerTriggerKey, setPickerTriggerKey] = useState(0);
 
   const [isSaving, setIsSaving] = useState(false);
   const [toastText, setToastText] = useState('');
@@ -122,60 +123,8 @@ export function AdminProductsView() {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handlePickPhotosFromPhone = async () => {
-    try {
-      const hasNativePicker = Boolean(
-        NativeModules.ExponentImagePicker || NativeModules.ExpoImagePicker,
-      );
-
-      if (!hasNativePicker) {
-        setToastText(
-          'Photo library is unavailable in standard Expo Go. Paste Image URL below or build preview APK.',
-        );
-        return;
-      }
-
-      let ImagePickerModule: typeof import('expo-image-picker') | null = null;
-      try {
-        ImagePickerModule = require('expo-image-picker');
-      } catch {
-        setToastText(
-          'Photo library is unavailable in standard Expo Go. Paste Image URL below or build preview APK.',
-        );
-        return;
-      }
-
-      if (!ImagePickerModule || typeof ImagePickerModule.launchImageLibraryAsync !== 'function') {
-        setToastText('Photo library native module is unavailable.');
-        return;
-      }
-
-      const permission = await ImagePickerModule.requestMediaLibraryPermissionsAsync().catch(() => null);
-      if (!permission || !permission.granted) {
-        setToastText('Photo library permission was denied or unavailable.');
-        return;
-      }
-
-      const result = await ImagePickerModule.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsMultipleSelection: true,
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newPicked = result.assets.map((a: any) => {
-          if (a.base64) {
-            return `data:${a.mimeType || 'image/jpeg'};base64,${a.base64}`;
-          }
-          return a.uri;
-        });
-        setImages((prev) => [...prev, ...newPicked]);
-        setToastText(`${newPicked.length} ${newPicked.length === 1 ? 'photo' : 'photos'} added!`);
-      }
-    } catch (err: any) {
-      setToastText(err?.message || 'Could not pick photos from phone.');
-    }
+  const handlePickPhotosFromPhone = () => {
+    setPickerTriggerKey((prev) => prev + 1);
   };
 
   const toggleColorSelect = (c: { name: string; hex: string }) => {
@@ -428,6 +377,14 @@ export function AdminProductsView() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      <GalleryImagePicker
+        triggerKey={pickerTriggerKey}
+        onImagesSelected={(newPicked) => {
+          setImages((prev) => [...prev, ...newPicked]);
+          setToastText(`${newPicked.length} ${newPicked.length === 1 ? 'photo' : 'photos'} added from phone gallery!`);
+        }}
+      />
     </SafeAreaView>
   );
 }
