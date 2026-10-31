@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import {
@@ -14,6 +15,7 @@ import { colors } from '../../theme';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const [isRoleChecked, setIsRoleChecked] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     const mem = getInMemoryUserSync();
     return Boolean(
@@ -25,6 +27,8 @@ export default function TabsLayout() {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     async function checkRole() {
       const u = await getStoredUser();
       const isObaloluwaAdmin = Boolean(
@@ -33,14 +37,14 @@ export default function TabsLayout() {
             u.email.toLowerCase().endsWith('@gileo.com')),
       );
 
-      if (u?.role === 'ADMIN' || isObaloluwaAdmin) {
-        setIsAdmin(true);
-      }
+      let currentAdmin = Boolean(u?.role === 'ADMIN' || isObaloluwaAdmin);
+      if (isMounted) setIsAdmin(currentAdmin);
 
       try {
         const profile = await apiRequest<any>('/profile/me');
         if (profile?.role === 'ADMIN' || isObaloluwaAdmin) {
-          setIsAdmin(true);
+          currentAdmin = true;
+          if (isMounted) setIsAdmin(true);
           const updated = {
             id: profile?.id || u?.id || '',
             email: profile?.email || u?.email || '',
@@ -53,13 +57,22 @@ export default function TabsLayout() {
             await storeAuthSession({ accessToken: access, refreshToken: refresh, user: updated });
           }
         } else if (profile?.role === 'CUSTOMER' && !isObaloluwaAdmin) {
-          setIsAdmin(false);
+          if (isMounted) setIsAdmin(false);
         }
-      } catch {}
+      } catch {} finally {
+        if (isMounted) setIsRoleChecked(true);
+      }
     }
 
     void checkRole();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  if (!isRoleChecked && !isAdmin) {
+    return <View style={{ flex: 1, backgroundColor: '#F6F7F9' }} />;
+  }
 
   return (
     <Tabs

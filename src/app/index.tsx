@@ -2,7 +2,7 @@ import { Redirect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getStoredAccessToken } from '../services/auth';
+import { getStoredAccessToken, getStoredUser } from '../services/auth';
 
 const ONBOARDING_KEY = '@gileo/onboarding-completed';
 const LEGACY_ONBOARDING_KEY = '@vitaltron/onboarding-completed';
@@ -34,11 +34,13 @@ export default function IndexRoute() {
 
     async function chooseDestination() {
       try {
-        const [onboardingCompleted, legacyOnboardingCompleted, token] = await Promise.all([
-          AsyncStorage.getItem(ONBOARDING_KEY),
-          AsyncStorage.getItem(LEGACY_ONBOARDING_KEY),
-          getStoredAccessToken(),
-        ]);
+        const [onboardingCompleted, legacyOnboardingCompleted, token, storedUser] =
+          await Promise.all([
+            AsyncStorage.getItem(ONBOARDING_KEY),
+            AsyncStorage.getItem(LEGACY_ONBOARDING_KEY),
+            getStoredAccessToken(),
+            getStoredUser(),
+          ]);
 
         if (!active) return;
 
