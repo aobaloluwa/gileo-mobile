@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,14 +11,19 @@ import { colors } from '../theme';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  useEffect(() => {
-    // Hide the single Expo native splash screen when root layout mounts
-    const timer = setTimeout(() => {
-      void SplashScreen.hideAsync().catch(() => {});
-    }, 400);
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+  });
 
-    return () => clearTimeout(timer);
-  }, []);
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
