@@ -593,7 +593,7 @@ export default function CommunityScreen() {
       if (target) {
         handledPostParamRef.current = params.postId;
         setSelectedPostDetail(target);
-        router.setParams({ postId: undefined });
+        (router.setParams as any)({ postId: undefined });
       }
     }
   }, [params.postId, params.tab, posts]);

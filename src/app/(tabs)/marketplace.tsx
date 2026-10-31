@@ -255,7 +255,7 @@ export default function MarketplaceScreen() {
       if (target) {
         handledProductParamRef.current = params.productId;
         openProductDetail(target);
-        router.setParams({ productId: undefined });
+        (router.setParams as any)({ productId: undefined });
       }
     }
   }, [params.productId, productsList]);
