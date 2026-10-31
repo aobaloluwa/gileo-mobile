@@ -20,7 +20,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
       filePath: path.resolve(
         __dirname,
-        'node_modules/react-native/Libraries/Utilities/HMRClient.js'
+        'src/polyfills/reactNativeInternals.js'
       ),
     };
   }
