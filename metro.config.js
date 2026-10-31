@@ -13,7 +13,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
       filePath: path.resolve(
         __dirname,
-        'node_modules/react-native/Libraries/Image/AssetRegistry.js'
+        'src/polyfills/assetRegistry.js'
       ),
     };
   }
