@@ -5,7 +5,10 @@ const config = getDefaultConfig(__dirname);
 
 // Custom Metro resolver for react-native subpath exports
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'react-native/asset-registry') {
+  if (
+    moduleName === 'react-native/asset-registry' ||
+    moduleName.includes('asset-registry')
+  ) {
     return {
       type: 'sourceFile',
       filePath: path.resolve(
