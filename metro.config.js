@@ -7,13 +7,28 @@ const config = getDefaultConfig(__dirname);
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (
     moduleName === 'react-native/asset-registry' ||
-    moduleName.includes('asset-registry')
+    moduleName.includes('asset-registry') ||
+    moduleName === 'react-native/Libraries/Image/AssetRegistry' ||
+    moduleName === '@react-native/assets-registry/registry'
   ) {
     return {
       type: 'sourceFile',
       filePath: path.resolve(
         __dirname,
         'src/polyfills/assetRegistry.js'
+      ),
+    };
+  }
+
+  if (
+    moduleName === 'react-native' &&
+    !context.originModulePath.includes('reactNativeProxy.js')
+  ) {
+    return {
+      type: 'sourceFile',
+      filePath: path.resolve(
+        __dirname,
+        'src/polyfills/reactNativeProxy.js'
       ),
     };
   }
