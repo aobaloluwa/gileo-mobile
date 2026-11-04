@@ -6,6 +6,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -225,7 +226,6 @@ export function AdminProductsView() {
               uploadedUrls.push(asset.uri);
             }
           } catch (err: any) {
-            // Fallback to local URI if upload fails
             uploadedUrls.push(asset.uri);
           }
         }
@@ -439,7 +439,7 @@ export function AdminProductsView() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Top Notification Toast */}
       {toastText.length > 0 && (
         <View style={styles.toastBanner}>
@@ -453,18 +453,24 @@ export function AdminProductsView() {
         </View>
       )}
 
-      {/* Screen Header */}
+      {/* Screen Header - Fully Responsive */}
       <View style={styles.topHeader}>
-        <View>
-          <Text style={styles.headerSub}>Inventory & Catalog Control</Text>
-          <Text style={styles.headerTitle}>Marketplace Products</Text>
+        <View style={styles.topHeaderTitleBox}>
+          <Text style={styles.headerSub} numberOfLines={1}>
+            Inventory & Catalog Control
+          </Text>
+          <Text style={styles.headerTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+            Marketplace Products
+          </Text>
         </View>
         <Pressable
           style={({ pressed }) => [styles.headerAddBtn, pressed && styles.pressed]}
           onPress={handleOpenAdd}
         >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
-          <Text style={styles.headerAddBtnText}>Add Product</Text>
+          <Ionicons name="add" size={18} color="#FFFFFF" />
+          <Text style={styles.headerAddBtnText} numberOfLines={1}>
+            Add Product
+          </Text>
         </Pressable>
       </View>
 
@@ -479,31 +485,43 @@ export function AdminProductsView() {
         <View style={styles.metricsGrid}>
           <View style={styles.metricCard}>
             <View style={[styles.metricIconBox, { backgroundColor: '#FDF2F2' }]}>
-              <Ionicons name="cube" size={18} color="#F10505" />
+              <Ionicons name="cube" size={16} color="#F10505" />
             </View>
-            <View>
-              <Text style={styles.metricValue}>{totalProductsCount}</Text>
-              <Text style={styles.metricLabel}>Total Items</Text>
+            <View style={styles.metricCardTextContent}>
+              <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
+                {totalProductsCount}
+              </Text>
+              <Text style={styles.metricLabel} numberOfLines={1}>
+                Total Items
+              </Text>
             </View>
           </View>
 
           <View style={styles.metricCard}>
             <View style={[styles.metricIconBox, { backgroundColor: '#ECFDF5' }]}>
-              <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
             </View>
-            <View>
-              <Text style={styles.metricValue}>{inStockCount}</Text>
-              <Text style={styles.metricLabel}>In Stock</Text>
+            <View style={styles.metricCardTextContent}>
+              <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
+                {inStockCount}
+              </Text>
+              <Text style={styles.metricLabel} numberOfLines={1}>
+                In Stock
+              </Text>
             </View>
           </View>
 
           <View style={styles.metricCard}>
             <View style={[styles.metricIconBox, { backgroundColor: '#FFFBEB' }]}>
-              <Ionicons name="alert-circle" size={18} color="#F59E0B" />
+              <Ionicons name="alert-circle" size={16} color="#F59E0B" />
             </View>
-            <View>
-              <Text style={styles.metricValue}>{lowStockCount}</Text>
-              <Text style={styles.metricLabel}>Low / Out</Text>
+            <View style={styles.metricCardTextContent}>
+              <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
+                {lowStockCount}
+              </Text>
+              <Text style={styles.metricLabel} numberOfLines={1}>
+                Low / Out
+              </Text>
             </View>
           </View>
         </View>
@@ -511,10 +529,14 @@ export function AdminProductsView() {
         {/* Inventory Value Banner */}
         <View style={styles.valueBanner}>
           <View style={styles.valueBannerLeft}>
-            <Ionicons name="wallet-outline" size={20} color="#3F0106" />
-            <Text style={styles.valueBannerTitle}>Estimated Inventory Value</Text>
+            <Ionicons name="wallet-outline" size={18} color="#3F0106" />
+            <Text style={styles.valueBannerTitle} numberOfLines={1}>
+              Estimated Inventory Value
+            </Text>
           </View>
-          <Text style={styles.valueBannerAmount}>{formatKobo(totalInventoryKobo)}</Text>
+          <Text style={styles.valueBannerAmount} numberOfLines={1}>
+            {formatKobo(totalInventoryKobo)}
+          </Text>
         </View>
 
         {/* Search Bar */}
@@ -523,7 +545,7 @@ export function AdminProductsView() {
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search by title, size, color, description..."
+            placeholder="Search catalog by name, color, size..."
             placeholderTextColor="#94A3B8"
             style={styles.searchInput}
           />
@@ -600,7 +622,7 @@ export function AdminProductsView() {
                         />
                       ) : (
                         <View style={styles.placeholderImage}>
-                          <Ionicons name="shirt" size={28} color="#CBD5E1" />
+                          <Ionicons name="shirt" size={26} color="#CBD5E1" />
                         </View>
                       )}
                       {urls.length > 1 && (
@@ -614,10 +636,12 @@ export function AdminProductsView() {
                     {/* Product Basic Info */}
                     <View style={styles.cardInfo}>
                       <View style={styles.titlePriceRow}>
-                        <Text style={styles.productTitle} numberOfLines={1}>
+                        <Text style={styles.productTitle} numberOfLines={2}>
                           {p.title}
                         </Text>
-                        <Text style={styles.productPrice}>{formatKobo(p.priceKobo)}</Text>
+                        <Text style={styles.productPrice} numberOfLines={1}>
+                          {formatKobo(p.priceKobo)}
+                        </Text>
                       </View>
 
                       {p.description ? (
@@ -661,6 +685,7 @@ export function AdminProductsView() {
                                     : '#059669',
                               },
                             ]}
+                            numberOfLines={1}
                           >
                             {isOutOfStock
                               ? 'Out of Stock'
@@ -685,6 +710,7 @@ export function AdminProductsView() {
                                 ? styles.statusTagTextPublished
                                 : styles.statusTagTextDraft,
                             ]}
+                            numberOfLines={1}
                           >
                             {p.status || 'PUBLISHED'}
                           </Text>
@@ -731,16 +757,20 @@ export function AdminProductsView() {
                       style={({ pressed }) => [styles.actionBtnEdit, pressed && styles.pressed]}
                       onPress={() => handleOpenEdit(p)}
                     >
-                      <Ionicons name="create-outline" size={15} color="#0F172A" />
-                      <Text style={styles.actionBtnEditText}>Edit Details</Text>
+                      <Ionicons name="create-outline" size={14} color="#0F172A" />
+                      <Text style={styles.actionBtnEditText} numberOfLines={1}>
+                        Edit Details
+                      </Text>
                     </Pressable>
 
                     <Pressable
                       style={({ pressed }) => [styles.actionBtnDuplicate, pressed && styles.pressed]}
                       onPress={() => handleDuplicate(p)}
                     >
-                      <Ionicons name="copy-outline" size={15} color="#3F0106" />
-                      <Text style={styles.actionBtnDuplicateText}>Duplicate</Text>
+                      <Ionicons name="copy-outline" size={14} color="#3F0106" />
+                      <Text style={styles.actionBtnDuplicateText} numberOfLines={1}>
+                        Duplicate
+                      </Text>
                     </Pressable>
 
                     <Pressable
@@ -752,8 +782,10 @@ export function AdminProductsView() {
                         <ActivityIndicator size="small" color="#EF4444" />
                       ) : (
                         <>
-                          <Ionicons name="trash-outline" size={15} color="#EF4444" />
-                          <Text style={styles.actionBtnDeleteText}>Delete</Text>
+                          <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                          <Text style={styles.actionBtnDeleteText} numberOfLines={1}>
+                            Delete
+                          </Text>
                         </>
                       )}
                     </Pressable>
@@ -765,18 +797,24 @@ export function AdminProductsView() {
         )}
       </ScrollView>
 
-      {/* Add / Edit Product Slide-Up Modal */}
-      <Modal visible={showModal} animationType="slide" onRequestClose={() => setShowModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      {/* Add / Edit Product Slide-Up Modal - Fully Compatible with iPhone Safe Areas */}
+      <Modal
+        visible={showModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+        onRequestClose={() => setShowModal(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
           {/* Modal Top Nav Header */}
           <View style={styles.modalHeader}>
-            <Pressable onPress={() => setShowModal(false)} style={styles.modalCloseCircle}>
+            <Pressable onPress={() => setShowModal(false)} style={styles.modalCloseCircle} hitSlop={10}>
               <Ionicons name="close" size={20} color="#0F172A" />
             </Pressable>
-            <Text style={styles.modalHeaderTitle}>
+            <Text style={styles.modalHeaderTitle} numberOfLines={1}>
               {editingProduct ? 'Edit Marketplace Product' : 'Add New Product'}
             </Text>
-            <View style={{ width: 40 }} />
+            <View style={{ width: 36 }} />
           </View>
 
           <ScrollView
@@ -797,8 +835,8 @@ export function AdminProductsView() {
             </View>
 
             {/* Price & Stock Row */}
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={[styles.inputGroup, { flex: 1 }]}>
+            <View style={styles.twoColumnRow}>
+              <View style={[styles.inputGroup, { flex: 1, minWidth: 0 }]}>
                 <Text style={styles.fieldLabel}>Price (₦ Naira) *</Text>
                 <View style={styles.currencyInputBox}>
                   <Text style={styles.currencySymbol}>₦</Text>
@@ -813,7 +851,7 @@ export function AdminProductsView() {
                 </View>
               </View>
 
-              <View style={[styles.inputGroup, { flex: 1 }]}>
+              <View style={[styles.inputGroup, { flex: 1, minWidth: 0 }]}>
                 <Text style={styles.fieldLabel}>Stock Units *</Text>
                 <View style={styles.stepperContainer}>
                   <Pressable
@@ -861,6 +899,7 @@ export function AdminProductsView() {
                       styles.statusToggleText,
                       status === 'PUBLISHED' && styles.statusToggleTextActive,
                     ]}
+                    numberOfLines={1}
                   >
                     Published
                   </Text>
@@ -883,6 +922,7 @@ export function AdminProductsView() {
                       styles.statusToggleText,
                       status === 'DRAFT' && styles.statusToggleTextActive,
                     ]}
+                    numberOfLines={1}
                   >
                     Draft Only
                   </Text>
@@ -905,10 +945,14 @@ export function AdminProductsView() {
                   onPress={handlePickPhotosFromGallery}
                 >
                   <View style={[styles.uploadCardIcon, { backgroundColor: '#FDF2F2' }]}>
-                    <Ionicons name="images" size={22} color="#F10505" />
+                    <Ionicons name="images" size={20} color="#F10505" />
                   </View>
-                  <Text style={styles.uploadCardTitle}>Device Gallery</Text>
-                  <Text style={styles.uploadCardSub}>Pick multiple photos</Text>
+                  <Text style={styles.uploadCardTitle} numberOfLines={1}>
+                    Device Gallery
+                  </Text>
+                  <Text style={styles.uploadCardSub} numberOfLines={1}>
+                    Pick multiple photos
+                  </Text>
                 </Pressable>
 
                 <Pressable
@@ -917,10 +961,14 @@ export function AdminProductsView() {
                   onPress={handleTakeCameraPhoto}
                 >
                   <View style={[styles.uploadCardIcon, { backgroundColor: '#F0FDF4' }]}>
-                    <Ionicons name="camera" size={22} color="#10B981" />
+                    <Ionicons name="camera" size={20} color="#10B981" />
                   </View>
-                  <Text style={styles.uploadCardTitle}>Take Photo</Text>
-                  <Text style={styles.uploadCardSub}>Camera capture</Text>
+                  <Text style={styles.uploadCardTitle} numberOfLines={1}>
+                    Take Photo
+                  </Text>
+                  <Text style={styles.uploadCardSub} numberOfLines={1}>
+                    Camera capture
+                  </Text>
                 </Pressable>
               </View>
 
@@ -996,14 +1044,14 @@ export function AdminProductsView() {
                     onChangeText={setCustomColorName}
                     placeholder="Color Name (e.g. Olive Green)"
                     placeholderTextColor="#94A3B8"
-                    style={[styles.textInput, { flex: 1 }]}
+                    style={[styles.textInput, { flex: 1, height: 42 }]}
                   />
                   <TextInput
                     value={customColorHex}
                     onChangeText={setCustomColorHex}
                     placeholder="#10B981"
                     placeholderTextColor="#94A3B8"
-                    style={[styles.textInput, { width: 90 }]}
+                    style={[styles.textInput, { width: 84, height: 42 }]}
                   />
                   <Pressable style={styles.customColorAddBtn} onPress={handleAddCustomColor}>
                     <Text style={styles.customColorAddBtnText}>Add</Text>
@@ -1074,7 +1122,9 @@ export function AdminProductsView() {
                 style={styles.cancelBtn}
                 onPress={() => setShowModal(false)}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={styles.cancelBtnText} numberOfLines={1}>
+                  Cancel
+                </Text>
               </Pressable>
 
               <Pressable
@@ -1087,7 +1137,7 @@ export function AdminProductsView() {
                 ) : (
                   <>
                     <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                    <Text style={styles.saveBtnText}>
+                    <Text style={styles.saveBtnText} numberOfLines={1}>
                       {editingProduct ? 'Save Changes' : 'Publish Product'}
                     </Text>
                   </>
@@ -1124,8 +1174,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  topHeaderTitleBox: {
+    flex: 1,
+    marginRight: 10,
+    minWidth: 0,
   },
   headerSub: {
     color: '#64748B',
@@ -1145,7 +1200,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 999,
-    gap: 6,
+    gap: 4,
+    flexShrink: 0,
     shadowColor: '#F10505',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -1158,22 +1214,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingBottom: 96,
-    gap: 16,
+    gap: 14,
   },
   metricsGrid: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   metricCard: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 20,
-    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: 18,
+    gap: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
@@ -1183,20 +1241,25 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   metricIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  metricCardTextContent: {
+    flex: 1,
+    minWidth: 0,
   },
   metricValue: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   metricLabel: {
     color: '#64748B',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
   valueBanner: {
@@ -1204,26 +1267,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    gap: 8,
   },
   valueBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
+    minWidth: 0,
   },
   valueBannerTitle: {
     color: '#0F172A',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
+    flex: 1,
   },
   valueBannerAmount: {
     color: '#F10505',
     fontSize: 14,
     fontWeight: '800',
+    flexShrink: 0,
   },
   searchBarContainer: {
     flexDirection: 'row',
@@ -1249,7 +1317,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   filterChip: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
@@ -1319,11 +1387,11 @@ const styles = StyleSheet.create({
   },
   productCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 16,
+    borderRadius: 22,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: 14,
+    gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -1332,17 +1400,18 @@ const styles = StyleSheet.create({
   },
   cardMainRow: {
     flexDirection: 'row',
-    gap: 14,
+    gap: 12,
   },
   imageBox: {
     position: 'relative',
-    width: 84,
-    height: 84,
-    borderRadius: 18,
+    width: 80,
+    height: 80,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#F1F5F9',
+    flexShrink: 0,
   },
   cardImage: {
     width: '100%',
@@ -1374,6 +1443,7 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
+    minWidth: 0,
     justifyContent: 'space-between',
     gap: 4,
   },
@@ -1381,18 +1451,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 6,
   },
   productTitle: {
     color: '#0F172A',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     flex: 1,
+    minWidth: 0,
+    lineHeight: 18,
   },
   productPrice: {
     color: '#F10505',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
+    flexShrink: 0,
   },
   descText: {
     color: '#64748B',
@@ -1402,8 +1475,9 @@ const styles = StyleSheet.create({
   badgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     marginTop: 4,
+    flexWrap: 'wrap',
   },
   stockChip: {
     flexDirection: 'row',
@@ -1412,6 +1486,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
+    flexShrink: 1,
   },
   stockChipIn: {
     backgroundColor: '#ECFDF5',
@@ -1426,15 +1501,17 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
+    flexShrink: 0,
   },
   stockChipText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   statusTag: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexShrink: 1,
   },
   statusTagPublished: {
     backgroundColor: '#F1F5F9',
@@ -1456,24 +1533,26 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
-    gap: 8,
+    gap: 6,
   },
   optionsGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexWrap: 'wrap',
   },
   optionsLabel: {
     color: '#64748B',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    width: 46,
+    width: 42,
   },
   colorsDotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     flexWrap: 'wrap',
+    flex: 1,
   },
   miniColorSwatch: {
     width: 14,
@@ -1485,8 +1564,9 @@ const styles = StyleSheet.create({
   sizesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     flexWrap: 'wrap',
+    flex: 1,
   },
   miniSizePill: {
     paddingHorizontal: 6,
@@ -1504,31 +1584,36 @@ const styles = StyleSheet.create({
   cardActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
+    flexWrap: 'wrap',
   },
   actionBtnEdit: {
     flex: 1,
-    height: 38,
+    minWidth: 90,
+    height: 36,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#CBD5E1',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
   },
   actionBtnEditText: {
     color: '#0F172A',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   actionBtnDuplicate: {
-    height: 38,
-    paddingHorizontal: 12,
+    flex: 1,
+    minWidth: 85,
+    height: 36,
+    paddingHorizontal: 8,
     borderRadius: 999,
     backgroundColor: '#FDF2F2',
     borderWidth: 1,
@@ -1540,12 +1625,14 @@ const styles = StyleSheet.create({
   },
   actionBtnDuplicateText: {
     color: '#3F0106',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   actionBtnDelete: {
-    height: 38,
-    paddingHorizontal: 12,
+    flex: 1,
+    minWidth: 75,
+    height: 36,
+    paddingHorizontal: 8,
     borderRadius: 999,
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
@@ -1557,17 +1644,21 @@ const styles = StyleSheet.create({
   },
   actionBtnDeleteText: {
     color: '#EF4444',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
 
-  /* Modal Styles */
+  /* Modal Styles - Safe Area Guarded */
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
@@ -1583,14 +1674,20 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontSize: 16,
     fontWeight: '800',
+    flex: 1,
+    textAlign: 'center',
   },
   modalScrollContent: {
-    padding: 20,
-    gap: 18,
-    paddingBottom: 60,
+    padding: 18,
+    gap: 16,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   inputGroup: {
     gap: 6,
+  },
+  twoColumnRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
   fieldLabel: {
     color: '#0F172A',
@@ -1608,7 +1705,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     color: '#0F172A',
     fontSize: 14,
   },
@@ -1620,13 +1717,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
   },
   currencySymbol: {
     color: '#F10505',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    marginRight: 6,
+    marginRight: 4,
   },
   currencyInput: {
     flex: 1,
@@ -1645,7 +1742,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   stepperBtn: {
-    width: 38,
+    width: 36,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1672,7 +1769,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    paddingHorizontal: 8,
   },
   statusToggleOptionActive: {
     backgroundColor: '#10B981',
@@ -1684,7 +1782,7 @@ const styles = StyleSheet.create({
   },
   statusToggleText: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   statusToggleTextActive: {
@@ -1694,28 +1792,29 @@ const styles = StyleSheet.create({
   /* Upload Cards */
   uploadCardsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   uploadCard: {
     flex: 1,
+    minWidth: 0,
     padding: 12,
     borderRadius: 16,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: 4,
+    gap: 2,
   },
   uploadCardIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   uploadCardTitle: {
     color: '#0F172A',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   uploadCardSub: {
@@ -1734,7 +1833,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     color: '#0F172A',
     fontSize: 13,
   },
@@ -1768,8 +1867,8 @@ const styles = StyleSheet.create({
   },
   thumbWrapper: {
     position: 'relative',
-    width: 70,
-    height: 70,
+    width: 68,
+    height: 68,
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
@@ -1812,16 +1911,16 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    padding: 10,
+    padding: 8,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   customColorAddBtn: {
     backgroundColor: '#3F0106',
-    paddingHorizontal: 14,
-    height: 48,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1832,7 +1931,7 @@ const styles = StyleSheet.create({
   },
   pillsWrap: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     flexWrap: 'wrap',
   },
   colorPill: {
@@ -1840,7 +1939,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 999,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
@@ -1867,8 +1966,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   sizePill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 999,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
@@ -1889,32 +1988,34 @@ const styles = StyleSheet.create({
   },
   modalActionsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 14,
+    gap: 10,
+    marginTop: 10,
   },
   cancelBtn: {
     flex: 1,
-    height: 50,
+    height: 48,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 12,
   },
   cancelBtnText: {
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   saveBtn: {
     flex: 1.5,
-    height: 50,
+    height: 48,
     borderRadius: 999,
     backgroundColor: '#F10505',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    paddingHorizontal: 12,
     shadowColor: '#F10505',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -1923,7 +2024,7 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   pressed: {
