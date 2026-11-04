@@ -21,6 +21,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AdminHubSkeleton } from './AdminHubSkeleton';
 import { apiRequest, uploadImageApi } from '../../services/api';
 import { AuthUser, clearAuthSession, getStoredUser } from '../../services/auth';
+import { formatKobo } from '../../theme/colors';
 
 type AdminUser = {
   id: string;
@@ -37,14 +38,34 @@ type AdminCommunityPost = {
   createdAt?: string;
 };
 
-type AdminAnnouncement = {
+type AdminCohort = {
   id: string;
   title: string;
-  body: string;
-  status: string;
   slug?: string;
-  imageUrl?: string;
-  publishedAt?: string;
+  overview: string;
+  learningOutcomes: string[];
+  eligibility?: string;
+  schedule?: string;
+  startsAt?: string;
+  endsAt?: string;
+  priceKobo: number;
+  capacity?: number;
+  enrolledCount?: number;
+  status: 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
+  createdAt?: string;
+};
+
+type AdminEbook = {
+  id: string;
+  title: string;
+  slug?: string;
+  author?: string;
+  description: string;
+  priceKobo: number;
+  priceLabel?: string;
+  coverImage?: string;
+  fileKey?: string;
+  status: 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
   createdAt?: string;
 };
 
@@ -53,7 +74,8 @@ export function AdminHubView() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [posts, setPosts] = useState<AdminCommunityPost[]>([]);
-  const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
+  const [cohorts, setCohorts] = useState<AdminCohort[]>([]);
+  const [ebooks, setEbooks] = useState<AdminEbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [toastText, setToastText] = useState('');
@@ -61,7 +83,7 @@ export function AdminHubView() {
   // Modals visibility states
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [showPostsModal, setShowPostsModal] = useState(false);
-  const [showAnnounceModal, setShowAnnounceModal] = useState(false);
+  const [showElevateModal, setShowElevateModal] = useState(false);
 
   // User Management State
   const [userSearch, setUserSearch] = useState('');
@@ -71,14 +93,42 @@ export function AdminHubView() {
   // Community Moderation State
   const [postSearch, setPostSearch] = useState('');
 
-  // Announcement Form & View State
-  const [announceTab, setAnnounceTab] = useState<'NEW' | 'HISTORY'>('NEW');
-  const [announceTitle, setAnnounceTitle] = useState('');
-  const [announceBody, setAnnounceBody] = useState('');
-  const [announceImages, setAnnounceImages] = useState<string[]>([]);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
-  const [deletingAnnounceId, setDeletingAnnounceId] = useState<string | null>(null);
+  // Elevate & E-Books Modal State
+  const [elevateTab, setElevateTab] = useState<'COHORTS' | 'EBOOKS'>('COHORTS');
+
+  // Cohort Form & View State
+  const [showCohortFormModal, setShowCohortFormModal] = useState(false);
+  const [showCohortDetailModal, setShowCohortDetailModal] = useState(false);
+  const [editingCohort, setEditingCohort] = useState<AdminCohort | null>(null);
+  const [viewingCohort, setViewingCohort] = useState<AdminCohort | null>(null);
+
+  const [cohortTitle, setCohortTitle] = useState('');
+  const [cohortOverview, setCohortOverview] = useState('');
+  const [cohortOutcomes, setCohortOutcomes] = useState('');
+  const [cohortEligibility, setCohortEligibility] = useState('');
+  const [cohortSchedule, setCohortSchedule] = useState('');
+  const [cohortPriceNaira, setCohortPriceNaira] = useState('');
+  const [cohortCapacity, setCohortCapacity] = useState('50');
+  const [cohortStatus, setCohortStatus] = useState<'PUBLISHED' | 'DRAFT'>('PUBLISHED');
+  const [isSavingCohort, setIsSavingCohort] = useState(false);
+  const [deletingCohortId, setDeletingCohortId] = useState<string | null>(null);
+
+  // E-Book Form & View State
+  const [showEbookFormModal, setShowEbookFormModal] = useState(false);
+  const [showEbookDetailModal, setShowEbookDetailModal] = useState(false);
+  const [editingEbook, setEditingEbook] = useState<AdminEbook | null>(null);
+  const [viewingEbook, setViewingEbook] = useState<AdminEbook | null>(null);
+
+  const [ebookTitle, setEbookTitle] = useState('');
+  const [ebookAuthor, setEbookAuthor] = useState('');
+  const [ebookDescription, setEbookDescription] = useState('');
+  const [ebookPriceNaira, setEbookPriceNaira] = useState('');
+  const [ebookCoverImage, setEbookCoverImage] = useState('');
+  const [ebookFileKey, setEbookFileKey] = useState('');
+  const [ebookStatus, setEbookStatus] = useState<'PUBLISHED' | 'DRAFT'>('PUBLISHED');
+  const [isSavingEbook, setIsSavingEbook] = useState(false);
+  const [isUploadingEbookCover, setIsUploadingEbookCover] = useState(false);
+  const [deletingEbookId, setDeletingEbookId] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -86,18 +136,17 @@ export function AdminHubView() {
       const u = await getStoredUser();
       setUser(u);
 
-      const [allUsrs, allPosts, annRes] = await Promise.all([
+      const [allUsrs, allPosts, cohortsRes, ebooksRes] = await Promise.all([
         apiRequest<AdminUser[]>('/admin/users').catch(() => []),
         apiRequest<AdminCommunityPost[]>('/community/posts').catch(() => []),
-        apiRequest<any>('/community/resources').catch(() => null),
+        apiRequest<AdminCohort[]>('/learning/cohorts').catch(() => []),
+        apiRequest<AdminEbook[]>('/learning/ebooks').catch(() => []),
       ]);
 
       setUsers(Array.isArray(allUsrs) ? allUsrs : []);
       setPosts(Array.isArray(allPosts) ? allPosts : []);
-
-      if (annRes && Array.isArray(annRes.announcements)) {
-        setAnnouncements(annRes.announcements);
-      }
+      setCohorts(Array.isArray(cohortsRes) ? cohortsRes : []);
+      setEbooks(Array.isArray(ebooksRes) ? ebooksRes : []);
     } catch {
       setUsers([]);
     } finally {
@@ -154,12 +203,15 @@ export function AdminHubView() {
           text: 'Delete User',
           style: 'destructive',
           onPress: async () => {
+            setUpdatingUserId(u.id);
             try {
               await apiRequest<any>(`/admin/users/${u.id}`, { method: 'DELETE' });
               setUsers((prev) => prev.filter((usr) => usr.id !== u.id));
               showToast('User account deleted');
             } catch (err: any) {
               showToast(err?.message || 'Could not delete user');
+            } finally {
+              setUpdatingUserId(null);
             }
           },
         },
@@ -169,8 +221,8 @@ export function AdminHubView() {
 
   const handleDeletePost = (p: AdminCommunityPost) => {
     Alert.alert(
-      'Remove Post',
-      'Are you sure you want to remove this post from community feed?',
+      'Remove Community Post',
+      `Are you sure you want to remove post by "${p.authorName}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -179,8 +231,8 @@ export function AdminHubView() {
           onPress: async () => {
             try {
               await apiRequest<any>(`/community/posts/${p.id}`, { method: 'DELETE' });
-              setPosts((prev) => prev.filter((post) => post.id !== p.id));
-              showToast('Community post removed');
+              setPosts((prev) => prev.filter((item) => item.id !== p.id));
+              showToast('Post removed from community feed');
             } catch (err: any) {
               showToast(err?.message || 'Could not delete post');
             }
@@ -190,119 +242,229 @@ export function AdminHubView() {
     );
   };
 
-  // Upload Announcement Banner Image
-  const handleUploadBannerImage = async (source: 'gallery' | 'camera') => {
+  // ==========================================
+  // COHORT HANDLERS
+  // ==========================================
+  const handleOpenAddCohort = () => {
+    setEditingCohort(null);
+    setCohortTitle('');
+    setCohortOverview('');
+    setCohortOutcomes('Independent Practice & Concierge Nursing Setup\nExecutive Leadership & Business Mastery\nClient Retention & High-Value Care Delivery');
+    setCohortEligibility('Registered Nurses, Midwives & Healthcare Leaders');
+    setCohortSchedule('Saturdays 10:00 AM WAT via Gileo Elevate');
+    setCohortPriceNaira('50000');
+    setCohortCapacity('50');
+    setCohortStatus('PUBLISHED');
+    setShowCohortFormModal(true);
+  };
+
+  const handleOpenEditCohort = (c: AdminCohort) => {
+    setEditingCohort(c);
+    setCohortTitle(c.title);
+    setCohortOverview(c.overview || '');
+    setCohortOutcomes(Array.isArray(c.learningOutcomes) ? c.learningOutcomes.join('\n') : '');
+    setCohortEligibility(c.eligibility || '');
+    setCohortSchedule(c.schedule || '');
+    setCohortPriceNaira(String(Math.floor((c.priceKobo || 0) / 100)));
+    setCohortCapacity(String(c.capacity || 50));
+    setCohortStatus(c.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT');
+    setShowCohortFormModal(true);
+  };
+
+  const handleSaveCohort = async () => {
+    if (!cohortTitle.trim() || !cohortOverview.trim()) {
+      showToast('Please fill in cohort title and overview.');
+      return;
+    }
+    setIsSavingCohort(true);
+    try {
+      const priceKobo = Math.round((parseFloat(cohortPriceNaira) || 0) * 100);
+      const outcomes = cohortOutcomes.split('\n').map((l) => l.trim()).filter(Boolean);
+      const payload = {
+        title: cohortTitle.trim(),
+        slug: cohortTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        overview: cohortOverview.trim(),
+        learningOutcomes: outcomes.length > 0 ? outcomes : ['Professional clinical nursing development'],
+        eligibility: cohortEligibility.trim() || undefined,
+        schedule: cohortSchedule.trim() || undefined,
+        priceKobo,
+        capacity: parseInt(cohortCapacity, 10) || 50,
+        status: cohortStatus,
+      };
+
+      if (editingCohort) {
+        await apiRequest<any>(`/learning/cohorts/${editingCohort.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        showToast('Elevate Cohort updated successfully!');
+      } else {
+        await apiRequest<any>('/learning/cohorts', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        showToast('New Elevate Cohort created successfully!');
+      }
+      setShowCohortFormModal(false);
+      await loadData();
+    } catch (err: any) {
+      showToast(err?.message || 'Could not save cohort');
+    } finally {
+      setIsSavingCohort(false);
+    }
+  };
+
+  const handleDeleteCohort = (c: AdminCohort) => {
+    Alert.alert('Delete Elevate Cohort', `Are you sure you want to delete cohort "${c.title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete Cohort',
+        style: 'destructive',
+        onPress: async () => {
+          setDeletingCohortId(c.id);
+          try {
+            await apiRequest<any>(`/learning/cohorts/${c.id}`, { method: 'DELETE' });
+            setCohorts((prev) => prev.filter((item) => item.id !== c.id));
+            showToast('Elevate Cohort removed');
+          } catch (err: any) {
+            showToast(err?.message || 'Could not delete cohort');
+          } finally {
+            setDeletingCohortId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  // ==========================================
+  // E-BOOK HANDLERS
+  // ==========================================
+  const handleOpenAddEbook = () => {
+    setEditingEbook(null);
+    setEbookTitle('');
+    setEbookAuthor('Gileo Medicals Global Limited');
+    setEbookDescription('');
+    setEbookPriceNaira('5000');
+    setEbookCoverImage('');
+    setEbookFileKey('');
+    setEbookStatus('PUBLISHED');
+    setShowEbookFormModal(true);
+  };
+
+  const handleOpenEditEbook = (e: AdminEbook) => {
+    setEditingEbook(e);
+    setEbookTitle(e.title);
+    setEbookAuthor(e.author || 'Gileo Medicals Global Limited');
+    setEbookDescription(e.description || '');
+    setEbookPriceNaira(String(Math.floor((e.priceKobo || 0) / 100)));
+    setEbookCoverImage(e.coverImage || '');
+    setEbookFileKey(e.fileKey || '');
+    setEbookStatus(e.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT');
+    setShowEbookFormModal(true);
+  };
+
+  const handlePickEbookCoverPhoto = async (source: 'gallery' | 'camera') => {
     try {
       let result: ImagePicker.ImagePickerResult;
-      if (source === 'gallery') {
+      if (source === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) {
+          showToast('Camera permission is required.');
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({
+          quality: 0.8,
+          allowsEditing: true,
+          aspect: [3, 4],
+        });
+      } else {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) {
-          Alert.alert('Permission Required', 'Please grant photo library access.');
+          showToast('Gallery permission is required.');
           return;
         }
         result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
-          quality: 0.85,
-          base64: true,
+          quality: 0.8,
+          allowsEditing: true,
+          aspect: [3, 4],
         });
-      } else {
-        const perm = await ImagePicker.requestCameraPermissionsAsync();
-        if (!perm.granted) {
-          Alert.alert('Permission Required', 'Please grant camera access.');
-          return;
-        }
-        result = await ImagePicker.launchCameraAsync({ quality: 0.85, base64: true });
       }
 
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        const mime = asset.mimeType || 'image/jpeg';
-        const base64Url = asset.base64 ? `data:${mime};base64,${asset.base64}` : null;
-
-        setIsUploadingBanner(true);
-        showToast('Uploading graphic banner...');
-
-        try {
-          const uploaded = await uploadImageApi(asset.uri);
-          const finalUrl = (uploaded?.url && !uploaded.url.startsWith('file://') && !uploaded.url.startsWith('content://'))
-            ? uploaded.url
-            : (base64Url || asset.uri);
-
-          if (!finalUrl.startsWith('file://') && !finalUrl.startsWith('content://')) {
-            setAnnounceImages((prev) => [...prev, finalUrl]);
-            showToast('Image attached to broadcast!');
-          } else {
-            showToast('Could not process graphic image.');
-          }
-        } catch {
-          if (base64Url) {
-            setAnnounceImages((prev) => [...prev, base64Url]);
-            showToast('Image attached to broadcast!');
-          } else {
-            showToast('Could not process graphic image.');
-          }
-        }
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setIsUploadingEbookCover(true);
+        const uploaded = await uploadImageApi(result.assets[0].uri);
+        setEbookCoverImage(uploaded.url);
+        showToast('Cover photo uploaded successfully!');
       }
-    } catch (err: any) {
-      showToast(`Upload failed: ${err?.message || 'Could not upload image'}`);
+    } catch {
+      showToast('Could not upload e-book cover photo.');
     } finally {
-      setIsUploadingBanner(false);
+      setIsUploadingEbookCover(false);
     }
   };
 
-  const handlePublishAnnounce = async () => {
-    if (!announceTitle.trim() || !announceBody.trim()) {
-      showToast('Please enter announcement title and content.');
+  const handleSaveEbook = async () => {
+    if (!ebookTitle.trim() || !ebookDescription.trim()) {
+      showToast('Please fill in e-book title and description.');
       return;
     }
-    setIsPublishing(true);
+    setIsSavingEbook(true);
     try {
-      await apiRequest<any>('/community/announcements', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: announceTitle.trim(),
-          slug: announceTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          body: announceBody.trim(),
-          status: 'PUBLISHED',
-        }),
-      });
-      setShowAnnounceModal(false);
-      setAnnounceTitle('');
-      setAnnounceBody('');
-      setAnnounceImages([]);
-      showToast('Broadcast published successfully!');
+      const priceKobo = Math.round((parseFloat(ebookPriceNaira) || 0) * 100);
+      const payload = {
+        title: ebookTitle.trim(),
+        slug: ebookTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        author: ebookAuthor.trim() || 'Gileo Medicals Global Limited',
+        description: ebookDescription.trim(),
+        priceKobo,
+        priceLabel: formatKobo(priceKobo),
+        coverImage: ebookCoverImage.trim() || undefined,
+        fileKey: ebookFileKey.trim() || undefined,
+        status: ebookStatus,
+      };
+
+      if (editingEbook) {
+        await apiRequest<any>(`/learning/ebooks/${editingEbook.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        showToast('E-Book updated successfully!');
+      } else {
+        await apiRequest<any>('/learning/ebooks', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        showToast('New E-Book added to library!');
+      }
+      setShowEbookFormModal(false);
       await loadData();
     } catch (err: any) {
-      showToast(err?.message || 'Could not publish announcement');
+      showToast(err?.message || 'Could not save e-book');
     } finally {
-      setIsPublishing(false);
+      setIsSavingEbook(false);
     }
   };
 
-  const handleDeleteAnnouncement = (a: AdminAnnouncement) => {
-    Alert.alert(
-      'Delete Announcement',
-      `Are you sure you want to delete broadcast "${a.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Broadcast',
-          style: 'destructive',
-          onPress: async () => {
-            setDeletingAnnounceId(a.id);
-            try {
-              await apiRequest<any>(`/community/announcements/${a.id}`, { method: 'DELETE' });
-              setAnnouncements((prev) => prev.filter((item) => item.id !== a.id));
-              showToast('Broadcast removed');
-            } catch (err: any) {
-              showToast(err?.message || 'Could not delete broadcast');
-            } finally {
-              setDeletingAnnounceId(null);
-            }
-          },
+  const handleDeleteEbook = (e: AdminEbook) => {
+    Alert.alert('Delete E-Book', `Are you sure you want to delete e-book "${e.title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete E-Book',
+        style: 'destructive',
+        onPress: async () => {
+          setDeletingEbookId(e.id);
+          try {
+            await apiRequest<any>(`/learning/ebooks/${e.id}`, { method: 'DELETE' });
+            setEbooks((prev) => prev.filter((item) => item.id !== e.id));
+            showToast('E-Book removed from library');
+          } catch (err: any) {
+            showToast(err?.message || 'Could not delete e-book');
+          } finally {
+            setDeletingEbookId(null);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   // Filtered lists
@@ -389,80 +551,29 @@ export function AdminHubView() {
               await clearAuthSession();
               router.replace('/login');
             }}
-            hitSlop={8}
           >
             <Ionicons name="log-out-outline" size={18} color="#EF4444" />
           </Pressable>
         </View>
 
-        {/* Quick Broadcast Direct Action Banner */}
-        <Pressable
-          style={({ pressed }) => [styles.quickBroadcastBanner, pressed && styles.pressed]}
-          onPress={() => {
-            setAnnounceTab('NEW');
-            setShowAnnounceModal(true);
-          }}
-        >
-          <View style={styles.quickBroadcastIconBox}>
-            <Ionicons name="megaphone" size={20} color="#FFFFFF" />
-          </View>
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Text style={styles.quickBroadcastTitle} numberOfLines={1}>
-              New Broadcast Announcement
-            </Text>
-            <Text style={styles.quickBroadcastSub} numberOfLines={1}>
-              Push live update or promotional alert to all users
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
-        </Pressable>
-
-        {/* Overview Metrics Row */}
+        {/* Metrics Grid */}
         <View style={styles.metricsGrid}>
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconBox, { backgroundColor: '#FDF2F2' }]}>
-              <Ionicons name="people" size={16} color="#F10505" />
-            </View>
-            <View style={styles.metricCardTextContent}>
-              <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
-                {totalUsersCount}
-              </Text>
-              <Text style={styles.metricLabel} numberOfLines={1}>
-                Total Users
-              </Text>
-            </View>
+            <Text style={styles.metricVal}>{totalUsersCount}</Text>
+            <Text style={styles.metricLabel}>Total Users</Text>
           </View>
 
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconBox, { backgroundColor: '#EEF2FF' }]}>
-              <Ionicons name="shield-half" size={16} color="#4F46E5" />
-            </View>
-            <View style={styles.metricCardTextContent}>
-              <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
-                {adminCount}
-              </Text>
-              <Text style={styles.metricLabel} numberOfLines={1}>
-                Admins
-              </Text>
-            </View>
+            <Text style={styles.metricVal}>{adminCount}</Text>
+            <Text style={styles.metricLabel}>Admins</Text>
           </View>
 
           <View style={styles.metricCard}>
-            <View style={[styles.metricIconBox, { backgroundColor: '#ECFDF5' }]}>
-              <Ionicons name="newspaper" size={16} color="#10B981" />
-            </View>
-            <View style={styles.metricCardTextContent}>
-              <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>
-                {totalPostsCount}
-              </Text>
-              <Text style={styles.metricLabel} numberOfLines={1}>
-                Feed Posts
-              </Text>
-            </View>
+            <Text style={styles.metricVal}>{cohorts.length + ebooks.length}</Text>
+            <Text style={styles.metricLabel}>Elevate & Books</Text>
           </View>
         </View>
 
-        {/* Operation Modules List */}
         {loading ? (
           <AdminHubSkeleton />
         ) : (
@@ -473,20 +584,20 @@ export function AdminHubView() {
               onPress={() => setShowUsersModal(true)}
             >
               <View style={[styles.moduleIconCircle, { backgroundColor: '#FDF2F2' }]}>
-                <Ionicons name="person-circle" size={24} color="#F10505" />
+                <Ionicons name="people" size={22} color="#F10505" />
               </View>
               <View style={styles.moduleTextContainer}>
                 <View style={styles.moduleTitleRow}>
                   <Text style={styles.moduleTitle} numberOfLines={1}>
                     User Account Management
                   </Text>
-                  <View style={styles.moduleBadge}>
-                    <Text style={styles.moduleBadgeText}>{users.length}</Text>
+                  <View style={[styles.moduleBadge, { backgroundColor: '#FDF2F2' }]}>
+                    <Text style={[styles.moduleBadgeText, { color: '#F10505' }]}>{totalUsersCount}</Text>
                   </View>
                 </View>
 
                 <Text style={styles.moduleSub} numberOfLines={2}>
-                  Manage user credentials, promote/demote administrator roles, and audit account access.
+                  Manage user roles (CUSTOMER vs ADMIN), review user profiles, and delete accounts.
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
@@ -517,31 +628,31 @@ export function AdminHubView() {
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </Pressable>
 
-            {/* Module 3: Announcements & Broadcasts */}
+            {/* Module 3: Gileo Elevate Cohorts & E-Books Management */}
             <Pressable
               style={({ pressed }) => [styles.moduleCard, pressed && styles.pressed]}
               onPress={() => {
-                setAnnounceTab('HISTORY');
-                setShowAnnounceModal(true);
+                setElevateTab('COHORTS');
+                setShowElevateModal(true);
               }}
             >
               <View style={[styles.moduleIconCircle, { backgroundColor: '#ECFDF5' }]}>
-                <Ionicons name="megaphone" size={22} color="#10B981" />
+                <Ionicons name="school" size={22} color="#10B981" />
               </View>
               <View style={styles.moduleTextContainer}>
                 <View style={styles.moduleTitleRow}>
                   <Text style={styles.moduleTitle} numberOfLines={1}>
-                    Broadcasts & Announcements
+                    Gileo Elevate & E-Books
                   </Text>
                   <View style={[styles.moduleBadge, { backgroundColor: '#ECFDF5' }]}>
                     <Text style={[styles.moduleBadgeText, { color: '#10B981' }]}>
-                      {announcements.length}
+                      {cohorts.length + ebooks.length}
                     </Text>
                   </View>
                 </View>
 
                 <Text style={styles.moduleSub} numberOfLines={2}>
-                  Publish platform-wide announcements, push update notifications, and view broadcast history.
+                  Manage Elevate Cohorts, Masterclasses, and Digital E-Books library for modern nurses.
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
@@ -592,97 +703,75 @@ export function AdminHubView() {
               )}
             </View>
 
-            <View style={styles.roleFilterRow}>
-              {(['ALL', 'ADMIN', 'CUSTOMER'] as const).map((r) => {
-                const isActive = userRoleFilter === r;
-                return (
-                  <Pressable
-                    key={r}
-                    onPress={() => setUserRoleFilter(r)}
-                    style={[styles.roleChip, isActive && styles.roleChipActive]}
+            <View style={styles.filterChipsRow}>
+              {(['ALL', 'ADMIN', 'CUSTOMER'] as const).map((rFilter) => (
+                <Pressable
+                  key={rFilter}
+                  onPress={() => setUserRoleFilter(rFilter)}
+                  style={[
+                    styles.filterChipBtn,
+                    userRoleFilter === rFilter && styles.filterChipBtnActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipBtnText,
+                      userRoleFilter === rFilter && styles.filterChipBtnTextActive,
+                    ]}
                   >
-                    <Text style={[styles.roleChipText, isActive && styles.roleChipTextActive]} numberOfLines={1}>
-                      {r === 'ALL' ? 'All Roles' : r === 'ADMIN' ? 'Admins Only' : 'Customers'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                    {rFilter}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
 
-            <ScrollView
-              contentContainerStyle={[
-                styles.modalScrollContent,
-                { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 20, 40) : 24 },
-              ]}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView contentContainerStyle={styles.modalListContent} showsVerticalScrollIndicator={false}>
               {filteredUsersList.length === 0 ? (
-                <Text style={styles.emptyModalText}>No users matched your search criteria.</Text>
+                <Text style={styles.emptyModalText}>No user accounts match your search.</Text>
               ) : (
-                filteredUsersList.map((u) => {
-                  const isAdmin = u.role === 'ADMIN';
-                  return (
-                    <View key={u.id} style={styles.userCard}>
-                      <View style={styles.userCardHeader}>
-                        <View style={styles.userAvatarSquare}>
-                          <Text style={styles.userAvatarText}>
-                            {(u.displayName || u.email || 'U').charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={styles.userNameText} numberOfLines={1}>
-                            {u.displayName || u.email?.split('@')[0]}
-                          </Text>
-                          <Text style={styles.userEmailText} numberOfLines={1}>
-                            {u.email}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.roleBadge,
-                            isAdmin ? styles.roleBadgeAdmin : styles.roleBadgeCustomer,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.roleBadgeText,
-                              isAdmin ? styles.roleBadgeTextAdmin : styles.roleBadgeTextCustomer,
-                            ]}
-                          >
-                            {u.role}
-                          </Text>
-                        </View>
-                      </View>
+                filteredUsersList.map((u) => (
+                  <View key={u.id} style={styles.userCardItem}>
+                    <View style={styles.userAvatarCircle}>
+                      <Text style={styles.userAvatarText}>
+                        {(u.displayName || u.email || 'U').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
 
-                      <View style={styles.userActionRow}>
-                        <Pressable
-                          style={({ pressed }) => [styles.roleToggleBtn, pressed && styles.pressed]}
-                          disabled={updatingUserId === u.id}
-                          onPress={() => handleToggleRole(u)}
-                        >
-                          {updatingUserId === u.id ? (
-                            <ActivityIndicator size="small" color="#0F172A" />
-                          ) : (
-                            <>
-                              <Ionicons name="shield-outline" size={14} color="#0F172A" />
-                              <Text style={styles.roleToggleBtnText} numberOfLines={1}>
-                                {isAdmin ? 'Demote to Customer' : 'Promote to Admin'}
-                              </Text>
-                            </>
-                          )}
-                        </Pressable>
-
-                        <Pressable
-                          style={({ pressed }) => [styles.deleteUserBtn, pressed && styles.pressed]}
-                          onPress={() => handleDeleteUser(u)}
-                        >
-                          <Ionicons name="trash-outline" size={14} color="#EF4444" />
-                          <Text style={styles.deleteUserBtnText} numberOfLines={1}>Delete</Text>
-                        </Pressable>
+                    <View style={styles.userInfoCol}>
+                      <Text style={styles.userNameText} numberOfLines={1}>
+                        {u.displayName || 'Gileo User'}
+                      </Text>
+                      <Text style={styles.userEmailText} numberOfLines={1}>
+                        {u.email}
+                      </Text>
+                      <View style={styles.roleTagBox}>
+                        <Text style={[styles.roleTagText, u.role === 'ADMIN' && styles.roleTagTextAdmin]}>
+                          ROLE: {u.role}
+                        </Text>
                       </View>
                     </View>
-                  );
-                })
+
+                    <View style={styles.userActionsCol}>
+                      <Pressable
+                        style={({ pressed }) => [styles.toggleRoleBtn, pressed && styles.pressed]}
+                        disabled={updatingUserId === u.id}
+                        onPress={() => handleToggleRole(u)}
+                      >
+                        <Text style={styles.toggleRoleBtnText} numberOfLines={1}>
+                          {u.role === 'ADMIN' ? 'Demote' : 'Make Admin'}
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={({ pressed }) => [styles.deleteUserBtn, pressed && styles.pressed]}
+                        disabled={updatingUserId === u.id}
+                        onPress={() => handleDeleteUser(u)}
+                      >
+                        <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                      </Pressable>
+                    </View>
+                  </View>
+                ))
               )}
             </ScrollView>
           </View>
@@ -690,7 +779,7 @@ export function AdminHubView() {
       </Modal>
 
       {/* =========================================
-          MODAL 2: COMMUNITY MODERATION
+          MODAL 2: COMMUNITY FEED MODERATION
       ========================================= */}
       <Modal
         visible={showPostsModal}
@@ -720,7 +809,7 @@ export function AdminHubView() {
               <TextInput
                 value={postSearch}
                 onChangeText={setPostSearch}
-                placeholder="Search post content or author..."
+                placeholder="Search posts by author or keyword..."
                 placeholderTextColor="#94A3B8"
                 style={styles.searchInput}
               />
@@ -731,21 +820,15 @@ export function AdminHubView() {
               )}
             </View>
 
-            <ScrollView
-              contentContainerStyle={[
-                styles.modalScrollContent,
-                { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 20, 40) : 24 },
-              ]}
-              showsVerticalScrollIndicator={false}
-            >
+            <ScrollView contentContainerStyle={styles.modalListContent} showsVerticalScrollIndicator={false}>
               {filteredPostsList.length === 0 ? (
                 <Text style={styles.emptyModalText}>No community posts found.</Text>
               ) : (
                 filteredPostsList.map((p) => (
-                  <View key={p.id} style={styles.postCard}>
+                  <View key={p.id} style={styles.postCardItem}>
                     <View style={styles.postHeaderRow}>
-                      <View style={styles.authorBadgeBox}>
-                        <Ionicons name="person-circle-outline" size={16} color="#4F46E5" />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <Ionicons name="person-circle" size={20} color="#0F172A" />
                         <Text style={styles.postAuthorText} numberOfLines={1}>
                           {p.authorName || 'Community Member'}
                         </Text>
@@ -770,26 +853,26 @@ export function AdminHubView() {
       </Modal>
 
       {/* =========================================
-          MODAL 3: PUBLISH & MANAGE BROADCAST ANNOUNCEMENTS
+          MODAL 3: GILEO ELEVATE COHORTS & E-BOOKS
       ========================================= */}
       <Modal
-        visible={showAnnounceModal}
+        visible={showElevateModal}
         animationType="slide"
         presentationStyle="fullScreen"
         statusBarTranslucent
-        onRequestClose={() => setShowAnnounceModal(false)}
+        onRequestClose={() => setShowElevateModal(false)}
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
           <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
             <Pressable
-              onPress={() => setShowAnnounceModal(false)}
+              onPress={() => setShowElevateModal(false)}
               style={styles.modalCloseCircle}
               hitSlop={12}
             >
               <Ionicons name="close" size={20} color="#0F172A" />
             </Pressable>
             <Text style={styles.modalHeaderTitle} numberOfLines={1}>
-              Broadcast Announcements
+              Gileo Elevate & E-Books Management
             </Text>
             <View style={{ width: 36 }} />
           </View>
@@ -797,44 +880,251 @@ export function AdminHubView() {
           {/* Sub Nav Tabs inside Modal */}
           <View style={styles.modalTabRow}>
             <Pressable
-              style={[styles.modalTabBtn, announceTab === 'NEW' && styles.modalTabBtnActive]}
-              onPress={() => setAnnounceTab('NEW')}
+              style={[styles.modalTabBtn, elevateTab === 'COHORTS' && styles.modalTabBtnActive]}
+              onPress={() => setElevateTab('COHORTS')}
             >
               <Ionicons
-                name="add-circle"
+                name="school"
                 size={16}
-                color={announceTab === 'NEW' ? '#FFFFFF' : '#64748B'}
+                color={elevateTab === 'COHORTS' ? '#FFFFFF' : '#64748B'}
               />
               <Text
-                style={[styles.modalTabText, announceTab === 'NEW' && styles.modalTabTextActive]}
+                style={[styles.modalTabText, elevateTab === 'COHORTS' && styles.modalTabTextActive]}
                 numberOfLines={1}
               >
-                Create New Broadcast
+                Elevate Cohorts ({cohorts.length})
               </Text>
             </Pressable>
 
             <Pressable
-              style={[styles.modalTabBtn, announceTab === 'HISTORY' && styles.modalTabBtnActive]}
-              onPress={() => setAnnounceTab('HISTORY')}
+              style={[styles.modalTabBtn, elevateTab === 'EBOOKS' && styles.modalTabBtnActive]}
+              onPress={() => setElevateTab('EBOOKS')}
             >
               <Ionicons
-                name="list"
+                name="book"
                 size={16}
-                color={announceTab === 'HISTORY' ? '#FFFFFF' : '#64748B'}
+                color={elevateTab === 'EBOOKS' ? '#FFFFFF' : '#64748B'}
               />
               <Text
-                style={[styles.modalTabText, announceTab === 'HISTORY' && styles.modalTabTextActive]}
+                style={[styles.modalTabText, elevateTab === 'EBOOKS' && styles.modalTabTextActive]}
                 numberOfLines={1}
               >
-                Past Broadcasts ({announcements.length})
+                E-Books Library ({ebooks.length})
               </Text>
             </Pressable>
           </View>
 
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          <ScrollView
+            contentContainerStyle={[
+              styles.modalScrollContent,
+              { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 30, 48) : 24 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
+            {elevateTab === 'COHORTS' ? (
+              /* ELEVATE COHORTS SECTION */
+              <View style={{ gap: 16 }}>
+                <Pressable style={styles.createItemBtn} onPress={handleOpenAddCohort}>
+                  <Ionicons name="add-circle" size={18} color="#FFFFFF" />
+                  <Text style={styles.createItemBtnText}>+ Create New Elevate Cohort</Text>
+                </Pressable>
+
+                {cohorts.length === 0 ? (
+                  <Text style={styles.emptyModalText}>No Elevate Cohorts created yet.</Text>
+                ) : (
+                  cohorts.map((c) => (
+                    <View key={c.id} style={styles.itemManageCard}>
+                      <View style={styles.itemCardHeaderRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.itemCardTitle} numberOfLines={2}>
+                            {c.title}
+                          </Text>
+                          <Text style={styles.itemCardSub}>
+                            {formatKobo(c.priceKobo)} • {c.enrolledCount || 0} Enrolled
+                          </Text>
+                        </View>
+                        <View
+                          style={
+                            c.status === 'PUBLISHED'
+                              ? styles.statusTagPublished
+                              : styles.statusTagDraft
+                          }
+                        >
+                          <Text
+                            style={
+                              c.status === 'PUBLISHED'
+                                ? styles.statusTagTextPublished
+                                : styles.statusTagTextDraft
+                            }
+                          >
+                            {c.status || 'PUBLISHED'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {c.overview ? (
+                        <Text style={styles.itemCardDescText} numberOfLines={2}>
+                          {c.overview}
+                        </Text>
+                      ) : null}
+
+                      <View style={styles.itemCardActionRow}>
+                        <Pressable
+                          style={styles.itemDetailBtn}
+                          onPress={() => {
+                            setViewingCohort(c);
+                            setShowCohortDetailModal(true);
+                          }}
+                        >
+                          <Ionicons name="eye-outline" size={14} color="#0F172A" />
+                          <Text style={styles.itemDetailBtnText}>View Details</Text>
+                        </Pressable>
+
+                        <Pressable style={styles.itemEditBtn} onPress={() => handleOpenEditCohort(c)}>
+                          <Ionicons name="create-outline" size={14} color="#0F172A" />
+                          <Text style={styles.itemEditBtnText}>Edit</Text>
+                        </Pressable>
+
+                        <Pressable
+                          style={styles.itemDeleteBtn}
+                          disabled={deletingCohortId === c.id}
+                          onPress={() => handleDeleteCohort(c)}
+                        >
+                          {deletingCohortId === c.id ? (
+                            <ActivityIndicator size="small" color="#EF4444" />
+                          ) : (
+                            <>
+                              <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                              <Text style={styles.itemDeleteBtnText}>Delete</Text>
+                            </>
+                          )}
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            ) : (
+              /* DIGITAL E-BOOKS SECTION */
+              <View style={{ gap: 16 }}>
+                <Pressable style={styles.createItemBtn} onPress={handleOpenAddEbook}>
+                  <Ionicons name="add-circle" size={18} color="#FFFFFF" />
+                  <Text style={styles.createItemBtnText}>+ Create & Upload New E-Book</Text>
+                </Pressable>
+
+                {ebooks.length === 0 ? (
+                  <Text style={styles.emptyModalText}>No E-Books uploaded to library yet.</Text>
+                ) : (
+                  ebooks.map((e) => (
+                    <View key={e.id} style={styles.itemManageCard}>
+                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                        {e.coverImage ? (
+                          <Image source={{ uri: e.coverImage }} style={styles.ebookCardThumb} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.ebookCardThumbFallback}>
+                            <Ionicons name="book" size={24} color="#F10505" />
+                          </View>
+                        )}
+
+                        <View style={{ flex: 1, gap: 4 }}>
+                          <View style={styles.itemCardHeaderRow}>
+                            <Text style={[styles.itemCardTitle, { flex: 1 }]} numberOfLines={1}>
+                              {e.title}
+                            </Text>
+                            <View
+                              style={
+                                e.status === 'PUBLISHED'
+                                  ? styles.statusTagPublished
+                                  : styles.statusTagDraft
+                              }
+                            >
+                              <Text
+                                style={
+                                  e.status === 'PUBLISHED'
+                                    ? styles.statusTagTextPublished
+                                    : styles.statusTagTextDraft
+                                }
+                              >
+                                {e.status || 'PUBLISHED'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <Text style={styles.itemCardSub}>
+                            {e.author || 'Gileo Medicals Global Limited'} • {formatKobo(e.priceKobo)}
+                          </Text>
+
+                          {e.description ? (
+                            <Text style={styles.itemCardDescText} numberOfLines={2}>
+                              {e.description}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      <View style={styles.itemCardActionRow}>
+                        <Pressable
+                          style={styles.itemDetailBtn}
+                          onPress={() => {
+                            setViewingEbook(e);
+                            setShowEbookDetailModal(true);
+                          }}
+                        >
+                          <Ionicons name="eye-outline" size={14} color="#0F172A" />
+                          <Text style={styles.itemDetailBtnText}>View Details</Text>
+                        </Pressable>
+
+                        <Pressable style={styles.itemEditBtn} onPress={() => handleOpenEditEbook(e)}>
+                          <Ionicons name="create-outline" size={14} color="#0F172A" />
+                          <Text style={styles.itemEditBtnText}>Edit</Text>
+                        </Pressable>
+
+                        <Pressable
+                          style={styles.itemDeleteBtn}
+                          disabled={deletingEbookId === e.id}
+                          onPress={() => handleDeleteEbook(e)}
+                        >
+                          {deletingEbookId === e.id ? (
+                            <ActivityIndicator size="small" color="#EF4444" />
+                          ) : (
+                            <>
+                              <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                              <Text style={styles.itemDeleteBtnText}>Delete</Text>
+                            </>
+                          )}
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* =========================================
+          COHORT CREATE / EDIT FORM MODAL
+      ========================================= */}
+      <Modal
+        visible={showCohortFormModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowCohortFormModal(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
+          <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
+            <Pressable onPress={() => setShowCohortFormModal(false)} style={styles.modalCloseCircle} hitSlop={12}>
+              <Ionicons name="close" size={20} color="#0F172A" />
+            </Pressable>
+            <Text style={styles.modalHeaderTitle} numberOfLines={1}>
+              {editingCohort ? 'Edit Elevate Cohort' : 'Create New Elevate Cohort'}
+            </Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <ScrollView
               contentContainerStyle={[
                 styles.modalScrollContent,
@@ -843,164 +1133,453 @@ export function AdminHubView() {
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
-              {announceTab === 'NEW' ? (
-                <View style={{ gap: 16 }}>
-                  {/* Title Input */}
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.fieldLabel}>Broadcast Title *</Text>
+              <View style={{ gap: 16 }}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Cohort Title *</Text>
+                  <TextInput
+                    value={cohortTitle}
+                    onChangeText={setCohortTitle}
+                    placeholder="e.g. Nurse Concierge & Executive Leadership Cohort"
+                    placeholderTextColor="#94A3B8"
+                    style={styles.textInput}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Overview & Description *</Text>
+                  <TextInput
+                    value={cohortOverview}
+                    onChangeText={setCohortOverview}
+                    placeholder="Write detailed cohort overview, curriculum summary and benefits..."
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    numberOfLines={4}
+                    style={[styles.textInput, { height: 100, textAlignVertical: 'top' }]}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Learning Outcomes (One per line) *</Text>
+                  <TextInput
+                    value={cohortOutcomes}
+                    onChangeText={setCohortOutcomes}
+                    placeholder="Type key learning outcomes (each new line is a bullet item)"
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    numberOfLines={4}
+                    style={[styles.textInput, { height: 100, textAlignVertical: 'top' }]}
+                  />
+                </View>
+
+                <View style={styles.twoColumnRow}>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.fieldLabel}>Price (₦ Naira) *</Text>
                     <TextInput
-                      value={announceTitle}
-                      onChangeText={setAnnounceTitle}
-                      placeholder="e.g. Gileo Mobile Platform Update & New Features"
+                      value={cohortPriceNaira}
+                      onChangeText={setCohortPriceNaira}
+                      placeholder="50000"
                       placeholderTextColor="#94A3B8"
+                      keyboardType="numeric"
                       style={styles.textInput}
                     />
                   </View>
 
-                  {/* Body Input */}
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.fieldLabel}>Broadcast Content *</Text>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.fieldLabel}>Capacity *</Text>
                     <TextInput
-                      value={announceBody}
-                      onChangeText={setAnnounceBody}
-                      placeholder="Write full announcement details for all Gileo users..."
+                      value={cohortCapacity}
+                      onChangeText={setCohortCapacity}
+                      placeholder="50"
                       placeholderTextColor="#94A3B8"
-                      multiline
-                      numberOfLines={5}
-                      style={[styles.textInput, { height: 110, textAlignVertical: 'top', paddingTop: 12 }]}
+                      keyboardType="numeric"
+                      style={styles.textInput}
                     />
                   </View>
+                </View>
 
-                  {/* Banner Image Uploads */}
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.fieldLabel}>Graphic Banner Attachment</Text>
-                    <Text style={styles.fieldSubLabel}>
-                      Attach an image banner from device gallery or camera.
-                    </Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Eligibility & Target Audience</Text>
+                  <TextInput
+                    value={cohortEligibility}
+                    onChangeText={setCohortEligibility}
+                    placeholder="e.g. Registered Nurses, Midwives & Healthcare Leaders"
+                    placeholderTextColor="#94A3B8"
+                    style={styles.textInput}
+                  />
+                </View>
 
-                    <View style={styles.uploadCardsRow}>
-                      <Pressable
-                        style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
-                        disabled={isUploadingBanner}
-                        onPress={() => handleUploadBannerImage('gallery')}
-                      >
-                        <Ionicons name="images" size={18} color="#10B981" />
-                        <Text style={styles.uploadCardTitle} numberOfLines={1}>
-                          Device Gallery
-                        </Text>
-                      </Pressable>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Schedule & Timing</Text>
+                  <TextInput
+                    value={cohortSchedule}
+                    onChangeText={setCohortSchedule}
+                    placeholder="e.g. Saturdays 10:00 AM WAT via Gileo Elevate"
+                    placeholderTextColor="#94A3B8"
+                    style={styles.textInput}
+                  />
+                </View>
 
-                      <Pressable
-                        style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
-                        disabled={isUploadingBanner}
-                        onPress={() => handleUploadBannerImage('camera')}
-                      >
-                        <Ionicons name="camera" size={18} color="#4F46E5" />
-                        <Text style={styles.uploadCardTitle} numberOfLines={1}>
-                          Take Photo
-                        </Text>
-                      </Pressable>
-                    </View>
-
-                    {isUploadingBanner && (
-                      <View style={styles.uploadingBox}>
-                        <ActivityIndicator size="small" color="#10B981" />
-                        <Text style={styles.uploadingText}>Uploading graphic banner...</Text>
-                      </View>
-                    )}
-
-                    {announceImages.length > 0 && (
-                      <View style={styles.thumbsGrid}>
-                        {announceImages.map((uri, idx) => (
-                          <View key={idx} style={styles.thumbWrapper}>
-                            <Image source={{ uri }} style={styles.thumbImage} resizeMode="cover" />
-                            <Pressable
-                              style={styles.thumbRemoveBtn}
-                              onPress={() => setAnnounceImages((prev) => prev.filter((_, i) => i !== idx))}
-                              hitSlop={8}
-                            >
-                              <Ionicons name="close-circle" size={18} color="#EF4444" />
-                            </Pressable>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Bottom Actions */}
-                  <View style={styles.modalActionsRow}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Status</Text>
+                  <View style={styles.statusToggleRow}>
                     <Pressable
-                      style={styles.cancelBtn}
-                      onPress={() => setShowAnnounceModal(false)}
+                      style={[styles.statusToggleOption, cohortStatus === 'PUBLISHED' && styles.statusToggleOptionActive]}
+                      onPress={() => setCohortStatus('PUBLISHED')}
                     >
-                      <Text style={styles.cancelBtnText} numberOfLines={1}>
-                        Cancel
+                      <Text style={[styles.statusToggleText, cohortStatus === 'PUBLISHED' && styles.statusToggleTextActive]}>
+                        PUBLISHED
                       </Text>
                     </Pressable>
 
                     <Pressable
-                      style={({ pressed }) => [styles.publishBtn, pressed && styles.pressed]}
-                      disabled={isPublishing || isUploadingBanner}
-                      onPress={handlePublishAnnounce}
+                      style={[styles.statusToggleOption, cohortStatus === 'DRAFT' && styles.statusToggleOptionActive]}
+                      onPress={() => setCohortStatus('DRAFT')}
                     >
-                      {isPublishing ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <>
-                          <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
-                          <Text style={styles.publishBtnText} numberOfLines={1}>
-                            Publish Broadcast
-                          </Text>
-                        </>
-                      )}
+                      <Text style={[styles.statusToggleText, cohortStatus === 'DRAFT' && styles.statusToggleTextActive]}>
+                        DRAFT
+                      </Text>
                     </Pressable>
                   </View>
                 </View>
-              ) : (
-                /* History Tab */
-                <View style={{ gap: 12 }}>
-                  {announcements.length === 0 ? (
-                    <Text style={styles.emptyModalText}>No past announcements published yet.</Text>
-                  ) : (
-                    announcements.map((a) => (
-                      <View key={a.id} style={styles.announcementHistoryCard}>
-                        <View style={styles.announcementHeaderRow}>
-                          <Text style={styles.announcementTitleText} numberOfLines={1}>
-                            {a.title}
-                          </Text>
-                          <View style={styles.statusTagPublished}>
-                            <Text style={styles.statusTagTextPublished}>{a.status || 'PUBLISHED'}</Text>
-                          </View>
-                        </View>
 
-                        <Text style={styles.announcementBodyText}>{a.body}</Text>
+                <View style={styles.modalActionsRow}>
+                  <Pressable style={styles.cancelBtn} onPress={() => setShowCohortFormModal(false)}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </Pressable>
 
-                        <View style={styles.announcementFooterRow}>
-                          <Pressable
-                            style={({ pressed }) => [styles.deleteAnnounceBtn, pressed && styles.pressed]}
-                            disabled={deletingAnnounceId === a.id}
-                            onPress={() => handleDeleteAnnouncement(a)}
-                          >
-                            {deletingAnnounceId === a.id ? (
-                              <ActivityIndicator size="small" color="#EF4444" />
-                            ) : (
-                              <>
-                                <Ionicons name="trash-outline" size={14} color="#EF4444" />
-                                <Text style={styles.deleteAnnounceBtnText} numberOfLines={1}>
-                                  Delete Broadcast
-                                </Text>
-                              </>
-                            )}
-                          </Pressable>
-                        </View>
-                      </View>
-                    ))
-                  )}
+                  <Pressable
+                    style={styles.publishBtn}
+                    disabled={isSavingCohort}
+                    onPress={handleSaveCohort}
+                  >
+                    {isSavingCohort ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                        <Text style={styles.publishBtnText}>
+                          {editingCohort ? 'Save Changes' : 'Publish Cohort'}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
                 </View>
-              )}
+              </View>
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
+      </Modal>
+
+      {/* =========================================
+          E-BOOK CREATE / EDIT FORM MODAL
+      ========================================= */}
+      <Modal
+        visible={showEbookFormModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowEbookFormModal(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
+          <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
+            <Pressable onPress={() => setShowEbookFormModal(false)} style={styles.modalCloseCircle} hitSlop={12}>
+              <Ionicons name="close" size={20} color="#0F172A" />
+            </Pressable>
+            <Text style={styles.modalHeaderTitle} numberOfLines={1}>
+              {editingEbook ? 'Edit Digital E-Book' : 'Create & Upload New E-Book'}
+            </Text>
+            <View style={{ width: 36 }} />
+          </View>
+
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView
+              contentContainerStyle={[
+                styles.modalScrollContent,
+                { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 30, 48) : 24 },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={{ gap: 16 }}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>E-Book Title *</Text>
+                  <TextInput
+                    value={ebookTitle}
+                    onChangeText={setEbookTitle}
+                    placeholder="e.g. How to Build an Independent Concierge Nursing Practice"
+                    placeholderTextColor="#94A3B8"
+                    style={styles.textInput}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Author Name</Text>
+                  <TextInput
+                    value={ebookAuthor}
+                    onChangeText={setEbookAuthor}
+                    placeholder="Gileo Medicals Global Limited"
+                    placeholderTextColor="#94A3B8"
+                    style={styles.textInput}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Price (₦ Naira) *</Text>
+                  <TextInput
+                    value={ebookPriceNaira}
+                    onChangeText={setEbookPriceNaira}
+                    placeholder="5000"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    style={styles.textInput}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>E-Book Description *</Text>
+                  <TextInput
+                    value={ebookDescription}
+                    onChangeText={setEbookDescription}
+                    placeholder="Detailed handbook overview and what readers will learn..."
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                    numberOfLines={4}
+                    style={[styles.textInput, { height: 90, textAlignVertical: 'top' }]}
+                  />
+                </View>
+
+                {/* Cover Photo Upload */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Cover Image Attachment</Text>
+                  <Text style={styles.fieldSubLabel}>
+                    Upload cover photo from phone gallery or camera.
+                  </Text>
+
+                  <View style={styles.uploadCardsRow}>
+                    <Pressable
+                      style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
+                      disabled={isUploadingEbookCover}
+                      onPress={() => handlePickEbookCoverPhoto('gallery')}
+                    >
+                      <Ionicons name="images" size={18} color="#10B981" />
+                      <Text style={styles.uploadCardTitle}>Gallery</Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
+                      disabled={isUploadingEbookCover}
+                      onPress={() => handlePickEbookCoverPhoto('camera')}
+                    >
+                      <Ionicons name="camera" size={18} color="#4F46E5" />
+                      <Text style={styles.uploadCardTitle}>Camera</Text>
+                    </Pressable>
+                  </View>
+
+                  {isUploadingEbookCover && (
+                    <View style={styles.uploadingBox}>
+                      <ActivityIndicator size="small" color="#10B981" />
+                      <Text style={styles.uploadingText}>Uploading cover image...</Text>
+                    </View>
+                  )}
+
+                  <TextInput
+                    value={ebookCoverImage}
+                    onChangeText={setEbookCoverImage}
+                    placeholder="Or paste cover image URL (e.g. https://res.cloudinary.com/...)"
+                    placeholderTextColor="#94A3B8"
+                    style={[styles.textInput, { marginTop: 8 }]}
+                  />
+
+                  {ebookCoverImage.length > 0 && (
+                    <View style={{ marginTop: 8, alignItems: 'center' }}>
+                      <Image source={{ uri: ebookCoverImage }} style={{ width: 100, height: 130, borderRadius: 12 }} resizeMode="cover" />
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>E-Book PDF Link / Key</Text>
+                  <TextInput
+                    value={ebookFileKey}
+                    onChangeText={setEbookFileKey}
+                    placeholder="e.g. https://.../handbook.pdf or pdf-key"
+                    placeholderTextColor="#94A3B8"
+                    style={styles.textInput}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.fieldLabel}>Status</Text>
+                  <View style={styles.statusToggleRow}>
+                    <Pressable
+                      style={[styles.statusToggleOption, ebookStatus === 'PUBLISHED' && styles.statusToggleOptionActive]}
+                      onPress={() => setEbookStatus('PUBLISHED')}
+                    >
+                      <Text style={[styles.statusToggleText, ebookStatus === 'PUBLISHED' && styles.statusToggleTextActive]}>
+                        PUBLISHED
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={[styles.statusToggleOption, ebookStatus === 'DRAFT' && styles.statusToggleOptionActive]}
+                      onPress={() => setEbookStatus('DRAFT')}
+                    >
+                      <Text style={[styles.statusToggleText, ebookStatus === 'DRAFT' && styles.statusToggleTextActive]}>
+                        DRAFT
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View style={styles.modalActionsRow}>
+                  <Pressable style={styles.cancelBtn} onPress={() => setShowEbookFormModal(false)}>
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.publishBtn}
+                    disabled={isSavingEbook}
+                    onPress={handleSaveEbook}
+                  >
+                    {isSavingEbook ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                        <Text style={styles.publishBtnText}>
+                          {editingEbook ? 'Save Changes' : 'Publish E-Book'}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* =========================================
+          COHORT FULL DETAIL VIEW MODAL
+      ========================================= */}
+      <Modal
+        visible={showCohortDetailModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCohortDetailModal(false)}
+      >
+        <Pressable style={styles.modalOverlayDark} onPress={() => setShowCohortDetailModal(false)}>
+          <Pressable style={styles.detailModalCard} onPress={(e) => e.stopPropagation()}>
+            {viewingCohort && (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
+                <View style={styles.detailHeaderRow}>
+                  <Text style={styles.detailTitleText}>{viewingCohort.title}</Text>
+                  <Pressable onPress={() => setShowCohortDetailModal(false)} hitSlop={10}>
+                    <Ionicons name="close" size={20} color="#64748B" />
+                  </Pressable>
+                </View>
+
+                <View style={styles.detailTagRow}>
+                  <View style={styles.pricePill}>
+                    <Text style={styles.pricePillText}>{formatKobo(viewingCohort.priceKobo)}</Text>
+                  </View>
+                  <Text style={styles.detailMetaText}>
+                    Enroled: {viewingCohort.enrolledCount || 0} / {viewingCohort.capacity || 'Unlimited'}
+                  </Text>
+                </View>
+
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailHeading}>Overview</Text>
+                  <Text style={styles.detailBodyText}>{viewingCohort.overview}</Text>
+                </View>
+
+                {viewingCohort.learningOutcomes && viewingCohort.learningOutcomes.length > 0 && (
+                  <View style={styles.detailGroup}>
+                    <Text style={styles.detailHeading}>Learning Outcomes</Text>
+                    {viewingCohort.learningOutcomes.map((item, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-start' }}>
+                        <Ionicons name="checkmark-circle" size={14} color="#10B981" style={{ marginTop: 2 }} />
+                        <Text style={[styles.detailBodyText, { flex: 1 }]}>{item}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {viewingCohort.schedule ? (
+                  <View style={styles.detailGroup}>
+                    <Text style={styles.detailHeading}>Schedule</Text>
+                    <Text style={styles.detailBodyText}>{viewingCohort.schedule}</Text>
+                  </View>
+                ) : null}
+
+                {viewingCohort.eligibility ? (
+                  <View style={styles.detailGroup}>
+                    <Text style={styles.detailHeading}>Eligibility</Text>
+                    <Text style={styles.detailBodyText}>{viewingCohort.eligibility}</Text>
+                  </View>
+                ) : null}
+
+                <Pressable
+                  style={styles.detailCloseBtn}
+                  onPress={() => setShowCohortDetailModal(false)}
+                >
+                  <Text style={styles.detailCloseBtnText}>Close</Text>
+                </Pressable>
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* =========================================
+          E-BOOK FULL DETAIL VIEW MODAL
+      ========================================= */}
+      <Modal
+        visible={showEbookDetailModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEbookDetailModal(false)}
+      >
+        <Pressable style={styles.modalOverlayDark} onPress={() => setShowEbookDetailModal(false)}>
+          <Pressable style={styles.detailModalCard} onPress={(e) => e.stopPropagation()}>
+            {viewingEbook && (
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
+                <View style={styles.detailHeaderRow}>
+                  <Text style={styles.detailTitleText}>{viewingEbook.title}</Text>
+                  <Pressable onPress={() => setShowEbookDetailModal(false)} hitSlop={10}>
+                    <Ionicons name="close" size={20} color="#64748B" />
+                  </Pressable>
+                </View>
+
+                {viewingEbook.coverImage && (
+                  <Image source={{ uri: viewingEbook.coverImage }} style={{ width: '100%', height: 160, borderRadius: 16 }} resizeMode="cover" />
+                )}
+
+                <Text style={styles.detailMetaText}>
+                  By {viewingEbook.author || 'Gileo Medicals Global Limited'} • {formatKobo(viewingEbook.priceKobo)}
+                </Text>
+
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailHeading}>Description & Summary</Text>
+                  <Text style={styles.detailBodyText}>{viewingEbook.description}</Text>
+                </View>
+
+                <View style={styles.detailGroup}>
+                  <Text style={styles.detailHeading}>PDF File Attachment</Text>
+                  <Text style={styles.detailBodyText}>
+                    {viewingEbook.fileKey ? `Attached Key: ${viewingEbook.fileKey}` : 'No PDF attached yet.'}
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={styles.detailCloseBtn}
+                  onPress={() => setShowEbookDetailModal(false)}
+                >
+                  <Text style={styles.detailCloseBtnText}>Close</Text>
+                </Pressable>
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
@@ -1053,54 +1632,46 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   scrollContent: {
     paddingHorizontal: 18,
-    paddingBottom: 96,
-    gap: 14,
+    paddingBottom: 40,
+    gap: 16,
   },
   profileHeroCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
     padding: 16,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
   },
   avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
   },
   heroTextContainer: {
     flex: 1,
-    minWidth: 0,
     gap: 2,
   },
   heroName: {
     color: '#0F172A',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
   },
   heroEmail: {
@@ -1119,88 +1690,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   logoutBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#FFF1F2',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF2F2',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
-  },
-  quickBroadcastBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3F0106',
-    borderRadius: 20,
-    padding: 14,
-    gap: 12,
-    shadowColor: '#3F0106',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  quickBroadcastIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  quickBroadcastTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  quickBroadcastSub: {
-    color: '#F1F5F9',
-    fontSize: 11,
-    opacity: 0.85,
   },
   metricsGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   metricCard: {
     flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
+    padding: 14,
     borderRadius: 18,
-    gap: 8,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  metricIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    borderColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    gap: 2,
   },
-  metricCardTextContent: {
-    flex: 1,
-    minWidth: 0,
-  },
-  metricValue: {
+  metricVal: {
     color: '#0F172A',
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: '800',
   },
   metricLabel: {
     color: '#64748B',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
   modulesContainer: {
@@ -1209,29 +1728,22 @@ const styles = StyleSheet.create({
   moduleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
     padding: 16,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: '#F1F5F9',
+    gap: 14,
   },
   moduleIconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   moduleTextContainer: {
     flex: 1,
-    minWidth: 0,
     gap: 4,
   },
   moduleTitleRow: {
@@ -1242,7 +1754,7 @@ const styles = StyleSheet.create({
   },
   moduleTitle: {
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     flex: 1,
   },
@@ -1250,20 +1762,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: '#FDF2F2',
   },
   moduleBadgeText: {
-    color: '#F10505',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
   },
   moduleSub: {
     color: '#64748B',
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 17,
   },
-
-  /* Modal Base Styles */
+  pressed: {
+    opacity: 0.75,
+  },
   modalSafeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -1272,7 +1783,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
@@ -1292,92 +1803,58 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  modalTabRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-    backgroundColor: '#F8FAFC',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  modalTabBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  modalTabBtnActive: {
-    backgroundColor: '#3F0106',
-    borderColor: '#3F0106',
-  },
-  modalTabText: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  modalTabTextActive: {
-    color: '#FFFFFF',
-  },
   modalBody: {
     flex: 1,
+    paddingHorizontal: 18,
     paddingTop: 12,
-    paddingHorizontal: 16,
     gap: 12,
-  },
-  modalScrollContent: {
-    padding: 16,
-    gap: 14,
   },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: '#F8FAFC',
-    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
-    height: 48,
+    gap: 8,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 2,
   },
   searchInput: {
     flex: 1,
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 13,
   },
-  roleFilterRow: {
+  filterChipsRow: {
     flexDirection: 'row',
     gap: 8,
   },
-  roleChip: {
-    flex: 1,
-    paddingVertical: 8,
+  filterChipBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    alignItems: 'center',
   },
-  roleChipActive: {
-    backgroundColor: '#3F0106',
-    borderColor: '#3F0106',
+  filterChipBtnActive: {
+    backgroundColor: '#F10505',
+    borderColor: '#F10505',
   },
-  roleChipText: {
+  filterChipBtnText: {
     color: '#64748B',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  roleChipTextActive: {
+  filterChipBtnTextActive: {
     color: '#FFFFFF',
-    fontWeight: '800',
+  },
+  modalListContent: {
+    gap: 10,
+    paddingBottom: 40,
   },
   emptyModalText: {
     color: '#94A3B8',
@@ -1385,34 +1862,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 32,
   },
-
-  /* User Card */
-  userCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
-  },
-  userCardHeader: {
+  userCardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
   },
-  userAvatarSquare: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#3F0106',
+  userAvatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   userAvatarText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+  },
+  userInfoCol: {
+    flex: 1,
+    gap: 2,
   },
   userNameText: {
     color: '#0F172A',
@@ -1423,72 +1898,46 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 12,
   },
-  roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-    flexShrink: 0,
+  roleTagBox: {
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
-  roleBadgeAdmin: {
-    backgroundColor: '#FDF2F2',
-  },
-  roleBadgeCustomer: {
-    backgroundColor: '#E2E8F0',
-  },
-  roleBadgeText: {
+  roleTagText: {
+    color: '#64748B',
     fontSize: 10,
     fontWeight: '800',
   },
-  roleBadgeTextAdmin: {
+  roleTagTextAdmin: {
     color: '#F10505',
   },
-  roleBadgeTextCustomer: {
-    color: '#475569',
-  },
-  userActionRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  roleToggleBtn: {
-    flex: 1,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+  userActionsCol: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
   },
-  roleToggleBtnText: {
-    color: '#0F172A',
+  toggleRoleBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#0F172A',
+  },
+  toggleRoleBtnText: {
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },
   deleteUserBtn: {
-    height: 36,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECDD3',
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
   },
-  deleteUserBtnText: {
-    color: '#EF4444',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  /* Post Card */
-  postCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 18,
+  postCardItem: {
     padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     gap: 8,
@@ -1497,14 +1946,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-  },
-  authorBadgeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-    minWidth: 0,
   },
   postAuthorText: {
     color: '#0F172A',
@@ -1515,12 +1956,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECDD3',
   },
   deletePostBtnText: {
     color: '#EF4444',
@@ -1528,12 +1967,157 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   postContentText: {
-    color: '#334155',
+    color: '#475569',
     fontSize: 13,
     lineHeight: 18,
   },
-
-  /* Form & Uploads */
+  modalTabRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  modalTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalTabBtnActive: {
+    backgroundColor: '#F10505',
+    borderColor: '#F10505',
+  },
+  modalTabText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalTabTextActive: {
+    color: '#FFFFFF',
+  },
+  modalScrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+  },
+  createItemBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#F10505',
+  },
+  createItemBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  itemManageCard: {
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 10,
+  },
+  itemCardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  itemCardTitle: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  itemCardSub: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  itemCardDescText: {
+    color: '#475569',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  itemCardActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  itemDetailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  itemDetailBtnText: {
+    color: '#0F172A',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  itemEditBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  itemEditBtnText: {
+    color: '#0F172A',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  itemDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FEF2F2',
+    marginLeft: 'auto',
+  },
+  itemDeleteBtnText: {
+    color: '#EF4444',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  ebookCardThumb: {
+    width: 60,
+    height: 80,
+    borderRadius: 10,
+  },
+  ebookCardThumbFallback: {
+    width: 60,
+    height: 80,
+    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   inputGroup: {
     gap: 6,
   },
@@ -1547,29 +2131,94 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   textInput: {
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    color: '#0F172A',
+    fontSize: 13,
+  },
+  twoColumnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statusToggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statusToggleOption: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusToggleOptionActive: {
+    backgroundColor: '#F10505',
+    borderColor: '#F10505',
+  },
+  statusToggleText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  statusToggleTextActive: {
+    color: '#FFFFFF',
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    flex: 1,
     height: 48,
     borderRadius: 14,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
-    color: '#0F172A',
-    fontSize: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  uploadCardsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
+  cancelBtnText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '700',
   },
-  uploadCard: {
-    flex: 1,
-    minWidth: 0,
+  publishBtn: {
+    flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
+    height: 48,
     borderRadius: 14,
+    backgroundColor: '#F10505',
+  },
+  publishBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  uploadCardsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  uploadCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -1583,100 +2232,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 6,
-  },
-  uploadingText: {
-    color: '#10B981',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  thumbsGrid: {
-    flexDirection: 'row',
-    gap: 8,
     marginTop: 6,
   },
-  thumbWrapper: {
-    position: 'relative',
-    width: 72,
-    height: 72,
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  thumbImage: {
-    width: '100%',
-    height: '100%',
-  },
-  thumbRemoveBtn: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-  },
-  modalActionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-  },
-  cancelBtn: {
-    flex: 1,
-    minWidth: 0,
-    height: 48,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  cancelBtnText: {
-    color: '#0F172A',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  publishBtn: {
-    flex: 1.5,
-    minWidth: 0,
-    height: 48,
-    borderRadius: 999,
-    backgroundColor: '#F10505',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    shadowColor: '#F10505',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  publishBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  announcementHistoryCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 8,
-  },
-  announcementHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  announcementTitleText: {
-    color: '#0F172A',
-    fontSize: 14,
-    fontWeight: '800',
-    flex: 1,
+  uploadingText: {
+    color: '#64748B',
+    fontSize: 12,
   },
   statusTagPublished: {
     paddingHorizontal: 8,
@@ -1687,37 +2247,92 @@ const styles = StyleSheet.create({
   statusTagTextPublished: {
     color: '#059669',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  announcementBodyText: {
-    color: '#334155',
-    fontSize: 13,
-    lineHeight: 18,
+  statusTagDraft: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#FEF3C7',
   },
-  announcementFooterRow: {
+  statusTagTextDraft: {
+    color: '#B45309',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  modalOverlayDark: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  detailModalCard: {
+    width: '100%',
+    maxHeight: '80%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+  },
+  detailHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  deleteAnnounceBtn: {
+  detailTitleText: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '800',
+    flex: 1,
+  },
+  detailTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 10,
+  },
+  pricePill: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: '#FEF2F2',
+  },
+  pricePillText: {
+    color: '#F10505',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  detailMetaText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  detailGroup: {
+    gap: 4,
+  },
+  detailHeading: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  detailBodyText: {
+    color: '#475569',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  detailCloseBtn: {
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
   },
-  deleteAnnounceBtnText: {
-    color: '#EF4444',
-    fontSize: 11,
+  detailCloseBtnText: {
+    color: '#0F172A',
+    fontSize: 13,
     fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.85,
   },
 });
