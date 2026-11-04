@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -41,7 +42,9 @@ type AdminAnnouncement = {
   title: string;
   body: string;
   status: string;
+  slug?: string;
   imageUrl?: string;
+  publishedAt?: string;
   createdAt?: string;
 };
 
@@ -68,12 +71,14 @@ export function AdminHubView() {
   // Community Moderation State
   const [postSearch, setPostSearch] = useState('');
 
-  // Announcement Form State
+  // Announcement Form & View State
+  const [announceTab, setAnnounceTab] = useState<'NEW' | 'HISTORY'>('NEW');
   const [announceTitle, setAnnounceTitle] = useState('');
   const [announceBody, setAnnounceBody] = useState('');
   const [announceImages, setAnnounceImages] = useState<string[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [deletingAnnounceId, setDeletingAnnounceId] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -210,7 +215,7 @@ export function AdminHubView() {
 
       if (!result.canceled && result.assets && result.assets[0]?.uri) {
         setIsUploadingBanner(true);
-        showToast('Uploading banner photo...');
+        showToast('Uploading graphic banner...');
 
         try {
           const uploaded = await uploadImageApi(result.assets[0].uri);
@@ -249,13 +254,39 @@ export function AdminHubView() {
       setAnnounceTitle('');
       setAnnounceBody('');
       setAnnounceImages([]);
-      showToast('Announcement published successfully!');
+      showToast('Broadcast published successfully!');
       await loadData();
     } catch (err: any) {
       showToast(err?.message || 'Could not publish announcement');
     } finally {
       setIsPublishing(false);
     }
+  };
+
+  const handleDeleteAnnouncement = (a: AdminAnnouncement) => {
+    Alert.alert(
+      'Delete Announcement',
+      `Are you sure you want to delete broadcast "${a.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Broadcast',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAnnounceId(a.id);
+            try {
+              await apiRequest<any>(`/community/announcements/${a.id}`, { method: 'DELETE' });
+              setAnnouncements((prev) => prev.filter((item) => item.id !== a.id));
+              showToast('Broadcast removed');
+            } catch (err: any) {
+              showToast(err?.message || 'Could not delete broadcast');
+            } finally {
+              setDeletingAnnounceId(null);
+            }
+          },
+        },
+      ],
+    );
   };
 
   // Filtered lists
@@ -347,6 +378,28 @@ export function AdminHubView() {
             <Ionicons name="log-out-outline" size={18} color="#EF4444" />
           </Pressable>
         </View>
+
+        {/* Quick Broadcast Direct Action Banner */}
+        <Pressable
+          style={({ pressed }) => [styles.quickBroadcastBanner, pressed && styles.pressed]}
+          onPress={() => {
+            setAnnounceTab('NEW');
+            setShowAnnounceModal(true);
+          }}
+        >
+          <View style={styles.quickBroadcastIconBox}>
+            <Ionicons name="megaphone" size={20} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Text style={styles.quickBroadcastTitle} numberOfLines={1}>
+              New Broadcast Announcement
+            </Text>
+            <Text style={styles.quickBroadcastSub} numberOfLines={1}>
+              Push live update or promotional alert to all users
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+        </Pressable>
 
         {/* Overview Metrics Row */}
         <View style={styles.metricsGrid}>
@@ -451,7 +504,10 @@ export function AdminHubView() {
             {/* Module 3: Announcements & Broadcasts */}
             <Pressable
               style={({ pressed }) => [styles.moduleCard, pressed && styles.pressed]}
-              onPress={() => setShowAnnounceModal(true)}
+              onPress={() => {
+                setAnnounceTab('HISTORY');
+                setShowAnnounceModal(true);
+              }}
             >
               <View style={[styles.moduleIconCircle, { backgroundColor: '#ECFDF5' }]}>
                 <Ionicons name="megaphone" size={22} color="#10B981" />
@@ -459,7 +515,7 @@ export function AdminHubView() {
               <View style={styles.moduleTextContainer}>
                 <View style={styles.moduleTitleRow}>
                   <Text style={styles.moduleTitle} numberOfLines={1}>
-                    Broadcast Announcements
+                    Broadcasts & Announcements
                   </Text>
                   <View style={[styles.moduleBadge, { backgroundColor: '#ECFDF5' }]}>
                     <Text style={[styles.moduleBadgeText, { color: '#10B981' }]}>
@@ -469,7 +525,7 @@ export function AdminHubView() {
                 </View>
 
                 <Text style={styles.moduleSub} numberOfLines={2}>
-                  Publish platform-wide announcements, push update notifications, and upload banner graphics.
+                  Publish platform-wide announcements, push update notifications, and view broadcast history.
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
@@ -489,7 +545,6 @@ export function AdminHubView() {
         onRequestClose={() => setShowUsersModal(false)}
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
-          {/* Header */}
           <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
             <Pressable
               onPress={() => setShowUsersModal(false)}
@@ -505,7 +560,6 @@ export function AdminHubView() {
           </View>
 
           <View style={styles.modalBody}>
-            {/* Search Input */}
             <View style={styles.searchBarContainer}>
               <Ionicons name="search" size={18} color="#64748B" style={styles.searchIcon} />
               <TextInput
@@ -522,7 +576,6 @@ export function AdminHubView() {
               )}
             </View>
 
-            {/* Role Filter Chips */}
             <View style={styles.roleFilterRow}>
               {(['ALL', 'ADMIN', 'CUSTOMER'] as const).map((r) => {
                 const isActive = userRoleFilter === r;
@@ -532,7 +585,7 @@ export function AdminHubView() {
                     onPress={() => setUserRoleFilter(r)}
                     style={[styles.roleChip, isActive && styles.roleChipActive]}
                   >
-                    <Text style={[styles.roleChipText, isActive && styles.roleChipTextActive]}>
+                    <Text style={[styles.roleChipText, isActive && styles.roleChipTextActive]} numberOfLines={1}>
                       {r === 'ALL' ? 'All Roles' : r === 'ADMIN' ? 'Admins Only' : 'Customers'}
                     </Text>
                   </Pressable>
@@ -540,7 +593,6 @@ export function AdminHubView() {
               })}
             </View>
 
-            {/* Users List */}
             <ScrollView
               contentContainerStyle={[
                 styles.modalScrollContent,
@@ -586,7 +638,6 @@ export function AdminHubView() {
                         </View>
                       </View>
 
-                      {/* Action buttons */}
                       <View style={styles.userActionRow}>
                         <Pressable
                           style={({ pressed }) => [styles.roleToggleBtn, pressed && styles.pressed]}
@@ -598,7 +649,7 @@ export function AdminHubView() {
                           ) : (
                             <>
                               <Ionicons name="shield-outline" size={14} color="#0F172A" />
-                              <Text style={styles.roleToggleBtnText}>
+                              <Text style={styles.roleToggleBtnText} numberOfLines={1}>
                                 {isAdmin ? 'Demote to Customer' : 'Promote to Admin'}
                               </Text>
                             </>
@@ -610,7 +661,7 @@ export function AdminHubView() {
                           onPress={() => handleDeleteUser(u)}
                         >
                           <Ionicons name="trash-outline" size={14} color="#EF4444" />
-                          <Text style={styles.deleteUserBtnText}>Delete</Text>
+                          <Text style={styles.deleteUserBtnText} numberOfLines={1}>Delete</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -633,7 +684,6 @@ export function AdminHubView() {
         onRequestClose={() => setShowPostsModal(false)}
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
-          {/* Header */}
           <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
             <Pressable
               onPress={() => setShowPostsModal(false)}
@@ -649,7 +699,6 @@ export function AdminHubView() {
           </View>
 
           <View style={styles.modalBody}>
-            {/* Search Input */}
             <View style={styles.searchBarContainer}>
               <Ionicons name="search" size={18} color="#64748B" style={styles.searchIcon} />
               <TextInput
@@ -666,7 +715,6 @@ export function AdminHubView() {
               )}
             </View>
 
-            {/* Posts List */}
             <ScrollView
               contentContainerStyle={[
                 styles.modalScrollContent,
@@ -692,7 +740,7 @@ export function AdminHubView() {
                         onPress={() => handleDeletePost(p)}
                       >
                         <Ionicons name="trash-outline" size={14} color="#EF4444" />
-                        <Text style={styles.deletePostBtnText}>Remove Post</Text>
+                        <Text style={styles.deletePostBtnText} numberOfLines={1}>Remove Post</Text>
                       </Pressable>
                     </View>
 
@@ -706,7 +754,7 @@ export function AdminHubView() {
       </Modal>
 
       {/* =========================================
-          MODAL 3: PUBLISH BROADCAST ANNOUNCEMENT
+          MODAL 3: PUBLISH & MANAGE BROADCAST ANNOUNCEMENTS
       ========================================= */}
       <Modal
         visible={showAnnounceModal}
@@ -716,7 +764,6 @@ export function AdminHubView() {
         onRequestClose={() => setShowAnnounceModal(false)}
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
-          {/* Header */}
           <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
             <Pressable
               onPress={() => setShowAnnounceModal(false)}
@@ -726,127 +773,217 @@ export function AdminHubView() {
               <Ionicons name="close" size={20} color="#0F172A" />
             </Pressable>
             <Text style={styles.modalHeaderTitle} numberOfLines={1}>
-              Broadcast Announcement
+              Broadcast Announcements
             </Text>
             <View style={{ width: 36 }} />
           </View>
 
-          <ScrollView
-            contentContainerStyle={[
-              styles.modalScrollContent,
-              { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 20, 40) : 24 },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Title Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.fieldLabel}>Announcement Title *</Text>
-              <TextInput
-                value={announceTitle}
-                onChangeText={setAnnounceTitle}
-                placeholder="e.g. Gileo Mobile v2.0 Platform Update"
-                placeholderTextColor="#94A3B8"
-                style={styles.textInput}
+          {/* Sub Nav Tabs inside Modal */}
+          <View style={styles.modalTabRow}>
+            <Pressable
+              style={[styles.modalTabBtn, announceTab === 'NEW' && styles.modalTabBtnActive]}
+              onPress={() => setAnnounceTab('NEW')}
+            >
+              <Ionicons
+                name="add-circle"
+                size={16}
+                color={announceTab === 'NEW' ? '#FFFFFF' : '#64748B'}
               />
-            </View>
-
-            {/* Body Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.fieldLabel}>Broadcast Details *</Text>
-              <TextInput
-                value={announceBody}
-                onChangeText={setAnnounceBody}
-                placeholder="Write the full broadcast message for all Gileo users..."
-                placeholderTextColor="#94A3B8"
-                multiline
-                numberOfLines={5}
-                style={[styles.textInput, { height: 110, textAlignVertical: 'top', paddingTop: 12 }]}
-              />
-            </View>
-
-            {/* Banner Image Uploads */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.fieldLabel}>Attach Announcement Graphic</Text>
-              <Text style={styles.fieldSubLabel}>
-                Upload promotional banner from device gallery or capture photo.
+              <Text
+                style={[styles.modalTabText, announceTab === 'NEW' && styles.modalTabTextActive]}
+                numberOfLines={1}
+              >
+                Create New Broadcast
               </Text>
+            </Pressable>
 
-              <View style={styles.uploadCardsRow}>
-                <Pressable
-                  style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
-                  disabled={isUploadingBanner}
-                  onPress={() => handleUploadBannerImage('gallery')}
-                >
-                  <Ionicons name="images" size={18} color="#10B981" />
-                  <Text style={styles.uploadCardTitle} numberOfLines={1}>
-                    Device Gallery
-                  </Text>
-                </Pressable>
+            <Pressable
+              style={[styles.modalTabBtn, announceTab === 'HISTORY' && styles.modalTabBtnActive]}
+              onPress={() => setAnnounceTab('HISTORY')}
+            >
+              <Ionicons
+                name="list"
+                size={16}
+                color={announceTab === 'HISTORY' ? '#FFFFFF' : '#64748B'}
+              />
+              <Text
+                style={[styles.modalTabText, announceTab === 'HISTORY' && styles.modalTabTextActive]}
+                numberOfLines={1}
+              >
+                Past Broadcasts ({announcements.length})
+              </Text>
+            </Pressable>
+          </View>
 
-                <Pressable
-                  style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
-                  disabled={isUploadingBanner}
-                  onPress={() => handleUploadBannerImage('camera')}
-                >
-                  <Ionicons name="camera" size={18} color="#4F46E5" />
-                  <Text style={styles.uploadCardTitle} numberOfLines={1}>
-                    Camera Photo
-                  </Text>
-                </Pressable>
-              </View>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <ScrollView
+              contentContainerStyle={[
+                styles.modalScrollContent,
+                { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 30, 48) : 24 },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {announceTab === 'NEW' ? (
+                <View style={{ gap: 16 }}>
+                  {/* Title Input */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.fieldLabel}>Broadcast Title *</Text>
+                    <TextInput
+                      value={announceTitle}
+                      onChangeText={setAnnounceTitle}
+                      placeholder="e.g. Gileo Mobile Platform Update & New Features"
+                      placeholderTextColor="#94A3B8"
+                      style={styles.textInput}
+                    />
+                  </View>
 
-              {isUploadingBanner && (
-                <View style={styles.uploadingBox}>
-                  <ActivityIndicator size="small" color="#10B981" />
-                  <Text style={styles.uploadingText}>Uploading graphic banner...</Text>
-                </View>
-              )}
+                  {/* Body Input */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.fieldLabel}>Broadcast Content *</Text>
+                    <TextInput
+                      value={announceBody}
+                      onChangeText={setAnnounceBody}
+                      placeholder="Write full announcement details for all Gileo users..."
+                      placeholderTextColor="#94A3B8"
+                      multiline
+                      numberOfLines={5}
+                      style={[styles.textInput, { height: 110, textAlignVertical: 'top', paddingTop: 12 }]}
+                    />
+                  </View>
 
-              {announceImages.length > 0 && (
-                <View style={styles.thumbsGrid}>
-                  {announceImages.map((uri, idx) => (
-                    <View key={idx} style={styles.thumbWrapper}>
-                      <Image source={{ uri }} style={styles.thumbImage} resizeMode="cover" />
+                  {/* Banner Image Uploads */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.fieldLabel}>Graphic Banner Attachment</Text>
+                    <Text style={styles.fieldSubLabel}>
+                      Attach an image banner from device gallery or camera.
+                    </Text>
+
+                    <View style={styles.uploadCardsRow}>
                       <Pressable
-                        style={styles.thumbRemoveBtn}
-                        onPress={() => setAnnounceImages((prev) => prev.filter((_, i) => i !== idx))}
-                        hitSlop={8}
+                        style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
+                        disabled={isUploadingBanner}
+                        onPress={() => handleUploadBannerImage('gallery')}
                       >
-                        <Ionicons name="close-circle" size={18} color="#EF4444" />
+                        <Ionicons name="images" size={18} color="#10B981" />
+                        <Text style={styles.uploadCardTitle} numberOfLines={1}>
+                          Device Gallery
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={({ pressed }) => [styles.uploadCard, pressed && styles.pressed]}
+                        disabled={isUploadingBanner}
+                        onPress={() => handleUploadBannerImage('camera')}
+                      >
+                        <Ionicons name="camera" size={18} color="#4F46E5" />
+                        <Text style={styles.uploadCardTitle} numberOfLines={1}>
+                          Take Photo
+                        </Text>
                       </Pressable>
                     </View>
-                  ))}
+
+                    {isUploadingBanner && (
+                      <View style={styles.uploadingBox}>
+                        <ActivityIndicator size="small" color="#10B981" />
+                        <Text style={styles.uploadingText}>Uploading graphic banner...</Text>
+                      </View>
+                    )}
+
+                    {announceImages.length > 0 && (
+                      <View style={styles.thumbsGrid}>
+                        {announceImages.map((uri, idx) => (
+                          <View key={idx} style={styles.thumbWrapper}>
+                            <Image source={{ uri }} style={styles.thumbImage} resizeMode="cover" />
+                            <Pressable
+                              style={styles.thumbRemoveBtn}
+                              onPress={() => setAnnounceImages((prev) => prev.filter((_, i) => i !== idx))}
+                              hitSlop={8}
+                            >
+                              <Ionicons name="close-circle" size={18} color="#EF4444" />
+                            </Pressable>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Bottom Actions */}
+                  <View style={styles.modalActionsRow}>
+                    <Pressable
+                      style={styles.cancelBtn}
+                      onPress={() => setShowAnnounceModal(false)}
+                    >
+                      <Text style={styles.cancelBtnText} numberOfLines={1}>
+                        Cancel
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={({ pressed }) => [styles.publishBtn, pressed && styles.pressed]}
+                      disabled={isPublishing || isUploadingBanner}
+                      onPress={handlePublishAnnounce}
+                    >
+                      {isPublishing ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <>
+                          <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
+                          <Text style={styles.publishBtnText} numberOfLines={1}>
+                            Publish Broadcast
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                /* History Tab */
+                <View style={{ gap: 12 }}>
+                  {announcements.length === 0 ? (
+                    <Text style={styles.emptyModalText}>No past announcements published yet.</Text>
+                  ) : (
+                    announcements.map((a) => (
+                      <View key={a.id} style={styles.announcementHistoryCard}>
+                        <View style={styles.announcementHeaderRow}>
+                          <Text style={styles.announcementTitleText} numberOfLines={1}>
+                            {a.title}
+                          </Text>
+                          <View style={styles.statusTagPublished}>
+                            <Text style={styles.statusTagTextPublished}>{a.status || 'PUBLISHED'}</Text>
+                          </View>
+                        </View>
+
+                        <Text style={styles.announcementBodyText}>{a.body}</Text>
+
+                        <View style={styles.announcementFooterRow}>
+                          <Pressable
+                            style={({ pressed }) => [styles.deleteAnnounceBtn, pressed && styles.pressed]}
+                            disabled={deletingAnnounceId === a.id}
+                            onPress={() => handleDeleteAnnouncement(a)}
+                          >
+                            {deletingAnnounceId === a.id ? (
+                              <ActivityIndicator size="small" color="#EF4444" />
+                            ) : (
+                              <>
+                                <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                                <Text style={styles.deleteAnnounceBtnText} numberOfLines={1}>
+                                  Delete Broadcast
+                                </Text>
+                              </>
+                            )}
+                          </Pressable>
+                        </View>
+                      </View>
+                    ))
+                  )}
                 </View>
               )}
-            </View>
-
-            {/* Bottom Actions */}
-            <View style={styles.modalActionsRow}>
-              <Pressable style={styles.cancelBtn} onPress={() => setShowAnnounceModal(false)}>
-                <Text style={styles.cancelBtnText} numberOfLines={1}>
-                  Cancel
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [styles.publishBtn, pressed && styles.pressed]}
-                disabled={isPublishing || isUploadingBanner}
-                onPress={handlePublishAnnounce}
-              >
-                {isPublishing ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="paper-plane" size={16} color="#FFFFFF" />
-                    <Text style={styles.publishBtnText} numberOfLines={1}>
-                      Publish Broadcast
-                    </Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -973,6 +1110,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  quickBroadcastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3F0106',
+    borderRadius: 20,
+    padding: 14,
+    gap: 12,
+    shadowColor: '#3F0106',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  quickBroadcastIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  quickBroadcastTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  quickBroadcastSub: {
+    color: '#F1F5F9',
+    fontSize: 11,
+    opacity: 0.85,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -1107,6 +1276,39 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
+  modalTabRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  modalTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  modalTabBtnActive: {
+    backgroundColor: '#3F0106',
+    borderColor: '#3F0106',
+  },
+  modalTabText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalTabTextActive: {
+    color: '#FFFFFF',
+  },
   modalBody: {
     flex: 1,
     paddingTop: 12,
@@ -1114,8 +1316,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalScrollContent: {
-    gap: 12,
-    paddingTop: 4,
+    padding: 16,
+    gap: 14,
   },
   searchBarContainer: {
     flexDirection: 'row',
@@ -1345,6 +1547,7 @@ const styles = StyleSheet.create({
   },
   uploadCard: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1403,12 +1606,14 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
+    minWidth: 0,
     height: 48,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 10,
   },
   cancelBtnText: {
     color: '#0F172A',
@@ -1417,6 +1622,7 @@ const styles = StyleSheet.create({
   },
   publishBtn: {
     flex: 1.5,
+    minWidth: 0,
     height: 48,
     borderRadius: 999,
     backgroundColor: '#F10505',
@@ -1424,6 +1630,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    paddingHorizontal: 12,
     shadowColor: '#F10505',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -1433,6 +1640,65 @@ const styles = StyleSheet.create({
   publishBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
+    fontWeight: '700',
+  },
+  announcementHistoryCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+  },
+  announcementHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  announcementTitleText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '800',
+    flex: 1,
+  },
+  statusTagPublished: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#ECFDF5',
+  },
+  statusTagTextPublished: {
+    color: '#059669',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  announcementBodyText: {
+    color: '#334155',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  announcementFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  deleteAnnounceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  deleteAnnounceBtnText: {
+    color: '#EF4444',
+    fontSize: 11,
     fontWeight: '700',
   },
   pressed: {
