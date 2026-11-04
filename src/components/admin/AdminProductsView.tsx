@@ -15,7 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminProductsSkeleton } from './AdminProductsSkeleton';
 import { apiRequest, uploadImageApi } from '../../services/api';
 import { formatKobo } from '../../theme/colors';
@@ -82,6 +82,7 @@ function extractProductMedia(p: AdminProduct) {
 }
 
 export function AdminProductsView() {
+  const insets = useSafeAreaInsets();
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -807,8 +808,8 @@ export function AdminProductsView() {
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
           {/* Modal Top Nav Header */}
-          <View style={styles.modalHeader}>
-            <Pressable onPress={() => setShowModal(false)} style={styles.modalCloseCircle} hitSlop={10}>
+          <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
+            <Pressable onPress={() => setShowModal(false)} style={styles.modalCloseCircle} hitSlop={12}>
               <Ionicons name="close" size={20} color="#0F172A" />
             </Pressable>
             <Text style={styles.modalHeaderTitle} numberOfLines={1}>
@@ -818,7 +819,10 @@ export function AdminProductsView() {
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.modalScrollContent}
+            contentContainerStyle={[
+              styles.modalScrollContent,
+              { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 20, 40) : 24 },
+            ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >

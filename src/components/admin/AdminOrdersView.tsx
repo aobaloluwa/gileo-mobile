@@ -15,7 +15,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminOrdersSkeleton } from './AdminOrdersSkeleton';
 import { apiRequest, uploadImageApi } from '../../services/api';
 import { formatKobo } from '../../theme/colors';
@@ -85,6 +85,7 @@ function getStatusTheme(status: string) {
 }
 
 export function AdminOrdersView() {
+  const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [selectedStage, setSelectedStage] = useState<StageFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -535,7 +536,7 @@ export function AdminOrdersView() {
         )}
       </ScrollView>
 
-      {/* Order Details & Proofs Upload Modal - Safe Area Protected */}
+      {/* Order Details & Proofs Upload Modal - Fully Safe Area Guarded */}
       <Modal
         visible={showDetailsModal}
         animationType="slide"
@@ -545,11 +546,11 @@ export function AdminOrdersView() {
       >
         <SafeAreaView style={styles.modalSafeArea} edges={['top', 'bottom', 'left', 'right']}>
           {/* Modal Top Nav Header */}
-          <View style={styles.modalHeader}>
+          <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, 16) : 12 }]}>
             <Pressable
               onPress={() => setShowDetailsModal(false)}
               style={styles.modalCloseCircle}
-              hitSlop={10}
+              hitSlop={12}
             >
               <Ionicons name="close" size={20} color="#0F172A" />
             </Pressable>
@@ -561,7 +562,10 @@ export function AdminOrdersView() {
 
           {selectedOrder && (
             <ScrollView
-              contentContainerStyle={styles.modalScrollContent}
+              contentContainerStyle={[
+                styles.modalScrollContent,
+                { paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 20, 40) : 24 },
+              ]}
               showsVerticalScrollIndicator={false}
             >
               {/* Order Status Summary */}
@@ -1101,7 +1105,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
@@ -1123,7 +1127,6 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     padding: 18,
     gap: 16,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   modalStatusBanner: {
     flexDirection: 'row',
