@@ -96,6 +96,12 @@ function extractProductCategory(p: any): string {
       }
     } catch {}
   }
+  if (p.description && typeof p.description === 'string') {
+    const match = p.description.match(/\[Category:\s*([^\]]+)\]/i);
+    if (match && match[1] && match[1].trim().length > 0) {
+      return match[1].trim();
+    }
+  }
   return 'Gileo Products';
 }
 

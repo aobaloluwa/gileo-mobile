@@ -104,7 +104,18 @@ function extractProductCategory(p: any): string {
       }
     } catch {}
   }
+  if (p.description && typeof p.description === 'string') {
+    const match = p.description.match(/\[Category:\s*([^\]]+)\]/i);
+    if (match && match[1] && match[1].trim().length > 0) {
+      return match[1].trim();
+    }
+  }
   return '';
+}
+
+function cleanProductDescription(desc?: string): string {
+  if (!desc) return '';
+  return desc.replace(/\[Category:\s*[^\]]+\]\s*/gi, '').trim();
 }
 
 export function AdminProductsView() {
@@ -190,7 +201,7 @@ export function AdminProductsView() {
     setCategoryName(extractProductCategory(p));
     setPriceNaira(String(Math.floor((p.priceKobo || 0) / 100)));
     setStock(String(p.stock || 0));
-    setDescription(p.description || '');
+    setDescription(cleanProductDescription(p.description));
     setStatus(p.status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT');
     setImages(urls);
     setNewImageUrl('');
@@ -207,6 +218,7 @@ export function AdminProductsView() {
     setCategoryName(extractProductCategory(p));
     setPriceNaira(String(Math.floor((p.priceKobo || 0) / 100)));
     setStock(String(p.stock || 0));
+    setDescription(cleanProductDescription(p.description));
     setDescription(p.description || '');
     setStatus('PUBLISHED');
     setImages(urls);
@@ -391,6 +403,8 @@ export function AdminProductsView() {
     const stockVal = parseInt(stock, 10) || 0;
     const catName = categoryName.trim() || 'Gileo Products';
     const imagesList = Array.isArray(images) ? images : [];
+    const cleanDesc = cleanProductDescription(description);
+    const finalDesc = `[Category: ${catName}]\n\n${cleanDesc}`;
 
     try {
       if (editingProduct) {
@@ -398,10 +412,9 @@ export function AdminProductsView() {
           method: 'PATCH',
           body: JSON.stringify({
             title: title.trim(),
-            category: catName,
             priceKobo,
             stock: stockVal,
-            description: description.trim(),
+            description: finalDesc,
             status,
             images: imagesList,
             colors: selectedColors,
@@ -415,10 +428,9 @@ export function AdminProductsView() {
           body: JSON.stringify({
             title: title.trim(),
             slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-            category: catName,
             priceKobo,
             stock: stockVal,
-            description: description.trim() || 'Premium Gileo medical product',
+            description: finalDesc,
             status,
             images: imagesList,
             colors: selectedColors,

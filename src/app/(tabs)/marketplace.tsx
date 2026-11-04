@@ -212,7 +212,18 @@ function extractProductCategory(p: any): string {
       }
     } catch {}
   }
+  if (p.description && typeof p.description === 'string') {
+    const match = p.description.match(/\[Category:\s*([^\]]+)\]/i);
+    if (match && match[1] && match[1].trim().length > 0) {
+      return match[1].trim();
+    }
+  }
   return 'Gileo Products';
+}
+
+function cleanProductDescription(desc?: string): string {
+  if (!desc) return '';
+  return desc.replace(/\[Category:\s*[^\]]+\]\s*/gi, '').trim();
 }
 
 export default function MarketplaceScreen() {
@@ -370,7 +381,7 @@ export default function MarketplaceScreen() {
             category,
             price: formatKobo(p.priceKobo),
             priceKobo: p.priceKobo,
-            description: p.description || 'Premium Gileo medical supplies.',
+            description: cleanProductDescription(p.description) || 'Premium Gileo medical supplies.',
             rating: '4.9',
             reviewsCount: 15,
             icon: 'bag-handle-outline',
