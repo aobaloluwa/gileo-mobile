@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import {
@@ -18,12 +18,7 @@ export default function TabsLayout() {
   const [isRoleChecked, setIsRoleChecked] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     const mem = getInMemoryUserSync();
-    return Boolean(
-      mem?.role === 'ADMIN' ||
-        (mem?.email &&
-          (mem.email.toLowerCase().includes('obaloluwa') ||
-            mem.email.toLowerCase().endsWith('@gileo.com'))),
-    );
+    return Boolean(mem?.role === 'ADMIN');
   });
 
   useEffect(() => {
@@ -31,33 +26,27 @@ export default function TabsLayout() {
 
     async function checkRole() {
       const u = await getStoredUser();
-      const isObaloluwaAdmin = Boolean(
-        u?.email &&
-          (u.email.toLowerCase().includes('obaloluwa') ||
-            u.email.toLowerCase().endsWith('@gileo.com')),
-      );
-
-      let currentAdmin = Boolean(u?.role === 'ADMIN' || isObaloluwaAdmin);
+      let currentAdmin = Boolean(u?.role === 'ADMIN');
       if (isMounted) setIsAdmin(currentAdmin);
 
       try {
         const profile = await apiRequest<any>('/profile/me');
-        if (profile?.role === 'ADMIN' || isObaloluwaAdmin) {
-          currentAdmin = true;
-          if (isMounted) setIsAdmin(true);
-          const updated = {
-            id: profile?.id || u?.id || '',
-            email: profile?.email || u?.email || '',
-            displayName: profile?.displayName || u?.displayName || null,
-            role: 'ADMIN' as const,
-          };
-          const access = await getStoredAccessToken();
-          const refresh = await getStoredRefreshToken();
-          if (access && refresh) {
-            await storeAuthSession({ accessToken: access, refreshToken: refresh, user: updated });
-          }
-        } else if (profile?.role === 'CUSTOMER' && !isObaloluwaAdmin) {
-          if (isMounted) setIsAdmin(false);
+        const role = profile?.role || u?.role || 'CUSTOMER';
+        currentAdmin = role === 'ADMIN';
+
+        if (isMounted) setIsAdmin(currentAdmin);
+
+        const updated = {
+          id: profile?.id || u?.id || '',
+          email: profile?.email || u?.email || '',
+          displayName: profile?.displayName || u?.displayName || null,
+          role: role as 'ADMIN' | 'CUSTOMER',
+        };
+
+        const access = await getStoredAccessToken();
+        const refresh = await getStoredRefreshToken();
+        if (access && refresh) {
+          await storeAuthSession({ accessToken: access, refreshToken: refresh, user: updated });
         }
       } catch {} finally {
         if (isMounted) setIsRoleChecked(true);
@@ -70,12 +59,17 @@ export default function TabsLayout() {
     };
   }, []);
 
-  if (!isRoleChecked && !isAdmin) {
-    return <View style={{ flex: 1, backgroundColor: '#F6F7F9' }} />;
+  if (!isRoleChecked) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#F10505" />
+      </View>
+    );
   }
 
   return (
     <Tabs
+      id="tabs"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -108,7 +102,7 @@ export default function TabsLayout() {
             <Ionicons
               name={isAdmin ? (focused ? 'grid' : 'grid-outline') : (focused ? 'home' : 'home-outline')}
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
@@ -122,7 +116,7 @@ export default function TabsLayout() {
             <Ionicons
               name={isAdmin ? (focused ? 'medkit' : 'medkit-outline') : (focused ? 'heart' : 'heart-outline')}
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
@@ -136,7 +130,7 @@ export default function TabsLayout() {
             <Ionicons
               name={isAdmin ? (focused ? 'shirt' : 'shirt-outline') : (focused ? 'bag-handle' : 'bag-handle-outline')}
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
@@ -150,7 +144,7 @@ export default function TabsLayout() {
             <Ionicons
               name={isAdmin ? (focused ? 'bag-handle' : 'bag-handle-outline') : (focused ? 'people' : 'people-outline')}
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
@@ -172,7 +166,7 @@ export default function TabsLayout() {
                     : 'person-circle-outline'
               }
               size={size}
-              color={color}
+              color={color as string}
             />
           ),
         }}
