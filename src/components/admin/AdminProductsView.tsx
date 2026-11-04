@@ -404,7 +404,6 @@ export function AdminProductsView() {
     const catName = categoryName.trim() || 'Gileo Products';
     const imagesList = Array.isArray(images) ? images : [];
     const cleanDesc = cleanProductDescription(description);
-    const finalDesc = `[Category: ${catName}]\n\n${cleanDesc}`;
 
     try {
       if (editingProduct) {
@@ -412,9 +411,11 @@ export function AdminProductsView() {
           method: 'PATCH',
           body: JSON.stringify({
             title: title.trim(),
+            categoryName: catName,
+            category: catName,
             priceKobo,
             stock: stockVal,
-            description: finalDesc,
+            description: cleanDesc,
             status,
             images: imagesList,
             colors: selectedColors,
@@ -428,9 +429,11 @@ export function AdminProductsView() {
           body: JSON.stringify({
             title: title.trim(),
             slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+            categoryName: catName,
+            category: catName,
             priceKobo,
             stock: stockVal,
-            description: finalDesc,
+            description: cleanDesc || 'Premium Gileo medical product',
             status,
             images: imagesList,
             colors: selectedColors,
