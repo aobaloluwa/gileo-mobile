@@ -390,10 +390,7 @@ export function AdminProductsView() {
     const priceKobo = Math.round(parseFloat(priceNaira) * 100);
     const stockVal = parseInt(stock, 10) || 0;
     const catName = categoryName.trim() || 'Gileo Products';
-
-    const imagesPayload = Array.isArray(images)
-      ? { urls: images, colors: selectedColors, sizes: selectedSizes, category: catName }
-      : images;
+    const imagesList = Array.isArray(images) ? images : [];
 
     try {
       if (editingProduct) {
@@ -401,11 +398,12 @@ export function AdminProductsView() {
           method: 'PATCH',
           body: JSON.stringify({
             title: title.trim(),
+            category: catName,
             priceKobo,
             stock: stockVal,
             description: description.trim(),
             status,
-            images: imagesPayload,
+            images: imagesList,
             colors: selectedColors,
             sizes: selectedSizes,
           }),
@@ -417,11 +415,12 @@ export function AdminProductsView() {
           body: JSON.stringify({
             title: title.trim(),
             slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+            category: catName,
             priceKobo,
             stock: stockVal,
             description: description.trim() || 'Premium Gileo medical product',
             status,
-            images: imagesPayload,
+            images: imagesList,
             colors: selectedColors,
             sizes: selectedSizes,
           }),
