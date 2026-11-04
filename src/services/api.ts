@@ -106,6 +106,10 @@ export async function apiRequest<T>(
 export async function uploadImageApi(
   uri: string,
 ): Promise<{ url: string; publicId?: string }> {
+  if (uri.startsWith('data:image/') || uri.startsWith('http://') || uri.startsWith('https://')) {
+    return { url: uri };
+  }
+
   const token = await getStoredAccessToken();
   const formData = new FormData();
 
@@ -114,8 +118,12 @@ export async function uploadImageApi(
   const ext = match ? match[1].toLowerCase() : 'jpg';
   const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
 
+  const normalizedUri = Platform.OS === 'ios' && !uri.startsWith('file://') && !uri.startsWith('content://')
+    ? `file://${uri}`
+    : uri;
+
   const fileToUpload = {
-    uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+    uri: normalizedUri,
     name: filename,
     type,
   } as any;

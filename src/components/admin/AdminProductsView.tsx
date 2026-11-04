@@ -211,6 +211,7 @@ export function AdminProductsView() {
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
         quality: 0.85,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -219,22 +220,31 @@ export function AdminProductsView() {
 
         const uploadedUrls: string[] = [];
         for (const asset of result.assets) {
+          const mime = asset.mimeType || 'image/jpeg';
+          const base64Url = asset.base64 ? `data:${mime};base64,${asset.base64}` : null;
+
           try {
             const uploaded = await uploadImageApi(asset.uri);
-            if (uploaded?.url) {
+            if (uploaded?.url && !uploaded.url.startsWith('file://') && !uploaded.url.startsWith('content://')) {
               uploadedUrls.push(uploaded.url);
-            } else {
-              uploadedUrls.push(asset.uri);
+            } else if (base64Url) {
+              uploadedUrls.push(base64Url);
             }
           } catch (err: any) {
-            uploadedUrls.push(asset.uri);
+            if (base64Url) {
+              uploadedUrls.push(base64Url);
+            }
           }
         }
 
-        setImages((prev) => [...prev, ...uploadedUrls]);
-        showToast(
-          `${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'photo' : 'photos'} added successfully!`,
-        );
+        if (uploadedUrls.length > 0) {
+          setImages((prev) => [...prev, ...uploadedUrls]);
+          showToast(
+            `${uploadedUrls.length} ${uploadedUrls.length === 1 ? 'photo' : 'photos'} added successfully!`,
+          );
+        } else {
+          showToast('Could not process image files. Please try another image.');
+        }
       }
     } catch (err: any) {
       showToast(`Gallery error: ${err?.message || 'Could not pick photos'}`);
@@ -254,20 +264,32 @@ export function AdminProductsView() {
 
       const result = await ImagePicker.launchCameraAsync({
         quality: 0.85,
+        base64: true,
       });
 
-      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const mime = asset.mimeType || 'image/jpeg';
+        const base64Url = asset.base64 ? `data:${mime};base64,${asset.base64}` : null;
+
         setIsUploadingImage(true);
         showToast('Uploading camera photo...');
 
         try {
-          const uploaded = await uploadImageApi(result.assets[0].uri);
-          const finalUrl = uploaded?.url || result.assets[0].uri;
+          const uploaded = await uploadImageApi(asset.uri);
+          const finalUrl = (uploaded?.url && !uploaded.url.startsWith('file://') && !uploaded.url.startsWith('content://'))
+            ? uploaded.url
+            : (base64Url || asset.uri);
+
           setImages((prev) => [...prev, finalUrl]);
           showToast('Camera photo uploaded!');
         } catch {
-          setImages((prev) => [...prev, result.assets[0].uri]);
-          showToast('Photo added to draft list');
+          if (base64Url) {
+            setImages((prev) => [...prev, base64Url]);
+            showToast('Photo added to product draft');
+          } else {
+            showToast('Could not process camera image.');
+          }
         }
       }
     } catch (err: any) {

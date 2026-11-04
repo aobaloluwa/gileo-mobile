@@ -203,6 +203,7 @@ export function AdminHubView() {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
           quality: 0.85,
+          base64: true,
         });
       } else {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -210,21 +211,36 @@ export function AdminHubView() {
           Alert.alert('Permission Required', 'Please grant camera access.');
           return;
         }
-        result = await ImagePicker.launchCameraAsync({ quality: 0.85 });
+        result = await ImagePicker.launchCameraAsync({ quality: 0.85, base64: true });
       }
 
-      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const mime = asset.mimeType || 'image/jpeg';
+        const base64Url = asset.base64 ? `data:${mime};base64,${asset.base64}` : null;
+
         setIsUploadingBanner(true);
         showToast('Uploading graphic banner...');
 
         try {
-          const uploaded = await uploadImageApi(result.assets[0].uri);
-          const finalUrl = uploaded?.url || result.assets[0].uri;
-          setAnnounceImages((prev) => [...prev, finalUrl]);
-          showToast('Image attached to broadcast!');
+          const uploaded = await uploadImageApi(asset.uri);
+          const finalUrl = (uploaded?.url && !uploaded.url.startsWith('file://') && !uploaded.url.startsWith('content://'))
+            ? uploaded.url
+            : (base64Url || asset.uri);
+
+          if (!finalUrl.startsWith('file://') && !finalUrl.startsWith('content://')) {
+            setAnnounceImages((prev) => [...prev, finalUrl]);
+            showToast('Image attached to broadcast!');
+          } else {
+            showToast('Could not process graphic image.');
+          }
         } catch {
-          setAnnounceImages((prev) => [...prev, result.assets[0].uri]);
-          showToast('Image attached');
+          if (base64Url) {
+            setAnnounceImages((prev) => [...prev, base64Url]);
+            showToast('Image attached to broadcast!');
+          } else {
+            showToast('Could not process graphic image.');
+          }
         }
       }
     } catch (err: any) {

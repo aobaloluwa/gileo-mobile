@@ -167,6 +167,7 @@ export function AdminOrdersView() {
           mediaTypes: ['images'],
           allowsMultipleSelection: true,
           quality: 0.85,
+          base64: true,
         });
       } else {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -174,7 +175,7 @@ export function AdminOrdersView() {
           Alert.alert('Permission Required', 'Camera permission is needed to take proof photos.');
           return;
         }
-        result = await ImagePicker.launchCameraAsync({ quality: 0.85 });
+        result = await ImagePicker.launchCameraAsync({ quality: 0.85, base64: true });
       }
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -183,19 +184,32 @@ export function AdminOrdersView() {
 
         const uploadedUrls: string[] = [];
         for (const asset of result.assets) {
+          const mime = asset.mimeType || 'image/jpeg';
+          const base64Url = asset.base64 ? `data:${mime};base64,${asset.base64}` : null;
+
           try {
             const uploaded = await uploadImageApi(asset.uri);
-            uploadedUrls.push(uploaded?.url || asset.uri);
+            if (uploaded?.url && !uploaded.url.startsWith('file://') && !uploaded.url.startsWith('content://')) {
+              uploadedUrls.push(uploaded.url);
+            } else if (base64Url) {
+              uploadedUrls.push(base64Url);
+            }
           } catch {
-            uploadedUrls.push(asset.uri);
+            if (base64Url) {
+              uploadedUrls.push(base64Url);
+            }
           }
         }
 
-        setProofsMap((prev) => ({
-          ...prev,
-          [orderId]: [...(prev[orderId] || []), ...uploadedUrls],
-        }));
-        showToast('Delivery proof image attached!');
+        if (uploadedUrls.length > 0) {
+          setProofsMap((prev) => ({
+            ...prev,
+            [orderId]: [...(prev[orderId] || []), ...uploadedUrls],
+          }));
+          showToast('Delivery proof image attached!');
+        } else {
+          showToast('Could not process delivery proof photo.');
+        }
       }
     } catch (err: any) {
       showToast(`Upload failed: ${err?.message || 'Could not attach image'}`);
