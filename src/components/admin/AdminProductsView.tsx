@@ -81,6 +81,32 @@ function extractProductMedia(p: AdminProduct) {
   return { urls, colors, sizes };
 }
 
+function extractProductCategory(p: any): string {
+  if (p.category) {
+    if (typeof p.category === 'string' && p.category.trim().length > 0) {
+      return p.category.trim();
+    }
+    if (typeof p.category === 'object' && typeof p.category.name === 'string' && p.category.name.trim().length > 0) {
+      return p.category.name.trim();
+    }
+  }
+  if (typeof p.categoryName === 'string' && p.categoryName.trim().length > 0) {
+    return p.categoryName.trim();
+  }
+  if (p.images && typeof p.images === 'object' && typeof p.images.category === 'string' && p.images.category.trim().length > 0) {
+    return p.images.category.trim();
+  }
+  if (typeof p.images === 'string') {
+    try {
+      const parsed = JSON.parse(p.images);
+      if (parsed && typeof parsed === 'object' && typeof parsed.category === 'string' && parsed.category.trim().length > 0) {
+        return parsed.category.trim();
+      }
+    } catch {}
+  }
+  return '';
+}
+
 export function AdminProductsView() {
   const insets = useSafeAreaInsets();
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -93,6 +119,7 @@ export function AdminProductsView() {
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [title, setTitle] = useState('');
+  const [categoryName, setCategoryName] = useState('Gileo Products');
   const [priceNaira, setPriceNaira] = useState('');
   const [stock, setStock] = useState('10');
   const [description, setDescription] = useState('');
@@ -143,6 +170,7 @@ export function AdminProductsView() {
   const handleOpenAdd = () => {
     setEditingProduct(null);
     setTitle('');
+    setCategoryName('');
     setPriceNaira('');
     setStock('10');
     setDescription('');
@@ -159,6 +187,7 @@ export function AdminProductsView() {
     const { urls, colors, sizes } = extractProductMedia(p);
     setEditingProduct(p);
     setTitle(p.title);
+    setCategoryName(extractProductCategory(p));
     setPriceNaira(String(Math.floor((p.priceKobo || 0) / 100)));
     setStock(String(p.stock || 0));
     setDescription(p.description || '');
@@ -175,6 +204,7 @@ export function AdminProductsView() {
     const { urls, colors, sizes } = extractProductMedia(p);
     setEditingProduct(null);
     setTitle(`${p.title} (Copy)`);
+    setCategoryName(extractProductCategory(p));
     setPriceNaira(String(Math.floor((p.priceKobo || 0) / 100)));
     setStock(String(p.stock || 0));
     setDescription(p.description || '');
@@ -359,6 +389,11 @@ export function AdminProductsView() {
     setIsSaving(true);
     const priceKobo = Math.round(parseFloat(priceNaira) * 100);
     const stockVal = parseInt(stock, 10) || 0;
+    const catName = categoryName.trim() || 'Gileo Products';
+
+    const imagesPayload = Array.isArray(images)
+      ? { urls: images, colors: selectedColors, sizes: selectedSizes, category: catName }
+      : images;
 
     try {
       if (editingProduct) {
@@ -370,7 +405,7 @@ export function AdminProductsView() {
             stock: stockVal,
             description: description.trim(),
             status,
-            images,
+            images: imagesPayload,
             colors: selectedColors,
             sizes: selectedSizes,
           }),
@@ -386,7 +421,7 @@ export function AdminProductsView() {
             stock: stockVal,
             description: description.trim() || 'Premium Gileo medical product',
             status,
-            images,
+            images: imagesPayload,
             colors: selectedColors,
             sizes: selectedSizes,
           }),
@@ -858,6 +893,48 @@ export function AdminProductsView() {
                 placeholderTextColor="#94A3B8"
                 style={styles.textInput}
               />
+            </View>
+
+            {/* Category Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.fieldLabel}>Product Category *</Text>
+              <TextInput
+                value={categoryName}
+                onChangeText={setCategoryName}
+                placeholder="e.g. Gileo Scrubs, Equipment, Accessories, Diagnostics"
+                placeholderTextColor="#94A3B8"
+                style={styles.textInput}
+              />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, marginTop: 8 }}
+              >
+                {['Gileo Scrubs', 'Equipment', 'Accessories', 'Diagnostics', 'Medical Apparel', 'Surgical Tools'].map((cat) => (
+                  <Pressable
+                    key={cat}
+                    onPress={() => setCategoryName(cat)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: categoryName === cat ? '#F10505' : '#F1F5F9',
+                      borderWidth: 1,
+                      borderColor: categoryName === cat ? '#F10505' : '#E2E8F0',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '700',
+                        color: categoryName === cat ? '#FFFFFF' : '#475569',
+                      }}
+                    >
+                      {cat}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
             </View>
 
             {/* Price & Stock Row */}

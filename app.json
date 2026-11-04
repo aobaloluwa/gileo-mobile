@@ -7,11 +7,6 @@
     "icon": "./assets/gileo-symbol.png",
     "scheme": "gileo",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/gileo-logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
-    },
     "ios": {
       "icon": "./assets/gileo-symbol.png",
       "bundleIdentifier": "com.gileo.app"
@@ -40,7 +35,17 @@
         }
       ],
       "@react-native-google-signin/google-signin",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 37,
+            "targetSdkVersion": 37,
+            "kotlinVersion": "2.2.0"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

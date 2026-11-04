@@ -8,7 +8,7 @@ type GalleryImagePickerProps = {
 };
 
 export function GalleryImagePicker({ onImagesSelected, triggerKey }: GalleryImagePickerProps) {
-  const webviewRef = useRef<WebView>(null);
+  const webviewRef = useRef<any>(null);
 
   useEffect(() => {
     if (triggerKey > 0 && webviewRef.current) {

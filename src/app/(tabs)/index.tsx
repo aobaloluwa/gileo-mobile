@@ -17,12 +17,13 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getInMemoryUserSync, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
 import { getFirstName } from './profile';
 import { colors, formatKobo, formatNaira, spacing } from '../../theme/colors';
 import { AdminDashboardView } from '../../components/admin/AdminDashboardView';
+import { CustomerHomeSkeleton } from '../../components/customer/CustomerHomeSkeleton';
 
 type LivePost = {
   id: string;
@@ -43,7 +44,60 @@ type LiveProduct = {
   rating: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
+  images?: string[];
 };
+
+function extractProductMedia(p: any): string[] {
+  let urls: string[] = [];
+  if (Array.isArray(p.images)) {
+    urls = p.images.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+  } else if (p.images && typeof p.images === 'object') {
+    const obj = p.images as any;
+    if (Array.isArray(obj.urls)) {
+      urls = obj.urls.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+    }
+  } else if (typeof p.images === 'string' && p.images.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(p.images);
+      if (Array.isArray(parsed)) {
+        urls = parsed.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+      } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.urls)) {
+        urls = parsed.urls;
+      }
+    } catch {
+      if (p.images.startsWith('http') || p.images.startsWith('data:image/')) {
+        urls = [p.images];
+      }
+    }
+  }
+  return urls;
+}
+
+function extractProductCategory(p: any): string {
+  if (p.category) {
+    if (typeof p.category === 'string' && p.category.trim().length > 0) {
+      return p.category.trim();
+    }
+    if (typeof p.category === 'object' && typeof p.category.name === 'string' && p.category.name.trim().length > 0) {
+      return p.category.name.trim();
+    }
+  }
+  if (typeof p.categoryName === 'string' && p.categoryName.trim().length > 0) {
+    return p.categoryName.trim();
+  }
+  if (p.images && typeof p.images === 'object' && typeof p.images.category === 'string' && p.images.category.trim().length > 0) {
+    return p.images.category.trim();
+  }
+  if (typeof p.images === 'string') {
+    try {
+      const parsed = JSON.parse(p.images);
+      if (parsed && typeof parsed === 'object' && typeof parsed.category === 'string' && parsed.category.trim().length > 0) {
+        return parsed.category.trim();
+      }
+    } catch {}
+  }
+  return 'Gileo Products';
+}
 
 type FeaturedService = {
   id: string;
@@ -99,48 +153,7 @@ const highlightedServices: FeaturedService[] = [
   },
 ];
 
-const defaultProducts: LiveProduct[] = [
-  {
-    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170001',
-    title: 'Gileo Dri-FIT Premium Scrubs Set',
-    category: 'Gileo Scrubs',
-    price: '₦28,500',
-    priceKobo: 2850000,
-    rating: '4.9',
-    icon: 'shirt-outline',
-    color: '#F10505',
-  },
-  {
-    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170002',
-    title: 'Clinical Dual-Head Stethoscope',
-    category: 'Equipment',
-    price: '₦35,000',
-    priceKobo: 3500000,
-    rating: '4.8',
-    icon: 'fitness-outline',
-    color: '#059669',
-  },
-  {
-    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170003',
-    title: 'Digital Automatic BP Monitor',
-    category: 'Accessories',
-    price: '₦22,000',
-    priceKobo: 2200000,
-    rating: '4.7',
-    icon: 'pulse-outline',
-    color: '#4F46E5',
-  },
-  {
-    id: '9b1deb4d-3b7d-4149-9cd1-e633d3170004',
-    title: 'Nurse Organizer Carry Backpack',
-    category: 'Accessories',
-    price: '₦18,000',
-    priceKobo: 1800000,
-    rating: '4.9',
-    icon: 'bag-handle-outline',
-    color: '#B45309',
-  },
-];
+const defaultProducts: LiveProduct[] = [];
 
 const pillars = [
   {
@@ -156,7 +169,7 @@ const pillars = [
     id: 'marketplace',
     icon: 'bag-handle' as const,
     title: 'Gileo Marketplace',
-    subtitle: 'Scrubs & supplies',
+    subtitle: 'Medical supplies',
     bg: '#FEF3C7',
     iconColor: '#B45309',
     targetRoute: '/(tabs)/marketplace',
@@ -189,13 +202,14 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [user, setUser] = useState<AuthUser | null>(() => getInMemoryUserSync());
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(!getInMemoryUserSync());
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Live Data States
   const [allPosts, setAllPosts] = useState<LivePost[]>([]);
   const [randomPosts, setRandomPosts] = useState<LivePost[]>([]);
-  const [allProducts, setAllProducts] = useState<LiveProduct[]>(defaultProducts);
-  const [randomProducts, setRandomProducts] = useState<LiveProduct[]>(defaultProducts);
+  const [allProducts, setAllProducts] = useState<LiveProduct[]>([]);
+  const [randomProducts, setRandomProducts] = useState<LiveProduct[]>([]);
   const [activeOrder, setActiveOrder] = useState<any | null>(null);
   const [adminStats, setAdminStats] = useState<any>({});
 
@@ -204,12 +218,21 @@ export default function HomeScreen() {
 
   const loadHomeDashboardData = async () => {
     let u = await getStoredUser();
-    setUser(u);
+    if (u) {
+      setUser(u);
+    }
 
-    // Sync latest user role from NestJS backend API
     try {
-      const profile = await apiRequest<any>('/profile/me');
-      if (profile?.role) {
+      const [profileRes, myOrdersRes, postsRes, prodsRes, adminRes] = await Promise.allSettled([
+        apiRequest<any>('/profile/me'),
+        apiRequest<any[]>('/shop/orders/mine'),
+        apiRequest<any[]>('/community/posts'),
+        apiRequest<any[]>('/shop/products'),
+        u?.role === 'ADMIN' ? apiRequest<any>('/admin/dashboard') : Promise.resolve(null),
+      ]);
+
+      if (profileRes.status === 'fulfilled' && profileRes.value?.role) {
+        const profile = profileRes.value;
         u = {
           id: profile.id || u?.id || '',
           email: profile.email || u?.email || '',
@@ -220,38 +243,22 @@ export default function HomeScreen() {
         const access = await getStoredAccessToken();
         const refresh = await getStoredRefreshToken();
         if (access && refresh) {
-          await storeAuthSession({ accessToken: access, refreshToken: refresh, user: u });
+          void storeAuthSession({ accessToken: access, refreshToken: refresh, user: u });
         }
       }
-    } catch {}
 
-    // If Admin, load admin dashboard stats
-    if (u?.role === 'ADMIN') {
-      try {
-        const stats = await apiRequest<any>('/admin/dashboard');
-        setAdminStats(stats || {});
-      } catch {
-        setAdminStats({});
+      if (adminRes.status === 'fulfilled' && adminRes.value) {
+        setAdminStats(adminRes.value || {});
       }
-    }
 
-    // Read real active orders from NestJS backend API
-    try {
-      const myOrders = await apiRequest<any[]>('/shop/orders/mine');
-      if (Array.isArray(myOrders) && myOrders.length > 0) {
-        setActiveOrder(myOrders[0]);
-      } else {
+      if (myOrdersRes.status === 'fulfilled' && Array.isArray(myOrdersRes.value) && myOrdersRes.value.length > 0) {
+        setActiveOrder(myOrdersRes.value[0]);
+      } else if (myOrdersRes.status === 'fulfilled') {
         setActiveOrder(null);
       }
-    } catch {
-      setActiveOrder(null);
-    }
 
-    // Load real community posts from NestJS backend API & pick 2 RANDOM posts
-    try {
-      const backendPosts = await apiRequest<any[]>('/community/posts');
-      if (Array.isArray(backendPosts) && backendPosts.length > 0) {
-        const mappedPosts: LivePost[] = backendPosts.map((p) => ({
+      if (postsRes.status === 'fulfilled' && Array.isArray(postsRes.value)) {
+        const mappedPosts: LivePost[] = postsRes.value.map((p) => ({
           id: p.id,
           authorName: p.authorName || 'Gileo Nurse',
           authorRole: p.authorRole || 'Community Member',
@@ -263,31 +270,30 @@ export default function HomeScreen() {
         setAllPosts(mappedPosts);
         setRandomPosts(shuffleArray(mappedPosts).slice(0, 2));
       }
-    } catch {}
 
-    // Load real products from NestJS backend & pick 4 RANDOM products
-    try {
-      const backendProds = await apiRequest<any[]>('/shop/products');
-      if (Array.isArray(backendProds) && backendProds.length > 0) {
-        const mapped: LiveProduct[] = backendProds.map((p) => ({
-          id: p.id,
-          title: p.title,
-          category: p.category?.name || 'Gileo Apparel',
-          price: formatKobo(p.priceKobo),
-          priceKobo: p.priceKobo,
-          rating: '4.9',
-          icon: 'bag-handle-outline',
-          color: '#F10505',
-        }));
+      if (prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value)) {
+        const mapped: LiveProduct[] = prodsRes.value.map((p) => {
+          const urls = extractProductMedia(p);
+          const category = extractProductCategory(p);
+          return {
+            id: p.id,
+            title: p.title,
+            category,
+            price: formatKobo(p.priceKobo),
+            priceKobo: p.priceKobo,
+            rating: '4.9',
+            icon: 'bag-handle-outline',
+            color: '#F10505',
+            images: urls,
+          };
+        });
         setAllProducts(mapped);
         setRandomProducts(shuffleArray(mapped).slice(0, 4));
-      } else {
-        setRandomProducts(shuffleArray(defaultProducts).slice(0, 4));
       }
     } catch {
-      setRandomProducts(shuffleArray(defaultProducts).slice(0, 4));
     } finally {
       setIsAuthChecking(false);
+      setIsLoading(false);
     }
   };
 
@@ -330,14 +336,6 @@ export default function HomeScreen() {
     return <AdminDashboardView />;
   }
 
-  if (isAuthChecking && !user) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F7F9', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#F10505" />
-      </SafeAreaView>
-    );
-  }
-
   // Global Deep Search Filtering
   const isSearching = searchQuery.trim().length > 0;
   const q = searchQuery.toLowerCase().trim();
@@ -364,15 +362,18 @@ export default function HomeScreen() {
           />
         }
       >
-        <Animated.View
-          style={{
-            gap: 18,
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
-        >
-          {/* Top Bar Header with Hello First Name */}
-          <View style={styles.topHeaderRow}>
+        {isLoading ? (
+          <CustomerHomeSkeleton />
+        ) : (
+          <Animated.View
+            style={{
+              gap: 18,
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
+          >
+            {/* Top Bar Header with Hello First Name */}
+            <View style={styles.topHeaderRow}>
             <View style={styles.greetingBox}>
               <Text style={styles.greetingSubTitle}>Hello, {firstName} 👋</Text>
               <Text style={styles.greetingTitle} numberOfLines={1}>Gileo Medicals</Text>
@@ -567,8 +568,18 @@ export default function HomeScreen() {
                           }
                           style={({ pressed }) => [styles.catalogCard, pressed && styles.pressed]}
                         >
-                          <View style={[styles.catalogIconBox, { backgroundColor: prod.color + '15' }]}>
-                            <Ionicons name={prod.icon} size={28} color={prod.color} />
+                          <View style={styles.catalogImageContainer}>
+                            {prod.images && prod.images.length > 0 ? (
+                              <Image
+                                source={{ uri: prod.images[0] }}
+                                style={styles.catalogCoverImage}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={[styles.catalogIconBox, { backgroundColor: prod.color + '15' }]}>
+                                <Ionicons name={prod.icon} size={28} color={prod.color} />
+                              </View>
+                            )}
                           </View>
 
                           <Text style={styles.catalogCategory}>{prod.category}</Text>
@@ -709,6 +720,7 @@ export default function HomeScreen() {
 
           <Text style={styles.footerNoteText}>GILEO MEDICALS GLOBAL LIMITED • 2026</Text>
         </Animated.View>
+      )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -1069,6 +1081,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
+  },
+  catalogImageContainer: {
+    width: '100%',
+    height: 110,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catalogCoverImage: {
+    width: '100%',
+    height: '100%',
   },
   catalogIconBox: {
     width: 52,

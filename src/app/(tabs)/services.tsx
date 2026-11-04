@@ -17,8 +17,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminCareRequestsView } from '../../components/admin/AdminCareRequestsView';
+import { CustomerServicesSkeleton } from '../../components/customer/CustomerServicesSkeleton';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
 import { getFirstName } from './profile';
@@ -201,7 +202,7 @@ export default function ServicesScreen() {
   const [activeTab, setActiveTab] = useState<'browse' | 'my_requests'>('browse');
 
   // Services Data State
-  const [services, setServices] = useState<ServiceItem[]>(() => sortServicesInRequiredOrder(defaultServices));
+  const [services, setServices] = useState<ServiceItem[]>([]);
   const [myRequests, setMyRequests] = useState<ServiceRequestItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -228,10 +229,14 @@ export default function ServicesScreen() {
   const [consentGiven, setConsentGiven] = useState(false);
   const [isSubmittingOnboarding, setIsSubmittingOnboarding] = useState(false);
 
+  // Safe area insets for iOS modals
+  const insets = useSafeAreaInsets();
+
   // Paystack Payment Verification State
   const [isPayingRequest, setIsPayingRequest] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Alert Dialog State
   const [alertInfo, setAlertInfo] = useState<{
@@ -255,29 +260,23 @@ export default function ServicesScreen() {
     const u = await getStoredUser();
     setUser(u);
 
-    // 1. Fetch published services from backend API
-    try {
-      const backendServices = await apiRequest<ServiceItem[]>('/services');
-      if (Array.isArray(backendServices) && backendServices.length > 0) {
-        setServices(sortServicesInRequiredOrder(backendServices));
-      } else {
-        setServices(sortServicesInRequiredOrder(defaultServices));
-      }
-    } catch {
-      setServices(sortServicesInRequiredOrder(defaultServices));
-    }
-
-    // 2. Fetch my service requests from backend API if signed in
     try {
       const token = await getStoredAccessToken();
-      if (token) {
-        const requestsRes = await apiRequest<ServiceRequestItem[]>('/service-requests/mine');
-        if (Array.isArray(requestsRes)) {
-          setMyRequests(requestsRes);
-        }
+      const [servicesRes, requestsRes] = await Promise.allSettled([
+        apiRequest<ServiceItem[]>('/services'),
+        token ? apiRequest<ServiceRequestItem[]>('/service-requests/mine') : Promise.resolve([]),
+      ]);
+
+      if (servicesRes.status === 'fulfilled' && Array.isArray(servicesRes.value)) {
+        setServices(sortServicesInRequiredOrder(servicesRes.value));
+      }
+
+      if (requestsRes.status === 'fulfilled' && Array.isArray(requestsRes.value)) {
+        setMyRequests(requestsRes.value);
       }
     } catch {
-      setMyRequests([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -628,7 +627,7 @@ export default function ServicesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -641,7 +640,10 @@ export default function ServicesScreen() {
           />
         }
       >
-        <Animated.View
+        {isLoading ? (
+          <CustomerServicesSkeleton />
+        ) : (
+          <Animated.View
           style={{
             gap: 16,
             opacity: fadeAnim,
@@ -900,6 +902,7 @@ export default function ServicesScreen() {
             <Ionicons name="call" size={20} color="#FFFFFF" />
           </Pressable>
         </Animated.View>
+        )}
       </ScrollView>
 
       {/* SERVICE DETAIL MODAL */}
@@ -909,7 +912,7 @@ export default function ServicesScreen() {
         animationType="fade"
         onRequestClose={() => setSelectedService(null)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedService(null)}>
+        <Pressable style={[styles.modalOverlay, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]} onPress={() => setSelectedService(null)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             {selectedService && (
               <>
@@ -976,7 +979,7 @@ export default function ServicesScreen() {
         onRequestClose={() => setShowRequestModal(false)}
       >
         <SafeAreaView style={styles.formSafeArea}>
-          <View style={styles.formHeader}>
+          <View style={[styles.formHeader, { paddingTop: Math.max(insets.top, 12) }]}>
             <Pressable onPress={() => setShowRequestModal(false)} style={styles.circleBtn}>
               <Ionicons name="close" size={20} color="#0F172A" />
             </Pressable>
@@ -984,7 +987,7 @@ export default function ServicesScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          <ScrollView contentContainerStyle={styles.formContent}>
+          <ScrollView contentContainerStyle={[styles.formContent, { paddingBottom: Math.max(insets.bottom, 24) }]}>
             {selectedService && (
               <View style={styles.selectedServiceBanner}>
                 <Ionicons name="medkit" size={20} color="#F10505" />
@@ -1090,7 +1093,7 @@ export default function ServicesScreen() {
         animationType="fade"
         onRequestClose={() => setConfirmedRequestRef(null)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
           <View style={styles.modalContent}>
             <View style={styles.successIconCircle}>
               <Ionicons name="checkmark-circle" size={56} color="#10B981" />
@@ -1126,7 +1129,7 @@ export default function ServicesScreen() {
         onRequestClose={() => setOnboardingTargetRequest(null)}
       >
         <SafeAreaView style={styles.formSafeArea}>
-          <View style={styles.formHeader}>
+          <View style={[styles.formHeader, { paddingTop: Math.max(insets.top, 12) }]}>
             <Pressable
               onPress={() => setOnboardingTargetRequest(null)}
               style={styles.circleBtn}
@@ -1137,7 +1140,7 @@ export default function ServicesScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          <ScrollView contentContainerStyle={styles.formContent}>
+          <ScrollView contentContainerStyle={[styles.formContent, { paddingBottom: Math.max(insets.bottom, 24) }]}>
             <View style={styles.noticeBoxLight}>
               <Ionicons name="lock-closed" size={20} color="#F10505" />
               <Text style={styles.noticeBoxLightText}>
@@ -1246,7 +1249,7 @@ export default function ServicesScreen() {
         animationType="fade"
         onRequestClose={() => {}}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
           <View style={styles.verifyingCard}>
             <ActivityIndicator size="large" color="#F10505" />
             <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
@@ -1263,7 +1266,7 @@ export default function ServicesScreen() {
         onRequestClose={() => setAlertInfo({ ...alertInfo, visible: false })}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}
           onPress={() => setAlertInfo({ ...alertInfo, visible: false })}
         >
           <Pressable style={styles.alertCard} onPress={(e) => e.stopPropagation()}>

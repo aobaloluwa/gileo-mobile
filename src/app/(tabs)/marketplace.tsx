@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as LinkingExpo from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -24,6 +24,7 @@ WebBrowser.maybeCompleteAuthSession();
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminProductsView } from '../../components/admin/AdminProductsView';
+import { CustomerMarketplaceSkeleton } from '../../components/customer/CustomerMarketplaceSkeleton';
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
 import { addNotification } from '../../services/notificationsStorage';
@@ -145,16 +146,96 @@ const initialProducts: Product[] = [
   },
 ];
 
-const categories = ['All', 'Gileo Scrubs', 'Equipment', 'Accessories'];
 const CART_STORAGE_KEY = '@gileo/persistent_user_cart';
+
+function extractProductMedia(p: any) {
+  let urls: string[] = [];
+  let colors: { name: string; hex: string }[] = [];
+  let sizes: string[] = [];
+
+  if (Array.isArray(p.colors) && p.colors.length > 0) {
+    colors = p.colors;
+  }
+  if (Array.isArray(p.sizes) && p.sizes.length > 0) {
+    sizes = p.sizes;
+  }
+
+  if (Array.isArray(p.images)) {
+    urls = p.images.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+  } else if (p.images && typeof p.images === 'object') {
+    const obj = p.images as any;
+    if (Array.isArray(obj.urls)) {
+      urls = obj.urls.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+    }
+    if (colors.length === 0 && Array.isArray(obj.colors)) colors = obj.colors;
+    if (sizes.length === 0 && Array.isArray(obj.sizes)) sizes = obj.sizes;
+  } else if (typeof p.images === 'string' && p.images.trim().length > 0) {
+    try {
+      const parsed = JSON.parse(p.images);
+      if (Array.isArray(parsed)) {
+        urls = parsed.filter((img: any) => typeof img === 'string' && img.trim().length > 0);
+      } else if (parsed && typeof parsed === 'object') {
+        if (Array.isArray(parsed.urls)) urls = parsed.urls;
+        if (colors.length === 0 && Array.isArray(parsed.colors)) colors = parsed.colors;
+        if (sizes.length === 0 && Array.isArray(parsed.sizes)) sizes = parsed.sizes;
+      }
+    } catch {
+      if (p.images.startsWith('http') || p.images.startsWith('data:image/')) {
+        urls = [p.images];
+      }
+    }
+  }
+
+  return { urls, colors, sizes };
+}
+
+function extractProductCategory(p: any): string {
+  if (p.category) {
+    if (typeof p.category === 'string' && p.category.trim().length > 0) {
+      return p.category.trim();
+    }
+    if (typeof p.category === 'object' && typeof p.category.name === 'string' && p.category.name.trim().length > 0) {
+      return p.category.name.trim();
+    }
+  }
+  if (typeof p.categoryName === 'string' && p.categoryName.trim().length > 0) {
+    return p.categoryName.trim();
+  }
+  if (p.images && typeof p.images === 'object' && typeof p.images.category === 'string' && p.images.category.trim().length > 0) {
+    return p.images.category.trim();
+  }
+  if (typeof p.images === 'string') {
+    try {
+      const parsed = JSON.parse(p.images);
+      if (parsed && typeof parsed === 'object' && typeof parsed.category === 'string' && parsed.category.trim().length > 0) {
+        return parsed.category.trim();
+      }
+    } catch {}
+  }
+  return 'Gileo Products';
+}
 
 export default function MarketplaceScreen() {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [productsList, setProductsList] = useState<Product[]>(initialProducts);
+  const [productsList, setProductsList] = useState<Product[]>([]);
+
+  // Dynamically compute unique categories from live products
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    cats.add('All');
+    productsList.forEach((p) => {
+      if (p.category && p.category.trim().length > 0) {
+        cats.add(p.category.trim());
+      }
+    });
+    return Array.from(cats);
+  }, [productsList]);
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
   // Product Selection Details State
@@ -209,6 +290,8 @@ export default function MarketplaceScreen() {
     onPrimaryPress: () => {},
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+
   // 1. Persistent Cart Loading & User Load & Entrance Animation on Mount
   useEffect(() => {
     Animated.parallel([
@@ -227,6 +310,7 @@ export default function MarketplaceScreen() {
     ]).start();
 
     async function initMarketplace() {
+      setIsLoading(true);
       const u = await getStoredUser();
       setUser(u);
 
@@ -238,9 +322,11 @@ export default function MarketplaceScreen() {
             setCart(parsed);
           }
         }
+        await fetchProducts();
       } catch {
       } finally {
         setIsCartLoaded(true);
+        setIsLoading(false);
       }
     }
     void initMarketplace();
@@ -275,25 +361,29 @@ export default function MarketplaceScreen() {
     try {
       const fetched = await apiRequest<any[]>('/shop/products');
       if (Array.isArray(fetched) && fetched.length > 0) {
-        const mapped: Product[] = fetched.map((p) => ({
-          id: p.id,
-          title: p.title,
-          category: p.category?.name || 'Gileo Collection',
-          price: formatKobo(p.priceKobo),
-          priceKobo: p.priceKobo,
-          description: p.description,
-          rating: '4.9',
-          reviewsCount: 15,
-          icon: 'bag-handle-outline',
-          color: '#F10505',
-          availableColors: p.colors || [
-            { name: 'Gileo Red', hex: '#F10505' },
-            { name: 'Navy Blue', hex: '#1E3A8A' },
-          ],
-          availableSizes: p.sizes || ['S', 'M', 'L', 'XL'],
-          images: p.images || [],
-          stock: p.stock ?? 10,
-        }));
+        const mapped: Product[] = fetched.map((p) => {
+          const { urls, colors, sizes } = extractProductMedia(p);
+          const category = extractProductCategory(p);
+          return {
+            id: p.id,
+            title: p.title,
+            category,
+            price: formatKobo(p.priceKobo),
+            priceKobo: p.priceKobo,
+            description: p.description || 'Premium Gileo medical supplies.',
+            rating: '4.9',
+            reviewsCount: 15,
+            icon: 'bag-handle-outline',
+            color: '#F10505',
+            availableColors: colors.length > 0 ? colors : [
+              { name: 'Gileo Red', hex: '#F10505' },
+              { name: 'Navy Blue', hex: '#1E3A8A' },
+            ],
+            availableSizes: sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL'],
+            images: urls,
+            stock: p.stock ?? 10,
+          };
+        });
         setProductsList(mapped);
       }
     } catch {}
@@ -367,6 +457,7 @@ export default function MarketplaceScreen() {
 
   const openProductDetail = (product: Product) => {
     setSelectedProduct(product);
+    setSelectedImageIndex(0);
     setSelectedColor(product.availableColors[0]?.name || '');
     setSelectedSize(product.availableSizes[0] || '');
     setItemQuantity(1);
@@ -665,7 +756,7 @@ export default function MarketplaceScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Toast Notification Banner (Positioned directly below status bar) */}
       {isToastVisible && (
         <Animated.View
@@ -693,13 +784,16 @@ export default function MarketplaceScreen() {
           />
         }
       >
-        <Animated.View
-          style={{
-            gap: 16,
-            opacity: pageFadeAnim,
-            transform: [{ translateY: pageSlideAnim }],
-          }}
-        >
+        {isLoading || !isCartLoaded ? (
+          <CustomerMarketplaceSkeleton />
+        ) : (
+          <Animated.View
+            style={{
+              gap: 16,
+              opacity: pageFadeAnim,
+              transform: [{ translateY: pageSlideAnim }],
+            }}
+          >
           {/* Top Header */}
           <View style={styles.header}>
             <View>
@@ -729,7 +823,7 @@ export default function MarketplaceScreen() {
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search Gileo Scrubs, stethoscope..."
+              placeholder="Search Gileo products, medical supplies..."
               placeholderTextColor="#94A3B8"
               style={styles.searchInput}
             />
@@ -849,6 +943,8 @@ export default function MarketplaceScreen() {
               })}
             </View>
           )}
+        </Animated.View>
+        )}
 
           {/* Animated Product Detail Modal */}
           <Modal
@@ -858,7 +954,7 @@ export default function MarketplaceScreen() {
             onRequestClose={closeProductDetail}
           >
             {selectedProduct && (
-              <View style={styles.detailOverlay}>
+              <View style={[styles.detailOverlay, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }]}>
                 <Animated.View
                   style={[
                     styles.detailModalSheet,
@@ -869,7 +965,7 @@ export default function MarketplaceScreen() {
                   ]}
                 >
                   <SafeAreaView style={{ flex: 1 }}>
-                    <View style={styles.detailHeader}>
+                    <View style={[styles.detailHeader, { paddingTop: Math.max(insets.top, 12) }]}>
                       <Pressable onPress={closeProductDetail} style={styles.circleBtn}>
                         <Ionicons name="arrow-back" size={20} color="#0F172A" />
                       </Pressable>
@@ -887,9 +983,103 @@ export default function MarketplaceScreen() {
                     </View>
 
                     <ScrollView contentContainerStyle={styles.detailScrollContent}>
-                      <View style={styles.showcaseBox}>
-                        <Ionicons name={selectedProduct.icon} size={110} color={selectedProduct.color} />
+                      {/* Full-Width Image Showcase Box */}
+                      <View style={styles.showcaseBoxFull}>
+                        {selectedProduct.images && selectedProduct.images.length > 0 ? (
+                          <View style={styles.showcaseGalleryContainer}>
+                            <Image
+                              source={{
+                                uri:
+                                  selectedProduct.images[
+                                    Math.min(selectedImageIndex, selectedProduct.images.length - 1)
+                                  ] || selectedProduct.images[0],
+                              }}
+                              style={styles.detailCoverImageFull}
+                              resizeMode="cover"
+                            />
+
+                            {/* Floating Image Count Badge */}
+                            {selectedProduct.images.length > 1 && (
+                              <View style={styles.imageCounterBadge}>
+                                <Ionicons name="images-outline" size={12} color="#FFFFFF" />
+                                <Text style={styles.imageCounterText}>
+                                  {selectedImageIndex + 1} / {selectedProduct.images.length}
+                                </Text>
+                              </View>
+                            )}
+
+                            {/* Floating Next / Previous Navigation Arrows */}
+                            {selectedProduct.images.length > 1 && (
+                              <>
+                                {selectedImageIndex > 0 && (
+                                  <Pressable
+                                    style={[styles.galleryNavBtn, styles.galleryNavBtnLeft]}
+                                    onPress={() => setSelectedImageIndex((prev) => Math.max(0, prev - 1))}
+                                    hitSlop={8}
+                                  >
+                                    <Ionicons name="chevron-back" size={20} color="#0F172A" />
+                                  </Pressable>
+                                )}
+
+                                {selectedImageIndex < selectedProduct.images.length - 1 && (
+                                  <Pressable
+                                    style={[styles.galleryNavBtn, styles.galleryNavBtnRight]}
+                                    onPress={() =>
+                                      setSelectedImageIndex((prev) =>
+                                        Math.min(selectedProduct.images.length - 1, prev + 1),
+                                      )
+                                    }
+                                    hitSlop={8}
+                                  >
+                                    <Ionicons name="chevron-forward" size={20} color="#0F172A" />
+                                  </Pressable>
+                                )}
+                              </>
+                            )}
+                          </View>
+                        ) : (
+                          <Ionicons name={selectedProduct.icon} size={110} color={selectedProduct.color} />
+                        )}
                       </View>
+
+                      {/* Multi-Image Angle Thumbnail Strip */}
+                      {selectedProduct.images && selectedProduct.images.length > 1 && (
+                        <View style={styles.thumbnailsSection}>
+                          <Text style={styles.thumbnailsHeaderTitle}>
+                            Product Views ({selectedProduct.images.length}):
+                          </Text>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.thumbnailListContainerRow}
+                          >
+                            {selectedProduct.images.map((imgUrl, idx) => {
+                              const isSelected = selectedImageIndex === idx;
+                              return (
+                                <Pressable
+                                  key={idx}
+                                  onPress={() => setSelectedImageIndex(idx)}
+                                  style={[
+                                    styles.thumbnailCard,
+                                    isSelected && styles.thumbnailCardSelected,
+                                  ]}
+                                >
+                                  <Image
+                                    source={{ uri: imgUrl }}
+                                    style={styles.thumbnailCardImg}
+                                    resizeMode="cover"
+                                  />
+                                  {isSelected && (
+                                    <View style={styles.thumbnailActiveCheck}>
+                                      <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                                    </View>
+                                  )}
+                                </Pressable>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      )}
 
                       <View style={styles.detailTitleRow}>
                         <View style={{ flex: 1 }}>
@@ -977,7 +1167,7 @@ export default function MarketplaceScreen() {
                       </View>
                     </ScrollView>
 
-                    <View style={styles.detailFooter}>
+                    <View style={[styles.detailFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
                       <Pressable
                         style={styles.addCartBtn}
                         onPress={() => addToCart(selectedProduct, itemQuantity)}
@@ -1008,7 +1198,7 @@ export default function MarketplaceScreen() {
             onRequestClose={() => setShowCartModal(false)}
           >
             <SafeAreaView style={styles.modalSafeArea}>
-              <View style={styles.detailHeader}>
+              <View style={[styles.detailHeader, { paddingTop: Math.max(insets.top, 12) }]}>
                 <Pressable onPress={() => setShowCartModal(false)} style={styles.circleBtn}>
                   <Ionicons name="close" size={20} color="#0F172A" />
                 </Pressable>
@@ -1050,7 +1240,7 @@ export default function MarketplaceScreen() {
                     ))}
                   </ScrollView>
 
-                  <View style={styles.cartFooter}>
+                  <View style={[styles.cartFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
                     <View style={styles.totalRow}>
                       <Text style={styles.totalLabel}>Subtotal</Text>
                       <Text style={styles.totalValue}>{cartTotalFormatted}</Text>
@@ -1079,7 +1269,7 @@ export default function MarketplaceScreen() {
             onRequestClose={() => setShowCheckoutModal(false)}
           >
             <SafeAreaView style={styles.modalSafeArea}>
-              <View style={styles.detailHeader}>
+              <View style={[styles.detailHeader, { paddingTop: Math.max(insets.top, 12) }]}>
                 <Pressable onPress={() => setShowCheckoutModal(false)} style={styles.circleBtn}>
                   <Ionicons name="close" size={20} color="#0F172A" />
                 </Pressable>
@@ -1087,7 +1277,7 @@ export default function MarketplaceScreen() {
                 <View style={{ width: 40 }} />
               </View>
 
-              <ScrollView contentContainerStyle={styles.checkoutContent}>
+              <ScrollView contentContainerStyle={[styles.checkoutContent, { paddingBottom: Math.max(insets.bottom, 24) }]}>
                 <View style={styles.paystackNoticeBox}>
                   <Ionicons name="shield-checkmark" size={22} color="#F10505" />
                   <View style={{ flex: 1, gap: 2 }}>
@@ -1144,7 +1334,7 @@ export default function MarketplaceScreen() {
             animationType="fade"
             onRequestClose={() => setShowOrderSuccessModal(false)}
           >
-            <View style={styles.successModalOverlay}>
+            <View style={[styles.successModalOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]}>
               <View style={styles.successCard}>
                 <View style={styles.successBadgeBox}>
                   <Ionicons name="checkmark-circle" size={64} color="#10B981" />
@@ -1195,7 +1385,7 @@ export default function MarketplaceScreen() {
             animationType="fade"
             onRequestClose={() => {}}
           >
-            <View style={styles.verifyingModalOverlay}>
+            <View style={[styles.verifyingModalOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]}>
               <View style={styles.verifyingCard}>
                 <ActivityIndicator size="large" color="#F10505" />
                 <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
@@ -1211,7 +1401,7 @@ export default function MarketplaceScreen() {
             animationType="fade"
             onRequestClose={hideAlertModal}
           >
-            <Pressable style={styles.customAlertOverlay} onPress={hideAlertModal}>
+            <Pressable style={[styles.customAlertOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]} onPress={hideAlertModal}>
               <Pressable style={styles.customAlertCard} onPress={(e) => e.stopPropagation()}>
                 <View style={[styles.customAlertIconBox, { backgroundColor: customAlert.iconColor + '18' }]}>
                   <Ionicons name={customAlert.icon} size={32} color={customAlert.iconColor} />
@@ -1234,7 +1424,6 @@ export default function MarketplaceScreen() {
               </Pressable>
             </Pressable>
           </Modal>
-        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -1556,11 +1745,105 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 20,
   },
-  showcaseBox: {
+  showcaseBoxFull: {
     width: '100%',
-    height: 220,
+    height: 290,
     borderRadius: 24,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  showcaseGalleryContainer: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  detailCoverImageFull: {
+    width: '100%',
+    height: '100%',
+  },
+  imageCounterBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  imageCounterText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  galleryNavBtn: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  galleryNavBtnLeft: {
+    left: 12,
+  },
+  galleryNavBtnRight: {
+    right: 12,
+  },
+  thumbnailsSection: {
+    gap: 8,
+  },
+  thumbnailsHeaderTitle: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  thumbnailListContainerRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  thumbnailCard: {
+    width: 62,
+    height: 62,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  thumbnailCardSelected: {
+    borderColor: '#F10505',
+  },
+  thumbnailCardImg: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailActiveCheck: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#F10505',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -47,7 +47,7 @@ export default function ForgotPasswordScreen() {
   const backScale = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
-  const codeInput = useRef<TextInput>(null);
+  const codeInput = useRef<any>(null);
 
   useEffect(() => {
     try {

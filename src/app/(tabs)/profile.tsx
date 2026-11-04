@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminHubView } from '../../components/admin/AdminHubView';
+import { CustomerProfileSkeleton } from '../../components/customer/CustomerProfileSkeleton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from '../../services/api';
 import { AuthUser, clearAuthSession, getStoredAccessToken, getStoredRefreshToken, getStoredUser, storeAuthSession } from '../../services/auth';
@@ -121,16 +122,40 @@ export default function ProfileScreen() {
   // Notification Toast State
   const [toastText, setToastText] = useState('');
   const [isToastVisible, setIsToastVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const toastAnim = useRef(new Animated.Value(-150)).current;
 
   const loadProfileData = async () => {
+    setIsLoading(true);
     let storedUser = await getStoredUser();
-    setUser(storedUser);
+    if (storedUser) {
+      setUser(storedUser);
+      setEditName(storedUser.displayName || '');
+    }
 
-    // Sync latest profile role from NestJS backend API
     try {
-      const profile = await apiRequest<any>('/profile/me');
-      if (profile?.role) {
+      const [
+        profileRes,
+        ordersRes,
+        connectionsRes,
+        myPostsRes,
+        savedPostsRes,
+        libraryRes,
+        localUserPostsJson,
+        localPurchasedJson,
+      ] = await Promise.allSettled([
+        apiRequest<any>('/profile/me'),
+        apiRequest<Order[]>('/shop/orders/mine'),
+        apiRequest<string[]>('/community/connections'),
+        apiRequest<any[]>('/community/posts/mine'),
+        apiRequest<any[]>('/community/saved-posts'),
+        apiRequest<any>('/learning/library'),
+        AsyncStorage.getItem('@gileo/local_user_posts'),
+        AsyncStorage.getItem('@gileo/purchased_ebooks'),
+      ]);
+
+      if (profileRes.status === 'fulfilled' && profileRes.value?.role) {
+        const profile = profileRes.value;
         storedUser = {
           id: profile.id || storedUser?.id || '',
           email: profile.email || storedUser?.email || '',
@@ -138,79 +163,44 @@ export default function ProfileScreen() {
           role: profile.role,
         };
         setUser(storedUser);
+        if (storedUser.displayName) setEditName(storedUser.displayName);
         const access = await getStoredAccessToken();
         const refresh = await getStoredRefreshToken();
         if (access && refresh) {
-          await storeAuthSession({ accessToken: access, refreshToken: refresh, user: storedUser });
+          void storeAuthSession({ accessToken: access, refreshToken: refresh, user: storedUser });
         }
       }
-    } catch {}
 
-    const userIdKey = storedUser?.id || 'guest';
-
-    if (storedUser) {
-      setEditName(storedUser.displayName || '');
-    }
-
-    try {
-      const myOrders = await apiRequest<Order[]>('/shop/orders/mine');
-      if (Array.isArray(myOrders)) {
-        setOrders(myOrders);
+      if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
+        setOrders(ordersRes.value);
       }
-    } catch {
-      setOrders([]);
-    }
 
-    // Load connections count from backend
-    try {
-      const connRes = await apiRequest<string[]>('/community/connections');
-      if (Array.isArray(connRes)) {
-        setConnectionsCount(connRes.length);
-      } else {
-        setConnectionsCount(0);
+      if (connectionsRes.status === 'fulfilled' && Array.isArray(connectionsRes.value)) {
+        setConnectionsCount(connectionsRes.value.length);
       }
-    } catch {
-      setConnectionsCount(0);
-    }
 
-    // Load My Posts from backend API & local user posts
-    try {
-      const [myPostsRes, localUserPostsJson] = await Promise.all([
-        apiRequest<any[]>('/community/posts/mine').catch(() => []),
-        AsyncStorage.getItem('@gileo/local_user_posts').catch(() => null),
-      ]);
-
-      const localUserPosts: FeedPost[] = localUserPostsJson ? JSON.parse(localUserPostsJson) : [];
-      const fetchedList: FeedPost[] = Array.isArray(myPostsRes)
-        ? myPostsRes.map((p) => ({
-            id: p.id,
-            authorId: p.authorId || storedUser?.id,
-            authorName: p.authorName || storedUser?.displayName || 'Gileo Nurse',
-            authorRole: p.authorRole || 'Community Member',
-            createdAt: typeof p.createdAt === 'number' ? p.createdAt : new Date(p.createdAt || Date.now()).getTime(),
-            category: p.category || 'Community Share',
-            content: p.content,
-            likesCount: p.likesCount || 0,
-            commentsCount: p.commentsCount || 0,
-            repostsCount: p.repostsCount || 0,
-            commentsList: p.commentsList || [],
-          }))
-        : [];
-
+      const localUserPostsRaw = localUserPostsJson.status === 'fulfilled' ? localUserPostsJson.value : null;
+      const localUserPosts: FeedPost[] = localUserPostsRaw ? JSON.parse(localUserPostsRaw) : [];
+      const fetchedMyPosts = myPostsRes.status === 'fulfilled' && Array.isArray(myPostsRes.value) ? myPostsRes.value : [];
+      const fetchedList: FeedPost[] = fetchedMyPosts.map((p) => ({
+        id: p.id,
+        authorId: p.authorId || storedUser?.id,
+        authorName: p.authorName || storedUser?.displayName || 'Gileo Nurse',
+        authorRole: p.authorRole || 'Community Member',
+        createdAt: typeof p.createdAt === 'number' ? p.createdAt : new Date(p.createdAt || Date.now()).getTime(),
+        category: p.category || 'Community Share',
+        content: p.content,
+        likesCount: p.likesCount || 0,
+        commentsCount: p.commentsCount || 0,
+        repostsCount: p.repostsCount || 0,
+        commentsList: p.commentsList || [],
+      }));
       const postMap = new Map<string, FeedPost>();
       [...localUserPosts, ...fetchedList].forEach((p) => postMap.set(p.id, p));
       setMyPosts(Array.from(postMap.values()).sort((a, b) => b.createdAt - a.createdAt));
-    } catch {
-      const localUserPostsJson = await AsyncStorage.getItem('@gileo/local_user_posts').catch(() => null);
-      const localUserPosts: FeedPost[] = localUserPostsJson ? JSON.parse(localUserPostsJson) : [];
-      setMyPosts(localUserPosts);
-    }
 
-    // Load Saved Bookmarks from backend API
-    try {
-      const savedRes = await apiRequest<any[]>('/community/saved-posts');
-      if (Array.isArray(savedRes)) {
-        const mappedSaved: FeedPost[] = savedRes.map((p) => ({
+      if (savedPostsRes.status === 'fulfilled' && Array.isArray(savedPostsRes.value)) {
+        const mappedSaved: FeedPost[] = savedPostsRes.value.map((p) => ({
           id: p.id,
           authorId: p.authorId,
           authorName: p.authorName || 'Gileo Nurse',
@@ -225,20 +215,13 @@ export default function ProfileScreen() {
           commentsList: p.commentsList || [],
         }));
         setBookmarkedPosts(mappedSaved);
-      } else {
-        setBookmarkedPosts([]);
       }
-    } catch {
-      setBookmarkedPosts([]);
-    }
 
-    // Load User Library E-Books from backend API & local fallback
-    try {
-      const libRes = await apiRequest<any>('/learning/library');
-      if (libRes?.ebooks && Array.isArray(libRes.ebooks) && libRes.ebooks.length > 0) {
-        setLibraryEBooks(libRes.ebooks);
+      const libVal = libraryRes.status === 'fulfilled' ? libraryRes.value : null;
+      if (libVal?.ebooks && Array.isArray(libVal.ebooks) && libVal.ebooks.length > 0) {
+        setLibraryEBooks(libVal.ebooks);
       } else {
-        const localPurchased = await AsyncStorage.getItem('@gileo/purchased_ebooks');
+        const localPurchased = localPurchasedJson.status === 'fulfilled' ? localPurchasedJson.value : null;
         if (localPurchased) {
           const ids: string[] = JSON.parse(localPurchased);
           setLibraryEBooks(
@@ -254,22 +237,9 @@ export default function ProfileScreen() {
         }
       }
     } catch {
-      const localPurchased = await AsyncStorage.getItem('@gileo/purchased_ebooks').catch(() => null);
-      if (localPurchased) {
-        const ids: string[] = JSON.parse(localPurchased);
-        setLibraryEBooks(
-          ids.map((id) => ({
-            id,
-            title: id.replace(/^ebook-/, 'HOW TO ').replace(/[-_]/g, ' ').toUpperCase(),
-            author: 'Gileo Medicals Global Limited',
-            description: 'Unlocked digital handbook guide in your personal Gileo library.',
-          })),
-        );
-      } else {
-        setLibraryEBooks([]);
-      }
+    } finally {
+      setIsLoading(false);
     }
-
   };
 
   useEffect(() => {
@@ -409,7 +379,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Toast Notification Banner */}
       {isToastVisible && (
         <Animated.View
@@ -437,34 +407,35 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Header Bar */}
-        <View style={styles.header}>
-          <Image
-            source={require('../../../assets/gileo-logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-            accessibilityLabel="Gileo Logo"
-          />
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={handleCallSupport}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+        {isLoading ? (
+          <CustomerProfileSkeleton />
+        ) : (
+          <Animated.View
+            style={[
+              styles.animatedContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
           >
-            <Ionicons name="call-outline" size={20} color="#0F172A" />
-          </Pressable>
-        </View>
+            {/* Header Bar */}
+            <View style={styles.header}>
+              <Image
+                source={require('../../../assets/gileo-logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+                accessibilityLabel="Gileo Logo"
+              />
 
-        {/* Animated Page Body */}
-        <Animated.View
-          style={[
-            styles.animatedContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleCallSupport}
+                style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+              >
+                <Ionicons name="call-outline" size={20} color="#0F172A" />
+              </Pressable>
+            </View>
           {/* User Profile Hero Card */}
           <View style={styles.userCard}>
             <View style={styles.avatarCircle}>
@@ -822,6 +793,7 @@ export default function ProfileScreen() {
             <Text style={styles.logoutBtnText}>Log Out</Text>
           </Pressable>
         </Animated.View>
+      )}
 
         {/* Order Receipt Modal */}
         <Modal
@@ -830,7 +802,7 @@ export default function ProfileScreen() {
           animationType="fade"
           onRequestClose={() => setSelectedOrder(null)}
         >
-          <Pressable style={styles.modalOverlay} onPress={() => setSelectedOrder(null)}>
+          <Pressable style={[styles.modalOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]} onPress={() => setSelectedOrder(null)}>
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               {selectedOrder && (
                 <>
@@ -907,7 +879,7 @@ export default function ProfileScreen() {
           animationType="fade"
           onRequestClose={() => setShowEditModal(false)}
         >
-          <Pressable style={styles.modalOverlay} onPress={() => setShowEditModal(false)}>
+          <Pressable style={[styles.modalOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]} onPress={() => setShowEditModal(false)}>
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalIconBox}>
@@ -962,7 +934,7 @@ export default function ProfileScreen() {
           onRequestClose={() => setCustomAlert((p) => ({ ...p, visible: false }))}
         >
           <Pressable
-            style={styles.modalOverlay}
+            style={[styles.modalOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]}
             onPress={() => setCustomAlert((p) => ({ ...p, visible: false }))}
           >
             <Pressable style={styles.customAlertCard} onPress={(e) => e.stopPropagation()}>

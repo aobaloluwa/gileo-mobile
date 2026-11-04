@@ -22,6 +22,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminOrdersView } from '../../components/admin/AdminOrdersView';
+import { CustomerCommunitySkeleton } from '../../components/customer/CustomerCommunitySkeleton';
 
 import { apiRequest } from '../../services/api';
 import { AuthUser, getStoredAccessToken, getStoredUser } from '../../services/auth';
@@ -383,23 +384,42 @@ export default function CommunityScreen() {
   // Toast Notification State
   const [toastText, setToastText] = useState('');
   const [isToastVisible, setIsToastVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const toastAnim = useRef(new Animated.Value(-150)).current;
 
   const loadCommunityData = async () => {
+    setIsLoading(true);
     const u = await getStoredUser();
     setUser(u);
 
     try {
-      // 1. Load real registered members & user connections from backend
-      const [membersRes, userConnections] = await Promise.all([
-        apiRequest<any[]>('/community/members').catch(() => null),
-        apiRequest<string[]>('/community/connections').catch(() => []),
+      const [
+        membersRes,
+        userConnectionsRes,
+        backendPostsRes,
+        userSavedPostsRes,
+        purchasedEBooksJson,
+        localUserPostsJson,
+        fetchedCohortsRes,
+        backendEbooksRes,
+        myLibraryRes,
+      ] = await Promise.allSettled([
+        apiRequest<any[]>('/community/members'),
+        apiRequest<string[]>('/community/connections'),
+        apiRequest<any[]>('/community/posts'),
+        apiRequest<any[]>('/community/saved-posts'),
+        AsyncStorage.getItem('@gileo/purchased_ebooks'),
+        AsyncStorage.getItem('@gileo/local_user_posts'),
+        apiRequest<Cohort[]>('/learning/cohorts'),
+        apiRequest<any[]>('/learning/ebooks'),
+        apiRequest<any>('/learning/library'),
       ]);
 
-      const connectedSet = new Set(userConnections || []);
+      const userConnections = userConnectionsRes.status === 'fulfilled' && Array.isArray(userConnectionsRes.value) ? userConnectionsRes.value : [];
+      const connectedSet = new Set(userConnections);
 
-      if (Array.isArray(membersRes) && membersRes.length > 0) {
-        const mappedMembers: RegisteredMember[] = membersRes.map((m) => ({
+      if (membersRes.status === 'fulfilled' && Array.isArray(membersRes.value) && membersRes.value.length > 0) {
+        const mappedMembers: RegisteredMember[] = membersRes.value.map((m) => ({
           id: m.id,
           displayName: m.displayName || m.email?.split('@')[0] || 'Gileo Member',
           email: m.email,
@@ -409,25 +429,19 @@ export default function CommunityScreen() {
         setRegisteredMembers(mappedMembers);
       }
 
-      // 2. Load public community posts & saved posts directly from backend database
-      const [backendPosts, userSavedPosts, purchasedEBooksJson, localUserPostsJson] =
-        await Promise.all([
-          apiRequest<any[]>('/community/posts').catch(() => null),
-          apiRequest<any[]>('/community/saved-posts').catch(() => []),
-          AsyncStorage.getItem('@gileo/purchased_ebooks').catch(() => null),
-          AsyncStorage.getItem('@gileo/local_user_posts').catch(() => null),
-        ]);
+      const userSavedPosts = userSavedPostsRes.status === 'fulfilled' && Array.isArray(userSavedPostsRes.value) ? userSavedPostsRes.value : [];
+      const savedSet = new Set(userSavedPosts.map((sp) => sp.id));
+      const localUserPostsRaw = localUserPostsJson.status === 'fulfilled' && localUserPostsJson.value ? localUserPostsJson.value : null;
+      const localUserPosts: FeedPost[] = localUserPostsRaw ? JSON.parse(localUserPostsRaw) : [];
 
-      const savedSet = new Set((userSavedPosts || []).map((sp) => sp.id));
-      const localUserPosts: FeedPost[] = localUserPostsJson ? JSON.parse(localUserPostsJson) : [];
-
-      if (purchasedEBooksJson) {
-        setPurchasedEBookIds(new Set(JSON.parse(purchasedEBooksJson)));
+      if (purchasedEBooksJson.status === 'fulfilled' && purchasedEBooksJson.value) {
+        setPurchasedEBookIds(new Set(JSON.parse(purchasedEBooksJson.value)));
       }
 
       const postMap = new Map<string, FeedPost>();
+      const backendPosts = backendPostsRes.status === 'fulfilled' && Array.isArray(backendPostsRes.value) ? backendPostsRes.value : [];
 
-      if (Array.isArray(backendPosts) && backendPosts.length > 0) {
+      if (backendPosts.length > 0) {
         backendPosts.forEach((p) => {
           const pCreatedAt =
             typeof p.createdAt === 'number' && !isNaN(p.createdAt)
@@ -488,28 +502,15 @@ export default function CommunityScreen() {
         }
       });
 
-      if (postMap.size === 0) {
-        fallbackCommunityPosts.forEach((fp) => {
-          postMap.set(fp.id, fp);
-        });
-      }
-
       const combinedFeed = Array.from(postMap.values()).sort((a, b) => b.createdAt - a.createdAt);
       setPosts(combinedFeed);
 
-      // 3. Load cohorts, e-books, and user library from backend API
-      const [fetchedCohorts, backendEbooks, myLibraryRes] = await Promise.all([
-        apiRequest<Cohort[]>('/learning/cohorts').catch(() => null),
-        apiRequest<any[]>('/learning/ebooks').catch(() => null),
-        apiRequest<any>('/learning/library').catch(() => null),
-      ]);
-
-      if (Array.isArray(fetchedCohorts) && fetchedCohorts.length > 0) {
-        setCohorts(fetchedCohorts);
+      if (fetchedCohortsRes.status === 'fulfilled' && Array.isArray(fetchedCohortsRes.value) && fetchedCohortsRes.value.length > 0) {
+        setCohorts(fetchedCohortsRes.value);
       }
 
-      if (Array.isArray(backendEbooks) && backendEbooks.length > 0) {
-        const mappedEBooks: EBook[] = backendEbooks.map((b, idx) => ({
+      if (backendEbooksRes.status === 'fulfilled' && Array.isArray(backendEbooksRes.value) && backendEbooksRes.value.length > 0) {
+        const mappedEBooks: EBook[] = backendEbooksRes.value.map((b, idx) => ({
           id: b.id,
           title: b.title,
           author: b.author || 'Gileo Medicals Global Limited',
@@ -520,12 +521,15 @@ export default function CommunityScreen() {
         setEBooks(mappedEBooks);
       }
 
-      if (myLibraryRes?.ebooks && Array.isArray(myLibraryRes.ebooks)) {
-        const unlockedIds = myLibraryRes.ebooks.map((e: any) => e.id);
+      const myLibrary = myLibraryRes.status === 'fulfilled' ? myLibraryRes.value : null;
+      if (myLibrary?.ebooks && Array.isArray(myLibrary.ebooks)) {
+        const unlockedIds = myLibrary.ebooks.map((e: any) => e.id);
         setPurchasedEBookIds((prev) => new Set([...Array.from(prev), ...unlockedIds]));
       }
     } catch {
       // Keep fallback
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1157,7 +1161,7 @@ export default function CommunityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Toast Notification Banner */}
       {isToastVisible && (
         <Animated.View
@@ -1176,7 +1180,7 @@ export default function CommunityScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
+        stickyHeaderIndices={isLoading ? [] : [1]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -1186,7 +1190,11 @@ export default function CommunityScreen() {
           />
         }
       >
-        {/* Top Header & Connected Members Stories (Non-sticky Index 0) */}
+        {isLoading ? (
+          <CustomerCommunitySkeleton />
+        ) : (
+          <>
+            {/* Top Header & Connected Members Stories (Non-sticky Index 0) */}
         <View style={styles.headerAndStoriesSection}>
           <View style={styles.header}>
             <View>
@@ -2128,7 +2136,7 @@ export default function CommunityScreen() {
             animationType="fade"
             onRequestClose={() => setShowEnrolmentSuccessModal(false)}
           >
-            <View style={styles.successModalOverlay}>
+            <View style={[styles.successModalOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]}>
               <View style={styles.successCard}>
                 <View style={styles.successBadgeBox}>
                   <Ionicons name="checkmark-circle" size={64} color="#10B981" />
@@ -2167,7 +2175,7 @@ export default function CommunityScreen() {
             animationType="fade"
             onRequestClose={() => {}}
           >
-            <View style={styles.verifyingModalOverlay}>
+            <View style={[styles.verifyingModalOverlay, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]}>
               <View style={styles.verifyingCard}>
                 <ActivityIndicator size="large" color="#F10505" />
                 <Text style={styles.verifyingTitle}>Verifying Payment...</Text>
@@ -2202,7 +2210,7 @@ export default function CommunityScreen() {
             animationType="fade"
             onRequestClose={() => setConnectionOptionsMember(null)}
           >
-            <View style={styles.modalOverlayDark}>
+            <View style={[styles.modalOverlayDark, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 24) }]}>
               <View style={styles.connectionOptionsCard}>
                 <View style={styles.optionsAvatarCircle}>
                   <Text style={styles.optionsAvatarText}>
@@ -2270,7 +2278,7 @@ export default function CommunityScreen() {
             <SafeAreaView style={styles.modalSafeArea}>
               {selectedEBook && (
                 <>
-                  <View style={styles.modalHeader}>
+                  <View style={[styles.modalHeader, { paddingTop: Math.max(insets.top, 12) }]}>
                     <Pressable onPress={() => setSelectedEBook(null)} style={styles.circleBtn}>
                       <Ionicons name="close" size={20} color="#0F172A" />
                     </Pressable>
@@ -2278,7 +2286,7 @@ export default function CommunityScreen() {
                     <View style={{ width: 40 }} />
                   </View>
 
-                  <ScrollView contentContainerStyle={styles.enrolContent}>
+                  <ScrollView contentContainerStyle={[styles.enrolContent, { paddingBottom: Math.max(insets.bottom, 24) }]}>
                     <View style={[styles.ebookModalHeaderCard, { backgroundColor: selectedEBook.coverBg }]}>
                       <Ionicons name="book" size={40} color="#FFFFFF" />
                       <Text style={styles.ebookModalTitle}>{selectedEBook.title}</Text>
@@ -2321,6 +2329,8 @@ export default function CommunityScreen() {
             </SafeAreaView>
           </Modal>
         </Animated.View>
+        </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

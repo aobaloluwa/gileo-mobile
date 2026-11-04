@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -11,7 +11,10 @@ import { colors } from '../theme';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts(Ionicons.font);
+  const [fontsLoaded, fontError] = useFonts({
+    ...Ionicons.font,
+    ...FontAwesome.font,
+  });
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -27,6 +30,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <Stack
+        id="root-stack"
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },

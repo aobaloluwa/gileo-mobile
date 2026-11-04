@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -82,10 +83,63 @@ export function AdminDashboardView() {
   const [refreshing, setRefreshing] = useState(false);
   const [timePeriod, setTimePeriod] = useState<'Daily' | 'Weekly' | 'Monthly'>('Weekly');
   const [dateFilter, setDateFilter] = useState<DateFilterOption>('Past 30 Days');
+  const [unreadNotifCount, setUnreadNotifCount] = useState<number>(0);
 
   // Modals & Network States
   const [showDateModal, setShowDateModal] = useState(false);
   const [isNetworkError, setIsNetworkError] = useState(false);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const [ordersRes, reqsRes, prodsRes, notifsRes] = await Promise.allSettled([
+        apiRequest<any[]>('/shop/orders'),
+        apiRequest<any[]>('/service-requests'),
+        apiRequest<any[]>('/shop/products'),
+        apiRequest<any[]>('/notifications'),
+      ]);
+
+      let count = 0;
+      if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
+        count += ordersRes.value.filter(
+          (o) => o.status === 'PAID' || o.status === 'PROCESSING' || o.status === 'SUBMITTED',
+        ).length;
+      }
+      if (reqsRes.status === 'fulfilled' && Array.isArray(reqsRes.value)) {
+        count += reqsRes.value.filter(
+          (r) => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW',
+        ).length;
+      }
+      if (prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value)) {
+        count += prodsRes.value.filter((p) => (p.stock ?? 10) <= 3).length;
+      }
+      if (notifsRes.status === 'fulfilled' && Array.isArray(notifsRes.value)) {
+        count += notifsRes.value.filter((n) => !n.read).length;
+      }
+
+      setUnreadNotifCount(count);
+      void AsyncStorage.setItem('@gileo/admin_unread_notif_count', String(count));
+      return count;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  useEffect(() => {
+    void AsyncStorage.getItem('@gileo/admin_unread_notif_count').then((val) => {
+      if (val) {
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          setUnreadNotifCount(parsed);
+        }
+      }
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetchUnreadCount();
+    }, [fetchUnreadCount]),
+  );
 
   const calculateDateRange = (filter: DateFilterOption) => {
     const now = new Date();
@@ -134,11 +188,17 @@ export function AdminDashboardView() {
       if (dates.startStr) queryUrl += `&startDate=${encodeURIComponent(dates.startStr)}`;
       if (dates.endStr) queryUrl += `&endDate=${encodeURIComponent(dates.endStr)}`;
 
-      const dashboardStats = await apiRequest<AdminDashboardStats>(queryUrl);
-      setStats((prev) => ({
-        ...prev,
-        ...(dashboardStats || {}),
-      }));
+      const [dashboardStats] = await Promise.all([
+        apiRequest<AdminDashboardStats>(queryUrl).catch(() => null),
+        fetchUnreadCount(),
+      ]);
+
+      if (dashboardStats) {
+        setStats((prev) => ({
+          ...prev,
+          ...dashboardStats,
+        }));
+      }
     } catch {
       setIsNetworkError(true);
     } finally {
@@ -222,7 +282,13 @@ export function AdminDashboardView() {
           <View style={styles.headerRightActions}>
             <Pressable style={styles.notifBtn} onPress={() => router.push('/notifications')}>
               <Ionicons name="notifications-outline" size={20} color="#0F172A" />
-              <View style={styles.notifDot} />
+              {unreadNotifCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                  </Text>
+                </View>
+              )}
             </Pressable>
 
             <Pressable style={styles.avatarCircle} onPress={() => router.push('/(tabs)/profile')}>
@@ -605,14 +671,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  notifDot: {
+  notifBadge: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: '#F10505',
     position: 'absolute',
-    top: 9,
-    right: 9,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#EF4444',
+    top: -2,
+    right: -2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   avatarCircle: {
     width: 40,
