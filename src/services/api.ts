@@ -102,3 +102,50 @@ export async function apiRequest<T>(
 
   return data as T;
 }
+
+export async function uploadImageApi(
+  uri: string,
+): Promise<{ url: string; publicId?: string }> {
+  const token = await getStoredAccessToken();
+  const formData = new FormData();
+
+  const filename = uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+  const match = /\.(\w+)$/.exec(filename);
+  const ext = match ? match[1].toLowerCase() : 'jpg';
+  const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+  const fileToUpload = {
+    uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+    name: filename,
+    type,
+  } as any;
+
+  formData.append('file', fileToUpload);
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/admin/upload/cloudinary`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw new Error(`Unable to connect to upload server at ${API_BASE_URL}.`);
+  }
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = data?.message ?? data?.error ?? 'Image upload failed';
+    throw new Error(Array.isArray(message) ? message.join(', ') : String(message));
+  }
+
+  return data as { url: string; publicId?: string };
+}
